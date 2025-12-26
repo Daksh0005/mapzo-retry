@@ -15,36 +15,35 @@
 </head>
 
 <body>
-    <nav class="navBar" role="navigation" aria-label="Main navigation">
+    <nav class="navBar1" role="navigation" aria-label="Main navigation">
         <div class="navLeft">
             <img src="Untitled design.png" alt="Mapzo Logo" class="navLogo">
             <p class="navBrand">Mapzo</p>
         </div>
-        
-        <div class="navMain">
-            <div class="navLoc">
-                <i class="fa-solid fa-location-dot"></i>
-                <p class="locDes">Location</p>
-            </div>
-            <form class="navSearch" role="search">
-                <input 
-                    placeholder="#Hashtags" 
-                    type="search" 
-                    class="navSrchBar"
-                    aria-label="Search events by hashtag">
-                <button class="navButton" type="submit" aria-label="Search">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </button>
-            </form>
-            <button class="navMenu" aria-label="Open menu">
-                <i class="fa-solid fa-bars"></i>
-            </button>
-        </div>
+        <button class="navMenu" aria-label="Open menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
     </nav>
+    <header class="navMain">
+        <div class="navLoc">
+            <i class="fa-solid fa-location-dot"></i>
+            <p class="locDes">Location</p>
+        </div>
+        <form class="navSearch" role="search">
+            <input 
+                placeholder="#Hashtags" 
+                type="search" 
+                class="navSrchBar"
+                aria-label="Search events by hashtag">
+            <button class="navButton" type="submit" aria-label="Search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </form>
+    </header>
     
     <main>
         <div class="map">
-            
+
         </div>
     </main>
 </body>
