@@ -160,6 +160,7 @@ body {
     align-items: center;
     gap: 14px;
     justify-self: end;
+    min-width:0px;
 }
 
 /* =========================
