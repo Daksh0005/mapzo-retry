@@ -1,0 +1,331 @@
+/* =========================
+   RESET & ROOT VARIABLES
+   ========================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Backgrounds */
+    --bg-primary: #121212;
+    --bg-navbar: #000000;
+    --bg-search: #181818;
+    --bg-search-hover: #282828;
+
+    /* Text */
+    --text-primary: #FFFFFF;
+    --text-secondary: #B3B3B3;
+    --text-hover: #FFFFFF;
+
+    /* Accent */
+    --accent-color: #1DB954;
+}
+
+/* =========================
+   BASE STYLES
+   ========================= */
+
+body {
+    background-color: var(--bg-primary);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+}
+
+/* =========================
+   NAVBAR (GRID LAYOUT)
+   ========================= */
+
+.navBar {
+    width: 100%;
+    min-height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+
+    padding: 0 12px;
+    background-color: var(--bg-navbar);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+/* =========================
+   LEFT ZONE (LOGO + BRAND)
+   ========================= */
+
+.navLeft {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-self: start;
+}
+
+.navLogo {
+    height: 56px;
+    width: auto;
+    transition: transform 0.2s ease;
+}
+
+.navLogo:hover {
+    transform: scale(1.05);
+}
+
+.navBrand {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+/* =========================
+   CENTER ZONE (SEARCH)
+   ========================= */
+
+.navMain {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+}
+
+/* =========================
+   SEARCH BAR (SPOTIFY STYLE)
+   ========================= */
+
+.navSearch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 8px 14px;
+    border-radius: 500px;
+
+    background-color: var(--bg-search);
+    border: 1px solid transparent;
+
+    transition: background-color 0.25s ease,
+                border-color 0.25s ease,
+                box-shadow 0.25s ease;
+}
+
+.navSearch:hover {
+    background-color: var(--bg-search-hover);
+}
+
+.navSearch:focus-within {
+    background-color: var(--bg-search-hover);
+    border-color: #2A2A2A;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.navSrchBar {
+    width: 220px;
+    background: transparent;
+    border: none;
+    outline: none;
+
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.navSrchBar::placeholder {
+    color: var(--text-secondary);
+}
+
+.navSearch i {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+
+.navSearch:focus-within i {
+    color: var(--text-primary);
+}
+
+/* =========================
+   RIGHT ZONE (LOCATION + ACTIONS)
+   ========================= */
+
+.navRight {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    justify-self: end;
+}
+
+/* =========================
+   LOCATION BLOCK
+   ========================= */
+
+.navLoc {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 6px 12px;
+    border-radius: 999px;
+
+    background-color: transparent;
+    color: var(--text-secondary);
+
+    font-size: 0.95rem;
+    font-weight: 500;
+
+    transition: background-color 0.25s ease,
+                color 0.25s ease,
+                transform 0.2s ease;
+}
+
+.navLoc i {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    transition: color 0.25s ease;
+}
+
+.navLoc p {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.navLoc:hover {
+    background-color: var(--bg-search);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.navLoc:hover i {
+    color: var(--accent-color);
+}
+
+.navLoc:active {
+    transform: scale(0.96);
+}
+
+/* =========================
+   BUTTONS & MENU
+   ========================= */
+
+.navButton {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    padding: 4px;
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.navButton:hover {
+    color: var(--accent-color);
+    transform: scale(1.1);
+}
+
+.navButton i {
+    font-size: 1.1rem;
+}
+
+.navMenu {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    padding: 8px;
+    border-radius: 8px;
+
+    display: flex;
+    align-items: center;
+
+    font-size: 1.3rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.navMenu:hover {
+    background-color: var(--bg-search);
+    color: var(--accent-color);
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (min-width: 768px) {
+    .navBar {
+        min-height: 64px;
+        padding: 0 48px;
+    }
+
+    .navLogo {
+        height: 48px;
+    }
+
+    .navBrand {
+        font-size: 1.8rem;
+    }
+
+    .navMain {
+        gap: 28px;
+    }
+
+    .navSrchBar {
+        width: 280px;
+    }
+
+    .navSearch {
+        padding: 10px 20px;
+    }
+}
+
+@media (max-width: 767px) {
+    .navBar {
+        padding: 0 16px;
+    }
+
+    .navMain {
+        justify-content: flex-start;
+        gap: 12px;
+    }
+
+    .navBrand {
+        font-size: 1.2rem;
+    }
+
+    .navSrchBar {
+        width: 140px;
+        font-size: 0.9rem;
+    }
+
+    .navSearch {
+        padding: 6px 12px;
+    }
+
+    .navLogo {
+        height: 36px;
+    }
+}
+
+@media (max-width: 480px) {
+    .navSrchBar {
+        width: 100px;
+    }
+
+    .navBrand {
+        font-size: 1rem;
+    }
+}
