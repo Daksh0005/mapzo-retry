@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapzo - Discover Events</title>
     
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
@@ -20,10 +19,11 @@
             <img src="Untitled design.png" alt="Mapzo Logo" class="navLogo">
             <p class="navBrand">Mapzo</p>
         </div>
-        <button class="navMenu" aria-label="Open menu">
+        <button class="navMenu" aria-label="Open menu" onclick="toggleMenu()">
             <i class="fa-solid fa-bars"></i>
         </button>
     </nav>
+
     <header class="navMain">
         <div class="navLoc">
             <i class="fa-solid fa-location-dot"></i>
@@ -42,15 +42,46 @@
     </header>
     
     <main>
-        <div class="map">
-
-        </div>
+        <div class="map"></div>
     </main>
+
     <div class="hostBar">
-        <button class="hostBox"  aria-label="Add Event">
+        <button class="hostBox" aria-label="Add Event">
             <i class="fa-solid fa-plus"></i>
         </button>
     </div>
 
+    <div class="menuOverlay" onclick="toggleMenu()"></div>
+
+    <div class="menu">
+        <button class="menuClose" onclick="toggleMenu()" aria-label="Close menu">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="menuSection">
+            <p class="menuTitle">Account</p>
+            <p class="logSign">Sign Up</p>
+            <p class="logSign">Log In</p>
+        </div>
+
+        <div class="menuDivider"></div>
+
+        <div class="menuSection">
+            <p class="menuTitle">Settings</p>
+            <p class="otherMenu">Notifications</p>
+            <p class="otherMenu">Verification as Host</p>
+            <p class="otherMenu">Permissions</p>
+        </div>
+
+        <div class="menuDivider"></div>
+
+        <div class="menuSection">
+            <p class="menuTitle">Support</p>
+            <p class="otherMenu">Terms & Conditions</p>
+            <p class="otherMenu">Contact Us</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
