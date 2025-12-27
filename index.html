@@ -20,6 +20,7 @@
 </head>
 
 <body>
+    <!-- Top Navigation Bar -->
     <nav class="navBar1" role="navigation" aria-label="Main navigation">
         <div class="navLeft">
             <img src="Untitled design.png" alt="Mapzo Logo" class="navLogo">
@@ -30,192 +31,277 @@
         </button>
     </nav>
 
+    <!-- Search Bar with Location -->
     <header class="navMain">
-    <div class="navLoc" onclick="openFilterModal()">
-        <i class="fa-solid fa-sliders"></i>
-        <p class="locDes">Filters</p>
+        <div class="navLoc" onclick="openLocationModal()">
+            <i class="fa-solid fa-location-dot"></i>
+            <p class="locDes" id="locationDisplay">Enable<br>Location</p>
+        </div>
+        <div class="navLoc" onclick="openFilterModal()">
+            <i class="fa-solid fa-sliders"></i>
+            <p class="locDes">Filters</p>
+        </div>
+        <form class="navSearch" role="search">
+            <input 
+                placeholder="#Hashtags" 
+                type="search" 
+                class="navSrchBar"
+                aria-label="Search events by hashtag">
+            <button class="navButton" type="submit" aria-label="Search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </form>
+    </header>
+
+    <!-- Location Selection Modal -->
+    <div class="locationOverlay">
+        <div class="locationModal">
+            <div class="locationHeader">
+                <button class="locationClose" onclick="closeLocationModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h2 class="locationTitle">Set Your Location</h2>
+            </div>
+            
+            <div class="locationContent">
+                <button class="locationOption" onclick="enableGPS()">
+                    <div class="optionIcon">
+                        <i class="fa-solid fa-location-crosshairs"></i>
+                    </div>
+                    <div class="optionText">
+                        <h3>Enable Location</h3>
+                        <p>Use your device GPS to detect location</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right optionArrow"></i>
+                </button>
+                
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+                
+                <button class="locationOption" onclick="showManualInput()">
+                    <div class="optionIcon">
+                        <i class="fa-solid fa-pen"></i>
+                    </div>
+                    <div class="optionText">
+                        <h3>Fill Manually</h3>
+                        <p>Search and select your location</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right optionArrow"></i>
+                </button>
+            </div>
+        </div>
     </div>
-    <form class="navSearch" role="search">
-        <input 
-            placeholder="#Hashtags" 
-            type="search" 
-            class="navSrchBar"
-            aria-label="Search events by hashtag">
-        <button class="navButton" type="submit" aria-label="Search">
-            <i class="fa-solid fa-magnifying-glass"></i>
-        </button>
-    </form>
-</header>
 
-<div class="filterOverlay">
-    <div class="filterModal">
-        <div class="filterHeader">
-            <button class="filterClose" onclick="closeFilterModal()">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            <h2 class="filterTitle">Filters</h2>
-            <button class="filterReset" onclick="resetFilters()">
-                Reset
-            </button>
-        </div>
-
-        <div class="filterTabs">
-            <button class="filterTab active" data-tab="date">
-                <i class="fa-regular fa-calendar"></i>
-                Date
-            </button>
-            <button class="filterTab" data-tab="distance">
-                <i class="fa-solid fa-location-dot"></i>
-                Distance
-            </button>
-            <button class="filterTab" data-tab="category">
-                <i class="fa-solid fa-grid-2"></i>
-                Category
-            </button>
-        </div>
-
-        <div class="filterContent">
-            <div class="filterTabContent active" id="dateTab">
-                <div class="quickFilters">
-                    <button class="quickFilterBtn active" data-quick="today">Today</button>
-                    <button class="quickFilterBtn" data-quick="tomorrow">Tomorrow</button>
-                    <button class="quickFilterBtn" data-quick="week">This Week</button>
-                    <button class="quickFilterBtn" data-quick="month">This Month</button>
-                </div>
-                
-                <div class="calendarContainer">
-                    <div class="calendarHeader">
-                        <button class="calendarNav" id="prevMonth">
-                            <i class="fa-solid fa-chevron-left"></i>
-                        </button>
-                        <span class="calendarMonth" id="currentMonth">December 2025</span>
-                        <button class="calendarNav" id="nextMonth">
-                            <i class="fa-solid fa-chevron-right"></i>
-                        </button>
-                    </div>
-                    <div class="calendarWeekdays">
-                        <span>Sun</span>
-                        <span>Mon</span>
-                        <span>Tue</span>
-                        <span>Wed</span>
-                        <span>Thu</span>
-                        <span>Fri</span>
-                        <span>Sat</span>
-                    </div>
-                    <div class="calendarDays" id="calendarDays">
-                    </div>
-                </div>
+    <!-- Manual Location Input Modal -->
+    <div class="manualLocationOverlay">
+        <div class="manualLocationModal">
+            <div class="locationHeader">
+                <button class="locationBack" onclick="backToLocationOptions()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2 class="locationTitle">Search Location</h2>
+                <button class="locationDone" onclick="confirmManualLocation()">
+                    Done
+                </button>
             </div>
-
-            <div class="filterTabContent" id="distanceTab">
-                <div class="distanceInput">
-                    <label class="distanceLabel">Enter distance in kilometers</label>
-                    <div class="distanceField">
-                        <input 
-                            type="number" 
-                            class="distanceValue" 
-                            id="distanceInput"
-                            placeholder="0"
-                            min="0"
-                            max="5000">
-                        <span class="distanceUnit">km</span>
-                    </div>
-                    <div class="distanceSlider">
-                        <input 
-                            type="range" 
-                            class="distanceRange" 
-                            id="distanceRange"
-                            min="0"
-                            max="500"
-                            value="50"
-                            step="5">
-                        <div class="distanceMarkers">
-                            <span>0</span>
-                            <span>250</span>
-                            <span>500+</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="quickFilters">
-                    <button class="quickFilterBtn" data-distance="5">5 km</button>
-                    <button class="quickFilterBtn" data-distance="10">10 km</button>
-                    <button class="quickFilterBtn" data-distance="25">25 km</button>
-                    <button class="quickFilterBtn" data-distance="50">50 km</button>
-                    <button class="quickFilterBtn" data-distance="100">100 km</button>
-                    <button class="quickFilterBtn" data-distance="500">500 km</button>
-                </div>
-            </div>
-
-            <div class="filterTabContent" id="categoryTab">
-                <div class="categorySearch">
+            
+            <div class="searchContainer">
+                <div class="locationSearchBox">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input 
                         type="text" 
-                        class="categorySearchInput" 
-                        id="categorySearch"
-                        placeholder="Search categories...">
+                        class="locationSearchInput" 
+                        id="manualLocationInput"
+                        placeholder="Type city, district, or village..."
+                        oninput="handleLocationSearch(this.value)">
                 </div>
                 
-                <div class="categoryGrid" id="categoryGrid">
-                    <button class="categoryCard active" data-category="all">
-                        <i class="fa-solid fa-grid-2"></i>
-                        <span>All</span>
-                    </button>
-                    <button class="categoryCard" data-category="Music">
-                        <i class="fa-solid fa-music"></i>
-                        <span>Music</span>
-                    </button>
-                    <button class="categoryCard" data-category="Tech">
-                        <i class="fa-solid fa-laptop-code"></i>
-                        <span>Tech</span>
-                    </button>
-                    <button class="categoryCard" data-category="Sports">
-                        <i class="fa-solid fa-basketball"></i>
-                        <span>Sports</span>
-                    </button>
-                    <button class="categoryCard" data-category="Cultural">
-                        <i class="fa-solid fa-masks-theater"></i>
-                        <span>Cultural</span>
-                    </button>
-                    <button class="categoryCard" data-category="Food">
-                        <i class="fa-solid fa-utensils"></i>
-                        <span>Food</span>
-                    </button>
+                <div class="locationSuggestions" id="locationSuggestions">
+                    <!-- Suggestions will be added here dynamically -->
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="filterFooter">
-            <button class="filterApply" onclick="applyFilters()">
-                Apply Filters
-            </button>
+    <!-- Filter Modal -->
+    <div class="filterOverlay">
+        <div class="filterModal">
+            <div class="filterHeader">
+                <button class="filterClose" onclick="closeFilterModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h2 class="filterTitle">Filters</h2>
+                <button class="filterReset" onclick="resetFilters()">
+                    Reset
+                </button>
+            </div>
+
+            <div class="filterTabs">
+                <button class="filterTab active" data-tab="date">
+                    <i class="fa-regular fa-calendar"></i>
+                    Date
+                </button>
+                <button class="filterTab" data-tab="distance">
+                    <i class="fa-solid fa-location-dot"></i>
+                    Distance
+                </button>
+                <button class="filterTab" data-tab="category">
+                    <i class="fa-solid fa-grid-2"></i>
+                    Category
+                </button>
+            </div>
+
+            <div class="filterContent">
+                <!-- Date Filter Tab -->
+                <div class="filterTabContent active" id="dateTab">
+                    <div class="quickFilters">
+                        <button class="quickFilterBtn active" data-quick="today">Today</button>
+                        <button class="quickFilterBtn" data-quick="tomorrow">Tomorrow</button>
+                        <button class="quickFilterBtn" data-quick="week">This Week</button>
+                        <button class="quickFilterBtn" data-quick="month">This Month</button>
+                    </div>
+                    
+                    <div class="calendarContainer">
+                        <div class="calendarHeader">
+                            <button class="calendarNav" id="prevMonth">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <span class="calendarMonth" id="currentMonth">December 2025</span>
+                            <button class="calendarNav" id="nextMonth">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="calendarWeekdays">
+                            <span>Sun</span>
+                            <span>Mon</span>
+                            <span>Tue</span>
+                            <span>Wed</span>
+                            <span>Thu</span>
+                            <span>Fri</span>
+                            <span>Sat</span>
+                        </div>
+                        <div class="calendarDays" id="calendarDays">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Distance Filter Tab -->
+                <div class="filterTabContent" id="distanceTab">
+                    <div class="distanceInput">
+                        <label class="distanceLabel">Enter distance in kilometers</label>
+                        <div class="distanceField">
+                            <input 
+                                type="number" 
+                                class="distanceValue" 
+                                id="distanceInput"
+                                placeholder="0"
+                                min="0"
+                                max="5000">
+                            <span class="distanceUnit">km</span>
+                        </div>
+                        <div class="distanceSlider">
+                            <input 
+                                type="range" 
+                                class="distanceRange" 
+                                id="distanceRange"
+                                min="0"
+                                max="500"
+                                value="50"
+                                step="5">
+                            <div class="distanceMarkers">
+                                <span>0</span>
+                                <span>250</span>
+                                <span>500+</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="quickFilters">
+                        <button class="quickFilterBtn" data-distance="5">5 km</button>
+                        <button class="quickFilterBtn" data-distance="10">10 km</button>
+                        <button class="quickFilterBtn" data-distance="25">25 km</button>
+                        <button class="quickFilterBtn" data-distance="50">50 km</button>
+                        <button class="quickFilterBtn" data-distance="100">100 km</button>
+                        <button class="quickFilterBtn" data-distance="500">500 km</button>
+                    </div>
+                </div>
+
+                <!-- Category Filter Tab -->
+                <div class="filterTabContent" id="categoryTab">
+                    <div class="categorySearch">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input 
+                            type="text" 
+                            class="categorySearchInput" 
+                            id="categorySearch"
+                            placeholder="Search categories...">
+                    </div>
+                    
+                    <div class="categoryGrid" id="categoryGrid">
+                        <button class="categoryCard active" data-category="all">
+                            <i class="fa-solid fa-grid-2"></i>
+                            <span>All</span>
+                        </button>
+                        <button class="categoryCard" data-category="Music">
+                            <i class="fa-solid fa-music"></i>
+                            <span>Music</span>
+                        </button>
+                        <button class="categoryCard" data-category="Tech">
+                            <i class="fa-solid fa-laptop-code"></i>
+                            <span>Tech</span>
+                        </button>
+                        <button class="categoryCard" data-category="Sports">
+                            <i class="fa-solid fa-basketball"></i>
+                            <span>Sports</span>
+                        </button>
+                        <button class="categoryCard" data-category="Cultural">
+                            <i class="fa-solid fa-masks-theater"></i>
+                            <span>Cultural</span>
+                        </button>
+                        <button class="categoryCard" data-category="Food">
+                            <i class="fa-solid fa-utensils"></i>
+                            <span>Food</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filterFooter">
+                <button class="filterApply" onclick="applyFilters()">
+                    Apply Filters
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-    
+    <!-- Main Map Section -->
     <main>
         <div class="map"></div>
     </main>
 
+    <!-- Events Section -->
     <section class="eventsSection">
         <div class="sectionHeader">
             <h2 class="sectionTitle">Relevant Events</h2>
             <a href="#" class="seeAll">See all</a>
         </div>
         <div class="eventsScroll">
+            <!-- Event cards will be dynamically added here -->
         </div>
     </section>
 
+    <!-- Floating Host Event Button -->
     <div class="hostBar">
         <button class="hostBox" aria-label="Add Event" onclick="openUploadForm()">
             <i class="fa-solid fa-plus"></i>
         </button>
     </div>
 
+    <!-- Menu Overlay -->
     <div class="menuOverlay" onclick="toggleMenu()"></div>
 
+    <!-- Side Menu -->
     <div class="menu">
         <button class="menuClose" onclick="toggleMenu()" aria-label="Close menu">
             <i class="fa-solid fa-xmark"></i>
@@ -245,6 +331,7 @@
         </div>
     </div>
 
+    <!-- Event Upload Modal -->
     <div class="uploadOverlay">
         <div class="uploadModal">
             <div class="uploadHeader">

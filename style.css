@@ -42,78 +42,238 @@ html, body {
     position: sticky;
     top: 0;
     z-index: 100;
-
+    
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    padding: 10px 14px;
-    background: var(--bg-navbar);
+    
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    
+    border-bottom: 1px solid rgba(29, 185, 84, 0.12);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
 }
+
+
 .navLeft {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
+    animation: fadeInLeft 0.6s ease;
 }
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
 .navLogo {
-    height: 48px;
+    height: 52px;
+    filter: drop-shadow(0 2px 8px rgba(29, 185, 84, 0.3));
+    transition: transform 0.3s ease;
 }
+
+.navLogo:hover {
+    transform: scale(1.05) rotate(2deg);
+}
+
 .navBrand {
     font-family: 'Montserrat', sans-serif;
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1.4rem;
+    background: linear-gradient(135deg, #1db954 0%, #1ed760 50%, #2cff77 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.8px;
+    position: relative;
 }
+
+
+.navBrand::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #1db954, #1ed760);
+    transition: width 0.3s ease;
+}
+
+.navBrand:hover::after {
+    width: 100%;
+}
+
 .navMenu {
-    background: transparent;
-    border: none;
+    background: rgba(29, 185, 84, 0.1);
+    border: 1px solid rgba(29, 185, 84, 0.2);
     color: var(--text-primary);
-    font-size: 1.3rem;
-    padding: 8px;
-    border-radius: 8px;
+    font-size: 1.2rem;
+    padding: 12px 14px;
+    border-radius: 12px;
     cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
+
+.navMenu::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(29, 185, 84, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+}
+
+.navMenu:hover::before {
+    width: 200px;
+    height: 200px;
+}
+
 .navMenu:hover {
-    background: var(--bg-hover);
+    background: rgba(29, 185, 84, 0.2);
+    border-color: var(--accent);
     color: var(--accent);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(29, 185, 84, 0.3);
 }
+
+.navMenu i {
+    position: relative;
+    z-index: 1;
+}
+
 .navMain {
     display: flex;
     align-items: center;
-    gap: 12px;
-
-    padding: 10px 14px;
-    background: var(--bg-navbar);
+    gap: 10px;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(29, 185, 84, 0.08);
 }
+
+
 .navLoc {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-
+    justify-content: center;
+    gap: 4px;
+    
+    min-width: 85px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    
+    background: rgba(24, 24, 24, 0.8);
+    border: 1px solid rgba(29, 185, 84, 0.15);
+    
     color: var(--text-secondary);
     font-size: 0.7rem;
+    font-weight: 600;
+    
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.navLoc::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(29, 185, 84, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.navLoc:hover::before {
+    left: 100%;
+}
+
+.navLoc:hover {
+    background: rgba(29, 185, 84, 0.1);
+    border-color: rgba(29, 185, 84, 0.3);
+    color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(29, 185, 84, 0.2);
 }
 
 .navLoc i {
-    font-size: 1rem;
+    font-size: 1.2rem;
+    color: var(--accent);
+    transition: transform 0.3s ease;
 }
+
+
+.navLoc:hover i {
+    transform: scale(1.15);
+}
+
+.locDes {
+    font-size: 0.65rem;
+    text-align: center;
+    line-height: 1.2;
+    max-width: none;
+    white-space: nowrap;
+    display: block;
+    letter-spacing: 0.3px;
+}
+
+
 .navSearch {
     flex: 1;
-
     display: flex;
     align-items: center;
-    gap: 10px;
-
-    padding: 10px 14px;
+    gap: 12px;
+    min-width: 0;
+    
+    padding: 13px 18px;
     border-radius: 999px;
-
-    background: var(--bg-surface);
-    transition: background 0.2s ease;
+    
+    background: rgba(30, 30, 30, 0.9);
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        inset 0 1px 3px rgba(0, 0, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.navSearch:hover,
+
+.navSearch:hover {
+    background: rgba(36, 36, 36, 0.9);
+    border-color: rgba(29, 185, 84, 0.3);
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 0 3px rgba(29, 185, 84, 0.1);
+}
+
 .navSearch:focus-within {
-    background: var(--bg-hover);
+    background: rgba(36, 36, 36, 1);
+    border-color: var(--accent);
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 0 3px rgba(29, 185, 84, 0.15),
+        0 4px 12px rgba(29, 185, 84, 0.2);
+    transform: translateY(-1px);
 }
 
 .navSrchBar {
@@ -121,43 +281,160 @@ html, body {
     background: transparent;
     border: none;
     outline: none;
+    min-width: 0;
 
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
+
 
 .navSrchBar::placeholder {
-    color: var(--text-secondary);
+    color: rgba(179, 179, 179, 0.7);
+    font-weight: 400;
 }
 
+
 .navButton {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
+    background: linear-gradient(135deg, rgba(29, 185, 84, 0.1) 0%, rgba(30, 215, 96, 0.1) 100%);
+    border: 1px solid rgba(29, 185, 84, 0.2);
+    border-radius: 50%;
+    
+    color: var(--accent);
     font-size: 1rem;
+    
+    width: 36px;
+    height: 36px;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
     cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.navButton::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(29, 185, 84, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+.navButton:hover::before {
+    width: 100px;
+    height: 100px;
 }
 
 .navButton:hover {
-    color: var(--accent);
+    background: linear-gradient(135deg, var(--accent) 0%, #1ed760 100%);
+    color: #000000;
+    border-color: var(--accent);
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 4px 12px rgba(29, 185, 84, 0.4);
 }
+
+.navButton i {
+    position: relative;
+    z-index: 1;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 767px) {
+    .navMain {
+        padding: 12px 14px;
+        gap: 8px;
+    }
+    
+    .navLoc {
+        min-width: 75px;
+        padding: 10px 10px;
+    }
+    
+    .locDes {
+        font-size: 0.65rem;
+    }
+    
+    .navSearch {
+        padding: 12px 16px;
+    }
+    
+    .navSrchBar {
+        font-size: 0.85rem;
+    }
+}
+
+
+/* Tablet and Desktop */
 @media (min-width: 768px) {
     .navBar1 {
-        padding: 14px 40px;
+        padding: 18px 48px;
     }
-
+    
     .navMain {
-        padding: 14px 40px;
+        padding: 16px 48px;
+        gap: 14px;
     }
-
+    
     .navBrand {
-        font-size: 1.4rem;
+        font-size: 1.75rem;
     }
-
+    
+    .navLogo {
+        height: 56px;
+    }
+    
     .navSearch {
-        max-width: 520px;
+        max-width: 600px;
+        padding: 15px 22px;
+    }
+    
+    .navLoc {
+        min-width: 95px;
+        padding: 14px 16px;
+    }
+    
+    .locDes {
+        font-size: 0.7rem;
+    }
+    
+    .navButton {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
     }
 }
+
+/* Smooth scroll behavior for sticky nav */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Add subtle animation on page load */
+@keyframes navSlideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.navBar1 {
+    animation: navSlideDown 0.5s ease;
+}
+
 main {
     width: 100%;
     height: auto;
@@ -1422,3 +1699,312 @@ input:focus-visible {
     }
 }
 
+/* Location Modal Styles */
+.locationOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 250;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.locationOverlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.locationModal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 60vh;
+    background: linear-gradient(180deg, #181818 0%, #121212 100%);
+    border-radius: 24px 24px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.locationOverlay.show .locationModal {
+    transform: translateY(0);
+}
+
+.locationHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 16px 16px 16px;
+    background: var(--bg-navbar);
+    border-bottom: 1px solid var(--bg-hover);
+}
+
+.locationClose,
+.locationBack {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.locationClose:hover,
+.locationBack:hover {
+    background: var(--bg-hover);
+}
+
+.locationTitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.locationDone {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.locationDone:hover {
+    background: var(--bg-hover);
+}
+
+.locationContent {
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.locationOption {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: var(--bg-surface);
+    border: 2px solid transparent;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    width: 100%;
+}
+
+.locationOption:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(29, 185, 84, 0.2);
+}
+
+.optionIcon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent) 0%, #1ed760 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: #000000;
+    flex-shrink: 0;
+}
+
+.optionText {
+    flex: 1;
+}
+
+.optionText h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.optionText p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.optionArrow {
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 8px 0;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--bg-hover);
+}
+
+.divider span {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Manual Location Modal */
+.manualLocationOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--bg-primary);
+    z-index: 300;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.manualLocationOverlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.manualLocationModal {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.searchContainer {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.locationSearchBox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-surface);
+    border: 2px solid transparent;
+    border-radius: 16px;
+    padding: 14px 18px;
+    transition: all 0.3s ease;
+    margin-bottom: 16px;
+}
+
+.locationSearchBox:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.1);
+}
+
+.locationSearchBox i {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.locationSearchInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    outline: none;
+}
+
+.locationSearchInput::placeholder {
+    color: var(--text-secondary);
+}
+
+.locationSuggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.suggestionItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-surface);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.suggestionItem:hover {
+    background: var(--bg-hover);
+    transform: translateX(4px);
+}
+
+.suggestionItem.selected {
+    background: var(--bg-hover);
+    border: 2px solid var(--accent);
+}
+
+.suggestionIcon {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-hover);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 1rem;
+}
+
+.suggestionText {
+    flex: 1;
+}
+
+.suggestionText h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.suggestionText p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .locationModal {
+        left: 50%;
+        transform: translate(-50%, 100%);
+        max-width: 500px;
+        border-radius: 24px;
+        bottom: 20px;
+    }
+    
+    .locationOverlay.show .locationModal {
+        transform: translate(-50%, 0);
+    }
+}

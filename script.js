@@ -419,3 +419,350 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+let currentLocation = null;
+let selectedManualLocation = null;
+let searchTimeout = null;
+
+// Open location modal
+function openLocationModal() {
+    const locationOverlay = document.querySelector('.locationOverlay');
+    if (locationOverlay) {
+        document.body.style.overflow = 'hidden';
+        locationOverlay.classList.add('show');
+    }
+}
+
+// Close location modal
+function closeLocationModal() {
+    const locationOverlay = document.querySelector('.locationOverlay');
+    if (locationOverlay) {
+        document.body.style.overflow = '';
+        locationOverlay.classList.remove('show');
+    }
+}
+
+// Enable GPS location
+function enableGPS() {
+    if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser');
+        return;
+    }
+    
+    // Show loading state
+    const locationDisplay = document.getElementById('locationDisplay');
+    if (locationDisplay) {
+        locationDisplay.innerHTML = `<p class="locDes" id="locationDisplay">Getting<br>Location....</p>`;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            // Success - got GPS coordinates
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // Use reverse geocoding to get location name
+            reverseGeocode(lat, lng);
+            
+            closeLocationModal();
+        },
+        function(error) {
+            // Reset display on error
+            if (locationDisplay) {
+                locationDisplay.textContent = 'Enable Location';
+            }
+            
+            // Error handling
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert('Please enable location permission in your browser settings');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert('Location information is unavailable');
+                    break;
+                case error.TIMEOUT:
+                    alert('Location request timed out');
+                    break;
+                default:
+                    alert('An unknown error occurred');
+            }
+        }
+    );
+}
+
+// Reverse geocode using Nominatim API
+async function reverseGeocode(lat, lng) {
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+            {
+                headers: {
+                    'User-Agent': 'Mapzo/1.0'
+                }
+            }
+        );
+        
+        const data = await response.json();
+        
+        // Extract location name (city, town, village, or district)
+        const address = data.address;
+        let locationName = address.city || 
+                          address.town || 
+                          address.village || 
+                          address.county || 
+                          address.state_district || 
+                          address.state ||
+                          'Unknown Location';
+        
+        currentLocation = {
+            name: locationName,
+            lat: lat,
+            lng: lng,
+            fullAddress: data.display_name
+        };
+        
+        updateLocationDisplay(locationName);
+    } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        alert('Could not determine your location. Please try manual search.');
+    }
+}
+
+// Show manual input modal
+function showManualInput() {
+    closeLocationModal();
+    const manualOverlay = document.querySelector('.manualLocationOverlay');
+    if (manualOverlay) {
+        manualOverlay.classList.add('show');
+        // Focus on input
+        setTimeout(() => {
+            document.getElementById('manualLocationInput').focus();
+        }, 300);
+    }
+}
+
+// Back to location options
+function backToLocationOptions() {
+    const manualOverlay = document.querySelector('.manualLocationOverlay');
+    if (manualOverlay) {
+        manualOverlay.classList.remove('show');
+    }
+    openLocationModal();
+}
+
+// Handle location search with Nominatim API
+function handleLocationSearch(query) {
+    const suggestionsContainer = document.getElementById('locationSuggestions');
+    
+    if (!query || query.trim().length < 2) {
+        suggestionsContainer.innerHTML = '';
+        return;
+    }
+    
+    // Clear previous timeout
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // Show loading
+    suggestionsContainer.innerHTML = `
+        <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+            <i class="fa-solid fa-spinner fa-spin"></i> Searching...
+        </div>
+    `;
+    
+    // Debounce search
+    searchTimeout = setTimeout(async () => {
+        try {
+            // Use Nominatim API to search for places
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&layer=address`,
+                {
+                    headers: {
+                        'User-Agent': 'Mapzo/1.0'
+                    }
+                }
+            );
+            
+            const results = await response.json();
+            
+            if (results.length === 0) {
+                suggestionsContainer.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                        No locations found
+                    </div>
+                `;
+                return;
+            }
+            
+            // Filter to exclude street-level addresses (only cities, towns, villages, districts)
+            const filteredResults = results.filter(result => {
+                const type = result.type;
+                const addressType = result.address;
+                
+                // Include cities, towns, villages, districts, counties, states
+                return type === 'city' || 
+                       type === 'town' || 
+                       type === 'village' || 
+                       type === 'administrative' ||
+                       type === 'county' ||
+                       type === 'state' ||
+                       addressType.city || 
+                       addressType.town || 
+                       addressType.village || 
+                       addressType.county ||
+                       addressType.state_district;
+            });
+            
+            if (filteredResults.length === 0) {
+                suggestionsContainer.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                        No cities or districts found
+                    </div>
+                `;
+                return;
+            }
+            
+            // Display suggestions
+            suggestionsContainer.innerHTML = filteredResults.map(result => {
+                const address = result.address;
+                const locationName = address.city || 
+                                    address.town || 
+                                    address.village || 
+                                    address.county || 
+                                    address.state_district || 
+                                    result.name;
+                
+                const locationDetail = `${address.state || ''}, ${address.country || ''}`.replace(/^, |, $/g, '');
+                
+                return `
+                    <div class="suggestionItem" onclick='selectLocation(${JSON.stringify({
+                        name: locationName,
+                        lat: parseFloat(result.lat),
+                        lng: parseFloat(result.lon),
+                        fullAddress: result.display_name
+                    })})'>
+                        <div class="suggestionIcon">
+                            <i class="fa-solid fa-location-dot"></i>
+                        </div>
+                        <div class="suggestionText">
+                            <h4>${locationName}</h4>
+                            <p>${locationDetail}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+        } catch (error) {
+            console.error('Location search error:', error);
+            suggestionsContainer.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                    Search failed. Please try again.
+                </div>
+            `;
+        }
+    }, 500); // 500ms debounce
+}
+
+// Select location from suggestions
+function selectLocation(locationData) {
+    selectedManualLocation = locationData;
+    
+    // Highlight selected item
+    document.querySelectorAll('.suggestionItem').forEach(item => {
+        item.classList.remove('selected');
+    });
+    event.target.closest('.suggestionItem').classList.add('selected');
+}
+
+// Confirm manual location
+function confirmManualLocation() {
+    if (!selectedManualLocation) {
+        alert('Please select a location from the suggestions');
+        return;
+    }
+    
+    currentLocation = selectedManualLocation;
+    updateLocationDisplay(selectedManualLocation.name);
+    
+    // Close manual location modal
+    const manualOverlay = document.querySelector('.manualLocationOverlay');
+    if (manualOverlay) {
+        manualOverlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+    
+    // Clear search
+    document.getElementById('manualLocationInput').value = '';
+    document.getElementById('locationSuggestions').innerHTML = '';
+    selectedManualLocation = null;
+}
+
+// Update location display in navbar
+function updateLocationDisplay(locationName) {
+    const locationDisplay = document.getElementById('locationDisplay');
+    if (locationDisplay) {
+        // Truncate if too long
+        const displayName = locationName.length > 15 ? 
+                           locationName.substring(0, 15) + '...' : 
+                           locationName;
+        locationDisplay.textContent = displayName;
+        locationDisplay.title = locationName; // Show full name on hover
+    }
+}
+
+// Calculate distance between two coordinates
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// Update existing event filtering to use current location
+function applyFilters() {
+    let filteredEvents = [...sampleEvents];
+    
+    // Filter by location if set
+    if (currentLocation && currentFilters.distance) {
+        filteredEvents = filteredEvents.filter(event => {
+            const distance = calculateDistance(
+                currentLocation.lat,
+                currentLocation.lng,
+                event.lat,
+                event.lng
+            );
+            return distance <= currentFilters.distance;
+        });
+    }
+    
+    // Filter by category
+    if (currentFilters.category !== 'all') {
+        filteredEvents = filteredEvents.filter(e => e.category === currentFilters.category);
+    }
+    
+    renderEventCards(filteredEvents);
+    closeFilterModal();
+}
+
+// Close modals on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const locationOverlay = document.querySelector('.locationOverlay');
+        const manualOverlay = document.querySelector('.manualLocationOverlay');
+        const filterOverlay = document.querySelector('.filterOverlay');
+        
+        if (manualOverlay && manualOverlay.classList.contains('show')) {
+            manualOverlay.classList.remove('show');
+        } else if (locationOverlay && locationOverlay.classList.contains('show')) {
+            closeLocationModal();
+        } else if (filterOverlay && filterOverlay.classList.contains('show')) {
+            closeFilterModal();
+        }
+    }
+});
+
+
