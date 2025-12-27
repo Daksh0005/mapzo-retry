@@ -31,28 +31,185 @@
     </nav>
 
     <header class="navMain">
-        <div class="navLoc">
-            <i class="fa-solid fa-location-dot"></i>
-            <p class="locDes">Location</p>
-        </div>
-        <form class="navSearch" role="search">
-            <input 
-                placeholder="#Hashtags" 
-                type="search" 
-                class="navSrchBar"
-                aria-label="Search events by hashtag">
-            <button class="navButton" type="submit" aria-label="Search">
-                <i class="fa-solid fa-magnifying-glass"></i>
+    <div class="navLoc" onclick="openFilterModal()">
+        <i class="fa-solid fa-sliders"></i>
+        <p class="locDes">Filters</p>
+    </div>
+    <form class="navSearch" role="search">
+        <input 
+            placeholder="#Hashtags" 
+            type="search" 
+            class="navSrchBar"
+            aria-label="Search events by hashtag">
+        <button class="navButton" type="submit" aria-label="Search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+    </form>
+</header>
+
+<div class="filterOverlay">
+    <div class="filterModal">
+        <div class="filterHeader">
+            <button class="filterClose" onclick="closeFilterModal()">
+                <i class="fa-solid fa-xmark"></i>
             </button>
-        </form>
-    </header>
+            <h2 class="filterTitle">Filters</h2>
+            <button class="filterReset" onclick="resetFilters()">
+                Reset
+            </button>
+        </div>
+
+        <div class="filterTabs">
+            <button class="filterTab active" data-tab="date">
+                <i class="fa-regular fa-calendar"></i>
+                Date
+            </button>
+            <button class="filterTab" data-tab="distance">
+                <i class="fa-solid fa-location-dot"></i>
+                Distance
+            </button>
+            <button class="filterTab" data-tab="category">
+                <i class="fa-solid fa-grid-2"></i>
+                Category
+            </button>
+        </div>
+
+        <div class="filterContent">
+            <div class="filterTabContent active" id="dateTab">
+                <div class="quickFilters">
+                    <button class="quickFilterBtn active" data-quick="today">Today</button>
+                    <button class="quickFilterBtn" data-quick="tomorrow">Tomorrow</button>
+                    <button class="quickFilterBtn" data-quick="week">This Week</button>
+                    <button class="quickFilterBtn" data-quick="month">This Month</button>
+                </div>
+                
+                <div class="calendarContainer">
+                    <div class="calendarHeader">
+                        <button class="calendarNav" id="prevMonth">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <span class="calendarMonth" id="currentMonth">December 2025</span>
+                        <button class="calendarNav" id="nextMonth">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendarWeekdays">
+                        <span>Sun</span>
+                        <span>Mon</span>
+                        <span>Tue</span>
+                        <span>Wed</span>
+                        <span>Thu</span>
+                        <span>Fri</span>
+                        <span>Sat</span>
+                    </div>
+                    <div class="calendarDays" id="calendarDays">
+                    </div>
+                </div>
+            </div>
+
+            <div class="filterTabContent" id="distanceTab">
+                <div class="distanceInput">
+                    <label class="distanceLabel">Enter distance in kilometers</label>
+                    <div class="distanceField">
+                        <input 
+                            type="number" 
+                            class="distanceValue" 
+                            id="distanceInput"
+                            placeholder="0"
+                            min="0"
+                            max="5000">
+                        <span class="distanceUnit">km</span>
+                    </div>
+                    <div class="distanceSlider">
+                        <input 
+                            type="range" 
+                            class="distanceRange" 
+                            id="distanceRange"
+                            min="0"
+                            max="500"
+                            value="50"
+                            step="5">
+                        <div class="distanceMarkers">
+                            <span>0</span>
+                            <span>250</span>
+                            <span>500+</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="quickFilters">
+                    <button class="quickFilterBtn" data-distance="5">5 km</button>
+                    <button class="quickFilterBtn" data-distance="10">10 km</button>
+                    <button class="quickFilterBtn" data-distance="25">25 km</button>
+                    <button class="quickFilterBtn" data-distance="50">50 km</button>
+                    <button class="quickFilterBtn" data-distance="100">100 km</button>
+                    <button class="quickFilterBtn" data-distance="500">500 km</button>
+                </div>
+            </div>
+
+            <div class="filterTabContent" id="categoryTab">
+                <div class="categorySearch">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input 
+                        type="text" 
+                        class="categorySearchInput" 
+                        id="categorySearch"
+                        placeholder="Search categories...">
+                </div>
+                
+                <div class="categoryGrid" id="categoryGrid">
+                    <button class="categoryCard active" data-category="all">
+                        <i class="fa-solid fa-grid-2"></i>
+                        <span>All</span>
+                    </button>
+                    <button class="categoryCard" data-category="Music">
+                        <i class="fa-solid fa-music"></i>
+                        <span>Music</span>
+                    </button>
+                    <button class="categoryCard" data-category="Tech">
+                        <i class="fa-solid fa-laptop-code"></i>
+                        <span>Tech</span>
+                    </button>
+                    <button class="categoryCard" data-category="Sports">
+                        <i class="fa-solid fa-basketball"></i>
+                        <span>Sports</span>
+                    </button>
+                    <button class="categoryCard" data-category="Cultural">
+                        <i class="fa-solid fa-masks-theater"></i>
+                        <span>Cultural</span>
+                    </button>
+                    <button class="categoryCard" data-category="Food">
+                        <i class="fa-solid fa-utensils"></i>
+                        <span>Food</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="filterFooter">
+            <button class="filterApply" onclick="applyFilters()">
+                Apply Filters
+            </button>
+        </div>
+    </div>
+</div>
+
     
     <main>
         <div class="map"></div>
     </main>
 
+    <section class="eventsSection">
+        <div class="sectionHeader">
+            <h2 class="sectionTitle">Relevant Events</h2>
+            <a href="#" class="seeAll">See all</a>
+        </div>
+        <div class="eventsScroll">
+        </div>
+    </section>
+
     <div class="hostBar">
-        <button class="hostBox" aria-label="Add Event">
+        <button class="hostBox" aria-label="Add Event" onclick="openUploadForm()">
             <i class="fa-solid fa-plus"></i>
         </button>
     </div>
@@ -85,6 +242,112 @@
             <p class="menuTitle">Support</p>
             <p class="otherMenu">Terms & Conditions</p>
             <p class="otherMenu">Contact Us</p>
+        </div>
+    </div>
+
+    <div class="uploadOverlay">
+        <div class="uploadModal">
+            <div class="uploadHeader">
+                <button class="uploadBack" onclick="closeUploadForm()" aria-label="Go back">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2 class="uploadTitle">Host an Event</h2>
+                <button class="uploadSubmit" onclick="handleEventSubmit()">
+                    Post
+                </button>
+            </div>
+
+            <form class="uploadForm" id="eventUploadForm">
+                <div class="formGroup">
+                    <label class="formLabel">Title</label>
+                    <input 
+                        type="text" 
+                        class="formInput" 
+                        placeholder="e.g., DJ Night at Spring Fest"
+                        id="eventName"
+                        required>
+                </div>
+
+                <div class="formGroup">
+                    <label class="formLabel">Upload Image</label>
+                    <div class="imageUpload">
+                        <input 
+                            type="file" 
+                            class="imageInput" 
+                            id="eventImage"
+                            accept="image/*">
+                        <div class="imagePlaceholder">
+                            <i class="fa-solid fa-image"></i>
+                            <p>Tap to upload event image</p>
+                        </div>
+                        <img class="imagePreview" id="imagePreview" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="formGroup">
+                    <label class="formLabel">Category</label>
+                    <select class="formSelect" id="eventCategory" required>
+                        <option value="">Select category</option>
+                        <option value="Music">Music</option>
+                        <option value="Tech">Tech</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Cultural">Cultural</option>
+                        <option value="Food">Food</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="formRow">
+                    <div class="formGroup">
+                        <label class="formLabel">Date</label>
+                        <input 
+                            type="date" 
+                            class="formInput" 
+                            id="eventDate"
+                            required>
+                    </div>
+                    <div class="formGroup">
+                        <label class="formLabel">Time</label>
+                        <input 
+                            type="time" 
+                            class="formInput" 
+                            id="eventTime"
+                            required>
+                    </div>
+                </div>
+
+                <div class="formGroup">
+                    <label class="formLabel">Location</label>
+                    <input 
+                        type="text" 
+                        class="formInput" 
+                        placeholder="e.g., IIT Kharagpur"
+                        id="eventLocation"
+                        required>
+                    <p class="formHint">
+                        <i class="fa-solid fa-location-dot"></i>
+                        Tap on map to select location
+                    </p>
+                </div>
+
+                <div class="formGroup">
+                    <label class="formLabel">Description</label>
+                    <textarea 
+                        class="formTextarea" 
+                        placeholder="Tell people about your event..."
+                        id="eventDescription"
+                        rows="4"></textarea>
+                </div>
+
+                <div class="formGroup">
+                    <label class="formLabel">Hashtags</label>
+                    <input 
+                        type="text" 
+                        class="formInput" 
+                        placeholder="#music #party #fest"
+                        id="eventHashtags">
+                </div>
+            </form>
         </div>
     </div>
 
