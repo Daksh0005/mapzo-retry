@@ -1,17 +1,29 @@
 function toggleMenu() {
-    const menu = document.querySelector('.menu');
-    const overlay = document.querySelector('.menuOverlay');
-    const body = document.body;
-    
-    menu.classList.toggle('menuShow');
-    overlay.classList.toggle('show');
-    
-    if (menu.classList.contains('menuShow')) {
-        body.style.overflow = 'hidden';
-    } else {
-        body.style.overflow = '';
-    }
+    const menu = document.querySelector(".menu");
+    const overlay = document.querySelector(".menuOverlay");
+    if (!menu || !overlay) return;
+
+    const opening = !menu.classList.contains("menuShow");
+
+    menu.classList.toggle("menuShow");
+    overlay.classList.toggle("show");
+
+    if (opening) lockScroll();
+    else unlockScrollIfNoOverlay();
 }
+function lockScroll() {
+    document.body.classList.add("noScroll");
+}
+
+function unlockScrollIfNoOverlay() {
+    const anyOpen = document.querySelector(
+        ".menu.menuShow, .uploadOverlay.show, .filterOverlay.show, .locationOverlay.show, .manualLocationOverlay.show, .authOverlay.show"
+    );
+
+    if (!anyOpen) document.body.classList.remove("noScroll");
+}
+
+
 
 let sampleEvents = [
     {
@@ -123,20 +135,19 @@ function renderEventCards(events) {
 }
 
 function openUploadForm() {
-    const uploadOverlay = document.querySelector('.uploadOverlay');
-    if (uploadOverlay) {
-        document.body.style.overflow = 'hidden';
-        uploadOverlay.classList.add('show');
-    }
+    const uploadOverlay = document.querySelector(".uploadOverlay");
+    if (!uploadOverlay) return;
+    uploadOverlay.classList.add("show");
+    lockScroll();
 }
 
 function closeUploadForm() {
-    const uploadOverlay = document.querySelector('.uploadOverlay');
-    if (uploadOverlay) {
-        document.body.style.overflow = '';
-        uploadOverlay.classList.remove('show');
-    }
+    const uploadOverlay = document.querySelector(".uploadOverlay");
+    if (!uploadOverlay) return;
+    uploadOverlay.classList.remove("show");
+    unlockScrollIfNoOverlay();
 }
+
 
 function handleEventSubmit() {
     const eventName = document.getElementById('eventName').value;
@@ -196,21 +207,20 @@ let currentDate = new Date();
 let selectedDate = null;
 
 function openFilterModal() {
-    const filterOverlay = document.querySelector('.filterOverlay');
-    if (filterOverlay) {
-        document.body.style.overflow = 'hidden';
-        filterOverlay.classList.add('show');
-        renderCalendar();
-    }
+    const filterOverlay = document.querySelector(".filterOverlay");
+    if (!filterOverlay) return;
+    filterOverlay.classList.add("show");
+    lockScroll();
+    renderCalendar();
 }
 
 function closeFilterModal() {
-    const filterOverlay = document.querySelector('.filterOverlay');
-    if (filterOverlay) {
-        document.body.style.overflow = '';
-        filterOverlay.classList.remove('show');
-    }
+    const filterOverlay = document.querySelector(".filterOverlay");
+    if (!filterOverlay) return;
+    filterOverlay.classList.remove("show");
+    unlockScrollIfNoOverlay();
 }
+
 
 function resetFilters() {
     currentFilters = {
@@ -286,135 +296,228 @@ function renderCalendar() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     const stored = loadEvents();
     if (stored && Array.isArray(stored) && stored.length) {
         sampleEvents = stored;
     } else {
-        saveEvents(sampleEvents); // save initial seed once
+        saveEvents(sampleEvents); 
     }
 
     renderEventCards(sampleEvents);
 
-    const eventImageInput = document.getElementById('uploadEventImage');
+    
+    const eventImageInput = document.getElementById("uploadEventImage");
     if (eventImageInput) {
-        eventImageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const preview = document.getElementById('imagePreview');
-                    const placeholder = document.querySelector('.imagePlaceholder');
-                    if (preview && placeholder) {
-                        preview.src = event.target.result;
-                        preview.style.display = 'block';
-                        placeholder.style.display = 'none';
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-    
-    document.querySelectorAll('.filterTab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.filterTab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.filterTabContent').forEach(c => c.classList.remove('active'));
-            
-            this.classList.add('active');
-            document.getElementById(this.dataset.tab + 'Tab').classList.add('active');
-        });
-    });
-    
-    const prevMonthBtn = document.getElementById('prevMonth');
-    const nextMonthBtn = document.getElementById('nextMonth');
-    
-    if (prevMonthBtn) {
-        prevMonthBtn.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar();
-        });
-    }
-    
-    if (nextMonthBtn) {
-        nextMonthBtn.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar();
-        });
-    }
-    
-    const distanceInput = document.getElementById('distanceInput');
-    const distanceRange = document.getElementById('distanceRange');
+        eventImageInput.addEventListener("change", (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
 
-    if (distanceInput && distanceRange) {
+            const reader = new FileReader();
+            reader.addEventListener("load", (ev) => {
+                const preview = document.getElementById("imagePreview");
+                const placeholder = document.querySelector(".imagePlaceholder");
+                if (!preview || !placeholder) return;
 
-        distanceInput.addEventListener('input', function () {
-            const value = Math.min(5000, Math.max(0, Number(this.value || 0)));
-            this.value = value;
-            distanceRange.value = Math.min(500, value);
-            currentFilters.distance = value;
-        });
-
-        distanceRange.addEventListener('input', function () {
-            distanceInput.value = this.value;
-            currentFilters.distance = Number(this.value);
-        });
-    }
-
-    
-    document.querySelectorAll('[data-distance]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const distance = this.dataset.distance;
-            if (distanceInput && distanceRange) {
-                distanceInput.value = distance;
-                distanceRange.value = Math.min(500, distance);
-                currentFilters.distance = distance;
-            }
-        });
-    });
-    
-    document.querySelectorAll('[data-category]').forEach(card => {
-        card.addEventListener('click', function() {
-            document.querySelectorAll('[data-category]').forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-            currentFilters.category = this.dataset.category;
-        });
-    });
-    
-    const categorySearch = document.getElementById('categorySearch');
-    if (categorySearch) {
-        categorySearch.addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            document.querySelectorAll('.categoryCard').forEach(card => {
-                const text = card.textContent.toLowerCase();
-                card.style.display = text.includes(query) ? 'flex' : 'none';
+                preview.src = ev.target.result; 
+                preview.style.display = "block";
+                placeholder.style.display = "none";
             });
+
+            reader.readAsDataURL(file); 
         });
     }
+
     
+    const authOverlay = document.getElementById("authOverlay");
+    const authCloseBtn = document.getElementById("authCloseBtn");
+
+    const loginPage = document.getElementById("loginPage");
+    const signupPage = document.getElementById("signupPage");
+    const authTitle = document.getElementById("authTitle");
+
+    const goSignupBtn = document.getElementById("goSignupBtn");
+    const goLoginBtn = document.getElementById("goLoginBtn");
+
+    function openAuth(mode = "login") {
+        if (!authOverlay) return;
+
+        authOverlay.classList.add("show");
+        lockScroll();
+
+        if (mode === "signup") {
+            loginPage?.classList.remove("show");
+            signupPage?.classList.add("show");
+            if (authTitle) authTitle.textContent = "Sign up";
+        } else {
+            signupPage?.classList.remove("show");
+            loginPage?.classList.add("show");
+            if (authTitle) authTitle.textContent = "Log in";
+        }
+    }
+
+    function closeAuth() {
+        authOverlay?.classList.remove("show");
+        unlockScrollIfNoOverlay();
+    }
+
+    authCloseBtn?.addEventListener("click", closeAuth);
+
+    authOverlay?.addEventListener("click", (e) => {
+        if (e.target === authOverlay) closeAuth();
+    });
+
+    goSignupBtn?.addEventListener("click", () => openAuth("signup"));
+    goLoginBtn?.addEventListener("click", () => openAuth("login"));
+
+    document.querySelectorAll("[data-open-auth='login']").forEach((btn) =>
+        btn.addEventListener("click", () => openAuth("login"))
+    );
+    document.querySelectorAll("[data-open-auth='signup']").forEach((btn) =>
+        btn.addEventListener("click", () => openAuth("signup"))
+    );
+
+    document.getElementById("loginForm")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        closeAuth();
+    });
+
+    document.getElementById("signupForm")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        closeAuth();
+    });
 });
+
+
+// ---------- AUTH + FILTER WIRING (CLEAN) ----------
+
+// closeAuth must exist in same scope as listeners
+function closeAuth() {
+    authOverlay?.classList.remove("show");
+    unlockScrollIfNoOverlay();
+}
+
+// AUTH listeners
+authCloseBtn?.addEventListener("click", closeAuth);
+
+authOverlay?.addEventListener("click", (e) => {
+    if (e.target === authOverlay) closeAuth(); // backdrop click
+});
+
+goSignupBtn?.addEventListener("click", () => openAuth("signup"));
+goLoginBtn?.addEventListener("click", () => openAuth("login"));
+
+document.querySelectorAll("[data-open-auth='login']").forEach((btn) => {
+    btn.addEventListener("click", () => openAuth("login"));
+});
+
+document.querySelectorAll("[data-open-auth='signup']").forEach((btn) => {
+    btn.addEventListener("click", () => openAuth("signup"));
+});
+
+document.getElementById("loginForm")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    closeAuth();
+});
+
+document.getElementById("signupForm")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    closeAuth();
+});
+
+// FILTER tabs
+document.querySelectorAll(".filterTab").forEach((tab) => {
+    tab.addEventListener("click", function () {
+        document.querySelectorAll(".filterTab").forEach((t) => t.classList.remove("active"));
+        document.querySelectorAll(".filterTabContent").forEach((c) => c.classList.remove("active"));
+
+        this.classList.add("active");
+        document.getElementById(this.dataset.tab + "Tab")?.classList.add("active");
+    });
+});
+
+// Calendar prev/next
+const prevMonthBtn = document.getElementById("prevMonth");
+const nextMonthBtn = document.getElementById("nextMonth");
+
+prevMonthBtn?.addEventListener("click", () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+});
+
+nextMonthBtn?.addEventListener("click", () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+});
+
+// Distance controls
+const distanceInput = document.getElementById("distanceInput");
+const distanceRange = document.getElementById("distanceRange");
+
+if (distanceInput && distanceRange) {
+    distanceInput.addEventListener("input", function () {
+        const value = Math.min(5000, Math.max(0, Number(this.value || 0)));
+        this.value = value;
+        distanceRange.value = Math.min(500, value);
+        currentFilters.distance = value;
+    });
+
+    distanceRange.addEventListener("input", function () {
+        distanceInput.value = this.value;
+        currentFilters.distance = Number(this.value);
+    });
+}
+
+document.querySelectorAll("[data-distance]").forEach((btn) => {
+    btn.addEventListener("click", function () {
+        const distance = Number(this.dataset.distance);
+        if (!distanceInput || !distanceRange) return;
+
+        distanceInput.value = distance;
+        distanceRange.value = Math.min(500, distance);
+        currentFilters.distance = distance;
+    });
+});
+
+// Category cards
+document.querySelectorAll("[data-category]").forEach((card) => {
+    card.addEventListener("click", function () {
+        document.querySelectorAll("[data-category]").forEach((c) => c.classList.remove("active"));
+        this.classList.add("active");
+        currentFilters.category = this.dataset.category;
+    });
+});
+
+// Category search
+const categorySearch = document.getElementById("categorySearch");
+categorySearch?.addEventListener("input", function () {
+    const query = this.value.toLowerCase();
+    document.querySelectorAll(".categoryCard").forEach((card) => {
+        const text = (card.textContent || "").toLowerCase();
+        card.style.display = text.includes(query) ? "flex" : "none";
+    });
+});
+
+    
 
 let currentLocation = null;
 let selectedManualLocation = null;
 let searchTimeout = null;
 
-// Open location modal
 function openLocationModal() {
-    const locationOverlay = document.querySelector('.locationOverlay');
-    if (locationOverlay) {
-        document.body.style.overflow = 'hidden';
-        locationOverlay.classList.add('show');
-    }
+    const locationOverlay = document.querySelector(".locationOverlay");
+    if (!locationOverlay) return;
+    locationOverlay.classList.add("show");
+    lockScroll();
 }
 
-// Close location modal
 function closeLocationModal() {
-    const locationOverlay = document.querySelector('.locationOverlay');
-    if (locationOverlay) {
-        document.body.style.overflow = '';
-        locationOverlay.classList.remove('show');
-    }
+    const locationOverlay = document.querySelector(".locationOverlay");
+    if (!locationOverlay) return;
+    locationOverlay.classList.remove("show");
+    unlockScrollIfNoOverlay();
 }
+
 
 // Enable GPS location
 function enableGPS() {
@@ -502,26 +605,18 @@ async function reverseGeocode(lat, lng) {
     }
 }
 
-// Show manual input modal
 function showManualInput() {
-    closeLocationModal();
-    const manualOverlay = document.querySelector('.manualLocationOverlay');
-    if (manualOverlay) {
-        manualOverlay.classList.add('show');
-        // Focus on input
-        setTimeout(() => {
-            document.getElementById('manualLocationInput').focus();
-        }, 300);
-    }
+    closeLocationModal(); 
+    const manualOverlay = document.querySelector(".manualLocationOverlay");
+    if (!manualOverlay) return;
+    manualOverlay.classList.add("show");
+    lockScroll();
 }
 
-// Back to location options
 function backToLocationOptions() {
-    const manualOverlay = document.querySelector('.manualLocationOverlay');
-    if (manualOverlay) {
-        manualOverlay.classList.remove('show');
-    }
-    openLocationModal();
+    const manualOverlay = document.querySelector(".manualLocationOverlay");
+    if (manualOverlay) manualOverlay.classList.remove("show");
+    openLocationModal(); 
 }
 
 // Handle location search with Nominatim API
@@ -651,26 +746,21 @@ function selectLocation(e, locationData) {
   if (clicked) clicked.classList.add('selected');
 }
 
-// Confirm manual location
 function confirmManualLocation() {
     if (!selectedManualLocation) {
-        alert('Please select a location from the suggestions');
+        alert("Please select a location from the suggestions");
         return;
     }
-    
+
     currentLocation = selectedManualLocation;
     updateLocationDisplay(selectedManualLocation.name);
-    
-    // Close manual location modal
-    const manualOverlay = document.querySelector('.manualLocationOverlay');
-    if (manualOverlay) {
-        manualOverlay.classList.remove('show');
-        document.body.style.overflow = '';
-    }
-    
-    // Clear search
-    document.getElementById('manualLocationInput').value = '';
-    document.getElementById('locationSuggestions').innerHTML = '';
+
+    const manualOverlay = document.querySelector(".manualLocationOverlay");
+    if (manualOverlay) manualOverlay.classList.remove("show");
+    unlockScrollIfNoOverlay();
+
+    document.getElementById("manualLocationInput").value = "";
+    document.getElementById("locationSuggestions").innerHTML = "";
     selectedManualLocation = null;
 }
 
@@ -756,11 +846,12 @@ document.addEventListener('keydown', function(e) {
   const uploadOverlay = document.querySelector('.uploadOverlay');
   const menu = document.querySelector('.menu');
 
-  if (manualOverlay?.classList.contains('show')) {
-    manualOverlay.classList.remove('show');
-    document.body.style.overflow = '';
-    return;
-  }
+    if (manualOverlay?.classList.contains("show")) {
+        manualOverlay.classList.remove("show");
+        unlockScrollIfNoOverlay();
+        return;
+    }
+
   if (locationOverlay?.classList.contains('show')) {
     closeLocationModal();
     return;

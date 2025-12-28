@@ -309,8 +309,11 @@
 
         <div class="menuSection">
             <p class="menuTitle">Account</p>
-            <p class="logSign">Sign Up</p>
-            <p class="logSign">Log In</p>
+            <div class="logSignBox">
+                <button class="logSign" data-open-auth="login">Log in</button>
+                <button class="logSign" data-open-auth="signup">Sign up</button>
+            </div>
+
         </div>
 
         <div class="menuDivider"></div>
@@ -517,6 +520,64 @@
         </div>
     </footer>
 
+    <!-- AUTH OVERLAY -->
+    <div class="authOverlay" id="authOverlay">
+        <div class="authModal" role="dialog" aria-modal="true" aria-label="Account">
+    
+            <div class="authHeader">
+                <button class="authBack" id="authCloseBtn" type="button" aria-label="Close">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h3 class="authTitle" id="authTitle">Log in</h3>
+                <div style="width:40px"></div>
+            </div>
+    
+            <div class="authBody">
+    
+                <!-- LOGIN PAGE -->
+                <section class="authPage show" id="loginPage">
+                    <p class="authSub">Welcome back. Discover what’s happening near you.</p>
+    
+                    <form class="authForm" id="loginForm">
+                        <label class="authLabel">Email</label>
+                        <input class="authInput" type="email" id="loginEmail" placeholder="you@email.com" required>
+    
+                        <label class="authLabel">Password</label>
+                        <input class="authInput" type="password" id="loginPass" placeholder="••••••••" required>
+    
+                        <button class="authPrimaryBtn" type="submit">Log in</button>
+                    </form>
+    
+                    <button class="authGhostBtn" type="button" id="goSignupBtn">
+                        New here? Create an account
+                    </button>
+                </section>
+    
+                <!-- SIGNUP PAGE -->
+                <section class="authPage" id="signupPage">
+                    <p class="authSub">Create an account to save events and host yours.</p>
+    
+                    <form class="authForm" id="signupForm">
+                        <label class="authLabel">Name</label>
+                        <input class="authInput" type="text" id="signupName" placeholder="Your name" required>
+    
+                        <label class="authLabel">Email</label>
+                        <input class="authInput" type="email" id="signupEmail" placeholder="you@email.com" required>
+    
+                        <label class="authLabel">Password</label>
+                        <input class="authInput" type="password" id="signupPass" placeholder="Create a password" required>
+    
+                        <button class="authPrimaryBtn" type="submit">Create account</button>
+                    </form>
+    
+                    <button class="authGhostBtn" type="button" id="goLoginBtn">
+                        Already have an account? Log in
+                    </button>
+                </section>
+    
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
