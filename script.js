@@ -13,22 +13,7 @@ function toggleMenu() {
     }
 }
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const menu = document.querySelector('.menu');
-        const uploadOverlay = document.querySelector('.uploadOverlay');
-        
-        if (menu.classList.contains('menuShow')) {
-            toggleMenu();
-        }
-        
-        if (uploadOverlay && uploadOverlay.classList.contains('show')) {
-            closeUploadForm();
-        }
-    }
-});
-
-const sampleEvents = [
+let sampleEvents = [
     {
         id: 1,
         title: "DJ Night at Spring Fest",
@@ -85,6 +70,16 @@ const sampleEvents = [
         lng: 87.3100
     }
 ];
+const EVENTS_KEY = "mapzo_events";
+
+function loadEvents() {
+  const saved = localStorage.getItem(EVENTS_KEY);
+  return saved ? JSON.parse(saved) : null;
+}
+
+function saveEvents(events) {
+  localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+}
 
 function renderEventCards(events) {
     const eventsScroll = document.querySelector('.eventsScroll');
@@ -121,9 +116,8 @@ function renderEventCards(events) {
         `;
         
         card.addEventListener('click', () => {
-            console.log('Event clicked:', event.title);
+            window.location.href = `event.html?id=${encodeURIComponent(event.id)}`;
         });
-        
         eventsScroll.appendChild(card);
     });
 }
@@ -146,7 +140,7 @@ function closeUploadForm() {
 
 function handleEventSubmit() {
     const eventName = document.getElementById('eventName').value;
-    const eventCategory = document.getElementById('eventCategory').value;
+    const eventCategory = document.getElementById('uploadEventCategory').value;
     const eventDate = document.getElementById('eventDate').value;
     const eventTime = document.getElementById('eventTime').value;
     const eventLocation = document.getElementById('eventLocation').value;
@@ -159,7 +153,9 @@ function handleEventSubmit() {
     }
     
     const newEvent = {
-        id: sampleEvents.length + 1,
+        time: eventTime,
+        description: eventDescription,
+        id: Date.now(),
         title: eventName,
         date: new Date(eventDate).toLocaleDateString('en-US', { 
             month: 'short', 
@@ -175,6 +171,7 @@ function handleEventSubmit() {
     };
     
     sampleEvents.unshift(newEvent);
+    saveEvents(sampleEvents);
     renderEventCards(sampleEvents);
     
     document.getElementById('eventUploadForm').reset();
@@ -189,29 +186,6 @@ function handleEventSubmit() {
     alert('Event posted successfully! 🎉');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    renderEventCards(sampleEvents);
-    
-    const eventImageInput = document.getElementById('eventImage');
-    if (eventImageInput) {
-        eventImageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const preview = document.getElementById('imagePreview');
-                    const placeholder = document.querySelector('.imagePlaceholder');
-                    if (preview && placeholder) {
-                        preview.src = event.target.result;
-                        preview.style.display = 'block';
-                        placeholder.style.display = 'none';
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-});
 let currentFilters = {
     date: null,
     distance: 50,
@@ -259,16 +233,6 @@ function resetFilters() {
     renderEventCards(sampleEvents);
 }
 
-function applyFilters() {
-    let filteredEvents = [...sampleEvents];
-    
-    if (currentFilters.category !== 'all') {
-        filteredEvents = filteredEvents.filter(e => e.category === currentFilters.category);
-    }
-    
-    renderEventCards(filteredEvents);
-    closeFilterModal();
-}
 
 function renderCalendar() {
     const calendarDays = document.getElementById('calendarDays');
@@ -323,7 +287,34 @@ function renderCalendar() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const stored = loadEvents();
+    if (stored && Array.isArray(stored) && stored.length) {
+        sampleEvents = stored;
+    } else {
+        saveEvents(sampleEvents); // save initial seed once
+    }
+
     renderEventCards(sampleEvents);
+
+    const eventImageInput = document.getElementById('uploadEventImage');
+    if (eventImageInput) {
+        eventImageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('imagePreview');
+                    const placeholder = document.querySelector('.imagePlaceholder');
+                    if (preview && placeholder) {
+                        preview.src = event.target.result;
+                        preview.style.display = 'block';
+                        placeholder.style.display = 'none';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
     
     document.querySelectorAll('.filterTab').forEach(tab => {
         tab.addEventListener('click', function() {
@@ -354,19 +345,22 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const distanceInput = document.getElementById('distanceInput');
     const distanceRange = document.getElementById('distanceRange');
-    
+
     if (distanceInput && distanceRange) {
-        distanceInput.addEventListener('input', function() {
-            const value = Math.min(5000, Math.max(0, this.value));
+
+        distanceInput.addEventListener('input', function () {
+            const value = Math.min(5000, Math.max(0, Number(this.value || 0)));
+            this.value = value;
             distanceRange.value = Math.min(500, value);
             currentFilters.distance = value;
         });
-        
-        distanceRange.addEventListener('input', function() {
+
+        distanceRange.addEventListener('input', function () {
             distanceInput.value = this.value;
-            currentFilters.distance = this.value;
+            currentFilters.distance = Number(this.value);
         });
     }
+
     
     document.querySelectorAll('[data-distance]').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -398,25 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    const eventImageInput = document.getElementById('eventImage');
-    if (eventImageInput) {
-        eventImageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const preview = document.getElementById('imagePreview');
-                    const placeholder = document.querySelector('.imagePlaceholder');
-                    if (preview && placeholder) {
-                        preview.src = event.target.result;
-                        preview.style.display = 'block';
-                        placeholder.style.display = 'none';
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
 });
 
 let currentLocation = null;
@@ -451,7 +426,7 @@ function enableGPS() {
     // Show loading state
     const locationDisplay = document.getElementById('locationDisplay');
     if (locationDisplay) {
-        locationDisplay.innerHTML = `<p class="locDes" id="locationDisplay">Getting<br>Location....</p>`;
+        locationDisplay.innerHTML =  `Getting<br>Location....`;
     }
     
     navigator.geolocation.getCurrentPosition(
@@ -623,34 +598,35 @@ function handleLocationSearch(query) {
             }
             
             // Display suggestions
-            suggestionsContainer.innerHTML = filteredResults.map(result => {
-                const address = result.address;
-                const locationName = address.city || 
-                                    address.town || 
-                                    address.village || 
-                                    address.county || 
-                                    address.state_district || 
-                                    result.name;
-                
-                const locationDetail = `${address.state || ''}, ${address.country || ''}`.replace(/^, |, $/g, '');
-                
-                return `
-                    <div class="suggestionItem" onclick='selectLocation(${JSON.stringify({
-                        name: locationName,
-                        lat: parseFloat(result.lat),
-                        lng: parseFloat(result.lon),
-                        fullAddress: result.display_name
-                    })})'>
-                        <div class="suggestionIcon">
-                            <i class="fa-solid fa-location-dot"></i>
-                        </div>
-                        <div class="suggestionText">
-                            <h4>${locationName}</h4>
-                            <p>${locationDetail}</p>
-                        </div>
+            suggestionsContainer.innerHTML = "";
+
+            filteredResults.forEach(result => {
+                const address = result.address || {};
+                const locationName = address.city || address.town || address.village || address.county || address.state_district || result.name;
+
+                const locationData = {
+                    name: locationName,
+                    lat: parseFloat(result.lat),
+                    lng: parseFloat(result.lon),
+                    fullAddress: result.display_name
+                };
+
+                const item = document.createElement("div");
+                item.className = "suggestionItem";
+                item.innerHTML = `
+                    <div class="suggestionIcon"><i class="fa-solid fa-location-dot"></i></div>
+                    <div class="suggestionText">
+                    <h4></h4>
+                    <p></p>
                     </div>
                 `;
-            }).join('');
+                item.querySelector("h4").textContent = locationName;
+                item.querySelector("p").textContent = `${address.state || ""}, ${address.country || ""}`.replace(/^, |, $/g, "");
+
+                item.addEventListener("click", (e) => selectLocation(e, locationData));
+                suggestionsContainer.appendChild(item);
+            });
+
             
         } catch (error) {
             console.error('Location search error:', error);
@@ -664,14 +640,15 @@ function handleLocationSearch(query) {
 }
 
 // Select location from suggestions
-function selectLocation(locationData) {
-    selectedManualLocation = locationData;
-    
-    // Highlight selected item
-    document.querySelectorAll('.suggestionItem').forEach(item => {
-        item.classList.remove('selected');
-    });
-    event.target.closest('.suggestionItem').classList.add('selected');
+function selectLocation(e, locationData) {
+  selectedManualLocation = locationData;
+
+  document.querySelectorAll('.suggestionItem').forEach(item => {
+    item.classList.remove('selected');
+  });
+
+  const clicked = e.target.closest('.suggestionItem');
+  if (clicked) clicked.classList.add('selected');
 }
 
 // Confirm manual location
@@ -724,45 +701,83 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 
 // Update existing event filtering to use current location
 function applyFilters() {
-    let filteredEvents = [...sampleEvents];
-    
-    // Filter by location if set
-    if (currentLocation && currentFilters.distance) {
-        filteredEvents = filteredEvents.filter(event => {
-            const distance = calculateDistance(
-                currentLocation.lat,
-                currentLocation.lng,
-                event.lat,
-                event.lng
-            );
-            return distance <= currentFilters.distance;
-        });
-    }
-    
-    // Filter by category
-    if (currentFilters.category !== 'all') {
-        filteredEvents = filteredEvents.filter(e => e.category === currentFilters.category);
-    }
-    
-    renderEventCards(filteredEvents);
-    closeFilterModal();
+  let filteredEvents = [...sampleEvents];
+
+  // ---- DATE (calendar) filter ----
+  if (currentFilters.date) {
+    const selected = new Date(currentFilters.date);
+    selected.setHours(0, 0, 0, 0);
+
+    filteredEvents = filteredEvents.filter(ev => {
+      const evDate = new Date(ev.date); // works for "Dec 31, 2025"
+      if (isNaN(evDate)) return false;
+      evDate.setHours(0, 0, 0, 0);
+      return evDate.getTime() === selected.getTime();
+    });
+  }
+
+  // ---- DISTANCE filter (needs currentLocation) ----
+  const maxKm = Number(currentFilters.distance);
+  if (currentLocation && Number.isFinite(maxKm) && maxKm > 0) {
+    filteredEvents = filteredEvents.filter(event => {
+      // ignore events without coordinates
+      if (typeof event.lat !== "number" || typeof event.lng !== "number") return false;
+
+      const distance = calculateDistance(
+        currentLocation.lat,
+        currentLocation.lng,
+        event.lat,
+        event.lng
+      );
+
+      return distance <= maxKm;
+    });
+  }
+
+  // ---- CATEGORY filter ----
+  if (currentFilters.category && currentFilters.category !== "all") {
+    filteredEvents = filteredEvents.filter(
+      e => e.category === currentFilters.category
+    );
+  }
+
+  renderEventCards(filteredEvents);
+  closeFilterModal();
 }
+
 
 // Close modals on Escape key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const locationOverlay = document.querySelector('.locationOverlay');
-        const manualOverlay = document.querySelector('.manualLocationOverlay');
-        const filterOverlay = document.querySelector('.filterOverlay');
-        
-        if (manualOverlay && manualOverlay.classList.contains('show')) {
-            manualOverlay.classList.remove('show');
-        } else if (locationOverlay && locationOverlay.classList.contains('show')) {
-            closeLocationModal();
-        } else if (filterOverlay && filterOverlay.classList.contains('show')) {
-            closeFilterModal();
-        }
-    }
+  if (e.key !== 'Escape') return;
+
+  const manualOverlay = document.querySelector('.manualLocationOverlay');
+  const locationOverlay = document.querySelector('.locationOverlay');
+  const filterOverlay = document.querySelector('.filterOverlay');
+  const uploadOverlay = document.querySelector('.uploadOverlay');
+  const menu = document.querySelector('.menu');
+
+  if (manualOverlay?.classList.contains('show')) {
+    manualOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+    return;
+  }
+  if (locationOverlay?.classList.contains('show')) {
+    closeLocationModal();
+    return;
+  }
+  if (filterOverlay?.classList.contains('show')) {
+    closeFilterModal();
+    return;
+  }
+  if (uploadOverlay?.classList.contains('show')) {
+    closeUploadForm();
+    return;
+  }
+  if (menu?.classList.contains('menuShow')) {
+    toggleMenu();
+    return;
+  }
 });
+
 
 

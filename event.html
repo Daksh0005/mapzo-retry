@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Event - Mapzo</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Font Awesome (same as your index) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body class="eventPage">
+  <!-- Top bar -->
+  <nav class="navBar1" role="navigation" aria-label="Event navigation">
+    <div class="navLeft">
+      <button class="navMenu" aria-label="Go back" onclick="history.back()">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <p class="navBrand">Event</p>
+    </div>
+  </nav>
+
+  <main class="eventWrap">
+    <section class="eventHero">
+      <img id="eventImage" class="eventHeroImg" alt="Event image" />
+      <div class="eventHeroMeta">
+        <span id="eventCategory" class="eventHeroTag">Category</span>
+        <h1 id="eventTitle" class="eventHeroTitle">Loading...</h1>
+
+        <div class="eventHeroInfo">
+          <p id="eventDate" class="eventInfoRow"><i class="fa-regular fa-calendar"></i> </p>
+          <p id="eventTime" class="eventInfoRow"><i class="fa-regular fa-clock"></i> </p>
+          <p id="eventLocation" class="eventInfoRow"><i class="fa-solid fa-location-dot"></i> </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="eventSection">
+      <h2 class="eventSectionTitle">About</h2>
+      <p id="eventDescription" class="eventDescription"></p>
+
+      <div id="eventTags" class="eventTags"></div>
+    </section>
+
+    <section class="eventSection">
+      <h2 class="eventSectionTitle">Comments</h2>
+
+      <form id="commentForm" class="commentForm">
+        <textarea id="commentText" class="commentInput" rows="3" placeholder="Write a comment..." required></textarea>
+        <button class="commentBtn" type="submit">Post</button>
+      </form>
+
+      <div id="commentsList" class="commentsList"></div>
+    </section>
+  </main>
+
+  <script src="event.js"></script>
+</body>
+</html>
