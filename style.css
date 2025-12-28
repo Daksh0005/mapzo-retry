@@ -2060,6 +2060,7 @@ input:focus-visible {
 .footerBrandRow{
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
 }
 .footerLogo{
@@ -2081,6 +2082,7 @@ input:focus-visible {
   color: rgba(255,255,255,0.68);
   font-size: 0.92rem;
   line-height: 1.4;
+  text-align: center;
 }
 
 /* Founder/Institute rows */
@@ -2238,4 +2240,157 @@ input:focus-visible {
 @media (max-width: 360px){
   .socialBubble{ width: 40px; height: 40px; }
   .socialBubble i{ font-size: 1.05rem; }
+}
+
+
+/* Event detail page */
+.eventWrap{
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px 14px 40px;
+}
+
+.eventHero{
+  background: rgba(24,24,24,0.7);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.eventHeroImg{
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+.eventHeroMeta{
+  padding: 14px;
+}
+
+.eventHeroTag{
+  display: inline-block;
+  background: rgba(29,185,84,0.15);
+  border: 1px solid rgba(29,185,84,0.25);
+  color: var(--accent);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.eventHeroTitle{
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.eventHeroInfo{
+  display: grid;
+  gap: 8px;
+}
+
+.eventInfoRow{
+  margin: 0;
+  color: rgba(255,255,255,0.75);
+  font-weight: 600;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.eventInfoRow i{ color: var(--accent); }
+
+.eventSection{
+  margin-top: 14px;
+  background: rgba(24,24,24,0.55);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.eventSectionTitle{
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.eventDescription{
+  margin: 0;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.55;
+}
+
+.eventTags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.eventTags .tag{
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Comments */
+.commentForm{
+  display: grid;
+  gap: 10px;
+}
+
+.commentInput{
+  width: 100%;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  padding: 12px 12px;
+  color: var(--text-primary);
+  resize: vertical;
+}
+
+.commentInput:focus{
+  outline: none;
+  border-color: rgba(29,185,84,0.55);
+  box-shadow: 0 0 0 3px rgba(29,185,84,0.15);
+}
+
+.commentBtn{
+  background: linear-gradient(135deg, var(--accent) 0%, #1ed760 100%);
+  border: none;
+  color: #000;
+  font-weight: 800;
+  padding: 12px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.commentsList{
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.commentItem{
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.commentMeta{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(255,255,255,0.55);
+  font-size: 0.82rem;
+  margin-bottom: 6px;
+}
+
+.commentText{
+  margin: 0;
+  color: rgba(255,255,255,0.78);
+  line-height: 1.45;
 }
