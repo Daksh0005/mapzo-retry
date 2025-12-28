@@ -16,7 +16,6 @@ const els = {
 };
 
 function getAllEvents() {
-  // store your events array in localStorage under "mapzo_events"
   return JSON.parse(localStorage.getItem("mapzo_events") || "[]");
 }
 

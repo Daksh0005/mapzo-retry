@@ -16,6 +16,9 @@ button:focus:not(:focus-visible),
 a:focus:not(:focus-visible) {
     outline: none;
 }
+a {
+    text-decoration: none;
+}
 
 :root {
     --bg-primary: #121212;
