@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Legal • Mapzo</title>
+
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="legal.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="legalPage">
+    <nav class="navBar1" role="navigation" aria-label="Legal navigation">
+        <div class="navLeft">
+            <button class="navMenu" aria-label="Go back" onclick="goBackHome()">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <p class="navBrand">Legal</p>
+        </div>
+    </nav>
+
+    <main class="switchPageWrap">
+        <header class="switchHeader">
+
+            <div class="switchBar" role="tablist" aria-label="Legal sections">
+                <button class="switchBtn" data-tab="terms" role="tab">Terms</button>
+                <button class="switchBtn" data-tab="privacy" role="tab">Privacy</button>
+                <button class="switchBtn" data-tab="cookies" role="tab">Cookies</button>
+                <button class="switchBtn" data-tab="copyright" role="tab">Copyright</button>
+                <button class="switchBtn" data-tab="contact" role="tab">Contact</button>
+            </div>
+        </header>
+
+        <div class="mainSection">
+            <section class="switchPanel" data-panel="terms" role="tabpanel">
+                <h2>Terms & Conditions</h2>
+                <p>Terms content</p>
+            </section>
+            
+            <section class="switchPanel" data-panel="privacy" role="tabpanel">
+                <h2>Privacy Policy</h2>
+                <p>Privacy content .</p>
+            </section>
+            
+            <section class="switchPanel" data-panel="cookies" role="tabpanel">
+                <h2>Cookies</h2>
+                <p>Cookies.</p>
+            </section>
+            
+            <section class="switchPanel" data-panel="copyright" role="tabpanel">
+                <h2>Copyright</h2>
+                <p>Copyright</p>
+            </section>
+
+            <section class="switchPanel" data-panel="contact" role="tabpanel">
+                <h2>Contact</h2>
+                <p>Contact</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="legal.js"></script>
+</body>
+
+</html>
