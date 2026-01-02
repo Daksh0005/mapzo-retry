@@ -1,4 +1,13 @@
-
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
 .legalPage {
     background:
         radial-gradient(1000px 500px at 20% -10%, rgba(29, 185, 84, 0.12), transparent 55%),
@@ -138,6 +147,70 @@
     color: rgba(255, 255, 255, 0.74);
     line-height: 1.75;
     font-size: 0.98rem;
+}
+
+/* Terms & Conditions Styling */
+.switchPanel h2 {
+    margin-bottom: 8px;
+    font-size: 1.5rem;
+}
+
+.switchPanel .terms-updated {
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+}
+
+.switchPanel h3 {
+    margin-top: 28px;
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+    color: var(--accent);
+    font-weight: 800;
+}
+
+.switchPanel h4 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 700;
+}
+
+.switchPanel p.muted {
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.switchPanel ul.muted {
+    margin-left: 24px;
+    margin-bottom: 20px;
+    line-height: 1.7;
+    list-style-type: disc;
+}
+
+.switchPanel ul.muted li {
+    margin-bottom: 8px;
+}
+
+.switchPanel ul.muted li strong,
+.switchPanel p.muted strong {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.switchPanel .section-subheading {
+    margin-bottom: 8px;
+    margin-top: 16px;
+}
+
+.switchPanel a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.switchPanel a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
 }
 
 

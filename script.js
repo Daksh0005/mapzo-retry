@@ -157,6 +157,7 @@ function handleEventSubmit() {
     const eventLocation = document.getElementById('eventLocation').value;
     const eventDescription = document.getElementById('eventDescription').value;
     const eventHashtags = document.getElementById('eventHashtags').value;
+    const eventImage = document.getElementById('eventImage');
     
     if (!eventName || !eventCategory || !eventDate || !eventLocation) {
         alert('Please fill in all required fields!');
@@ -176,7 +177,7 @@ function handleEventSubmit() {
         location: eventLocation,
         category: eventCategory,
         tags: eventHashtags.split(' ').filter(tag => tag.startsWith('#')),
-        image: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400",
+        image: eventImage,
         lat: 22.3200,
         lng: 87.3150
     };
