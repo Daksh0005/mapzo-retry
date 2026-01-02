@@ -31,5 +31,6 @@ function goBackHome() {
    window.location.href = "index.html"; 
 }
 
+window.addEventListener("popstate", goBackHome)
 
 document.addEventListener("DOMContentLoaded", init);
