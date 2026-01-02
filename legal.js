@@ -31,6 +31,4 @@ function goBackHome() {
    window.location.href = "index.html"; 
 }
 
-window.addEventListener("backbutton", onBackKeyDown, goBackHome);
-
 document.addEventListener("DOMContentLoaded", init);
