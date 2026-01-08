@@ -2853,29 +2853,37 @@ body.eventPage {
     border-radius: 8px;
     text-align: center;
 }
+/* ========================================
+   HIDE ALL GOOGLE MAPS DEFAULT CONTROLS
+======================================== */
+
 /* Hide zoom controls */
 .map .gm-bundled-control {
     display: none !important;
 }
 
-/* Hide fullscreen button (we'll use custom) */
+/* Hide fullscreen button */
 .map .gm-fullscreen-control {
     display: none !important;
 }
 
-/* Hide "Keyboard shortcuts", "Map data", "Terms" */
+/* Hide keyboard shortcuts, map data, terms */
 .map .gmnoprint,
 .map .gm-style-cc {
     display: none !important;
 }
 
-/* Hide Google logo (optional - might violate ToS, but for cleaner look) */
+/* Hide Google logo */
 .map a[href^="http://maps.google.com"],
 .map a[href^="https://maps.google.com"] {
     display: none !important;
 }
 
-/* Custom map controls container */
+/* ========================================
+   CUSTOM MAP CONTROLS
+======================================== */
+
+/* Recenter button container (top left) */
 .mapControls {
     position: absolute;
     top: 16px;
@@ -2886,11 +2894,12 @@ body.eventPage {
     gap: 8px;
 }
 
+/* Recenter button styling */
 .mapControlBtn {
     width: 48px;
     height: 48px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid rgba(29, 185, 84, 0.3);
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid rgba(29, 185, 84, 0.5);
     border-radius: 12px;
     color: #fff;
     font-size: 1.2rem;
@@ -2899,14 +2908,14 @@ body.eventPage {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .mapControlBtn:hover {
-    background: rgba(29, 185, 84, 0.15);
+    background: rgba(29, 185, 84, 0.2);
     border-color: var(--accent);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7);
 }
 
 .mapControlBtn:active {
@@ -2925,8 +2934,8 @@ body.eventPage {
     z-index: 10;
     width: 48px;
     height: 48px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid rgba(29, 185, 84, 0.3);
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid rgba(29, 185, 84, 0.5);
     border-radius: 12px;
     color: #fff;
     font-size: 1.2rem;
@@ -2935,15 +2944,26 @@ body.eventPage {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .mapFullscreenBtn:hover {
-    background: rgba(29, 185, 84, 0.15);
+    background: rgba(29, 185, 84, 0.2);
     border-color: var(--accent);
     transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7);
 }
 
 .mapFullscreenBtn i {
     color: var(--accent);
+}
+/* Main map container */
+.map {
+    position: relative;
+    /* ← THIS IS CRITICAL */
+    width: 90vw;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    border: 4px solid #1db954;
+    z-index: 1;
 }

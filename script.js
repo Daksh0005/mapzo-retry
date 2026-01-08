@@ -982,43 +982,48 @@ document.addEventListener('keydown', function (e) {
 });
 
 // ========================================
-// CUSTOM MAP CONTROLS
+// CUSTOM MAP CONTROLS FUNCTIONALITY
 // ========================================
 
-// Recenter button functionality
+// Recenter button
 document.getElementById('recenterBtn')?.addEventListener('click', () => {
-    if (!map) return;
+    if (!map) {
+        alert('Map not loaded yet');
+        return;
+    }
 
     if (currentLocation) {
         map.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
         map.setZoom(14);
     } else {
-        // If no location set, prompt user to enable it
         if (confirm("Enable location to recenter map?")) {
             enableGPS();
         }
     }
 });
 
-// Fullscreen button functionality
+// Fullscreen button
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const mapElement = document.getElementById('mainMap');
 
-fullscreenBtn?.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-        mapElement.requestFullscreen().then(() => {
-            fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
-        }).catch(err => {
-            console.error('Fullscreen error:', err);
-        });
-    } else {
-        document.exitFullscreen().then(() => {
-            fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-        });
-    }
-});
+if (fullscreenBtn && mapElement) {
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            mapElement.requestFullscreen().then(() => {
+                fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+            }).catch(err => {
+                console.error('Fullscreen error:', err);
+                alert('Fullscreen not supported');
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+            });
+        }
+    });
+}
 
-// Handle fullscreen change events
+// Handle fullscreen change
 document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && fullscreenBtn) {
         fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
