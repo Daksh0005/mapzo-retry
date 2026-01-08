@@ -15,93 +15,87 @@ const els = {
   list: document.getElementById("commentsList"),
 };
 
-function getAllEvents() {
-  return JSON.parse(localStorage.getItem("mapzo_events") || "[]");
-}
+// Load event from Firebase
+if (!eventId) {
+  els.title.textContent = "Missing event id";
+} else {
+  db.collection('events').doc(eventId).get().then((doc) => {
+    if (!doc.exists) {
+      els.title.textContent = "Event not found";
+      return;
+    }
 
-function getEventById(id) {
-  return getAllEvents().find(e => String(e.id) === String(id));
-}
-
-function getCommentsKey(id) {
-  return `mapzo_comments_${id}`;
-}
-
-function getComments(id) {
-  return JSON.parse(localStorage.getItem(getCommentsKey(id)) || "[]");
-}
-
-function saveComments(id, comments) {
-  localStorage.setItem(getCommentsKey(id), JSON.stringify(comments));
-}
-
-function renderComments(id) {
-  const comments = getComments(id);
-  els.list.innerHTML = "";
-
-  if (!comments.length) {
-    els.list.innerHTML = `<p style="color: rgba(255,255,255,0.55); margin:0;">No comments yet.</p>`;
-    return;
-  }
-
-  comments.slice().reverse().forEach(c => {
-    const div = document.createElement("div");
-    div.className = "commentItem";
-    div.innerHTML = `
-      <div class="commentMeta">
-        <span>${c.name}</span>
-        <span>${new Date(c.createdAt).toLocaleString()}</span>
-      </div>
-      <p class="commentText"></p>
-    `;
-    div.querySelector(".commentText").textContent = c.text;
-    els.list.appendChild(div);
+    const event = doc.data();
+    renderEvent(event);
+    loadComments(eventId);
+  }).catch((error) => {
+    console.error("Error loading event:", error);
+    els.title.textContent = "Error loading event";
   });
 }
 
 function renderEvent(e) {
-    if (!e) {
-        els.title.textContent = "Event not found";
+  els.img.src = e.image || "https://via.placeholder.com/400x200?text=Event";
+  els.cat.textContent = e.category || "Other";
+  els.title.textContent = e.title || "Untitled event";
+  els.date.innerHTML = `<i class="fa-regular fa-calendar"></i> ${e.date || ""}`;
+  els.time.innerHTML = `<i class="fa-regular fa-clock"></i> ${e.time || ""}`;
+  els.loc.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${e.location || ""}`;
+  els.desc.textContent = e.description || "";
+
+  els.tags.innerHTML = "";
+  (e.tags || []).forEach(t => {
+    const span = document.createElement("span");
+    span.className = "tag";
+    span.textContent = t.startsWith("#") ? t : `#${t}`;
+    els.tags.appendChild(span);
+  });
+}
+
+// Load comments from Firebase
+function loadComments(eventId) {
+  db.collection('events').doc(eventId).collection('comments')
+    .orderBy('createdAt', 'desc')
+    .onSnapshot((snapshot) => {
+      els.list.innerHTML = "";
+
+      if (snapshot.empty) {
+        els.list.innerHTML = `<p style="color: rgba(255,255,255,0.55); margin:0;">No comments yet.</p>`;
         return;
-    }
+      }
 
-    els.img.src = e.image || "fallback.jpg";
-    els.cat.textContent = e.category || "Other";
-    els.title.textContent = e.title || "Untitled event";
-    els.date.innerHTML = `<i class="fa-regular fa-calendar"></i> ${e.date || ""}`;
-    els.time.innerHTML = `<i class="fa-regular fa-clock"></i> ${e.time || ""}`;
-    els.loc.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${e.location || ""}`;
-    els.desc.textContent = e.description || "";
-
-    els.tags.innerHTML = "";
-    (e.tags || []).forEach(t => {
-        const span = document.createElement("span");
-        span.className = "tag";
-        span.textContent = t.startsWith("#") ? t : `#${t}`;
-        els.tags.appendChild(span);
+      snapshot.forEach((doc) => {
+        const c = doc.data();
+        const div = document.createElement("div");
+        div.className = "commentItem";
+        div.innerHTML = `
+                    <div class="commentMeta">
+                        <span>${c.name || 'Anonymous'}</span>
+                        <span>${new Date(c.createdAt?.toDate()).toLocaleString()}</span>
+                    </div>
+                    <p class="commentText">${c.text}</p>
+                `;
+        els.list.appendChild(div);
+      });
     });
 }
 
-if (!eventId) {
-  els.title.textContent = "Missing event id";
-} else {
-  renderEvent(getEventById(eventId));
-  renderComments(eventId);
-}
-
-els.form?.addEventListener("submit", (ev) => {
+// Post comment to Firebase
+els.form?.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const text = els.input.value.trim();
   if (!text) return;
 
-  const comments = getComments(eventId);
-  comments.push({
-    name: "Anonymous",
-    text,
-    createdAt: Date.now(),
-  });
+  try {
+    await db.collection('events').doc(eventId).collection('comments').add({
+      name: "Anonymous",
+      text: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
 
-  saveComments(eventId, comments);
-  els.input.value = "";
-  renderComments(eventId);
+    els.input.value = "";
+  } catch (error) {
+    console.error("Error posting comment:", error);
+    alert("Failed to post comment. Please try again.");
+  }
 });

@@ -2794,3 +2794,62 @@ body.eventPage {
     color: rgba(255, 255, 255, 0.80);
     font-weight: 850;
 }
+
+
+/* Upload Map Styles */
+.uploadMapContainer {
+    margin-bottom: 12px;
+}
+
+.uploadMap {
+    width: 100%;
+    height: 300px;
+    border-radius: 12px;
+    border: 2px solid rgba(29, 185, 84, 0.3);
+    margin-bottom: 8px;
+    background: #242f3e;
+}
+
+.locationMethodButtons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.locationMethodBtn {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.locationMethodBtn:hover {
+    background: rgba(29, 185, 84, 0.15);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.locationMethodBtn i {
+    font-size: 1rem;
+}
+
+.selectedLocationText {
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0;
+    padding: 8px 12px;
+    background: rgba(29, 185, 84, 0.1);
+    border-radius: 8px;
+    text-align: center;
+}

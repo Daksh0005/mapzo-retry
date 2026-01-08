@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapzo - Discover Events</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
@@ -17,7 +19,40 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="Mapzo" />
     <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <script>
+        // Firebase Configuration - REPLACE WITH YOUR CONFIG FROM FIREBASE CONSOLE
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+    </script>
+
+    <!-- Google Maps API -->
+    <script>
+        function initMap() {
+            // Will be called when Maps API loads
+        }
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAh0cLcA59_-Epn5rPyZNn-sigHeps4vyA&callback=initMap">
+        </script>
 </head>
+
 
 <body>
     <!-- Top Navigation Bar -->
@@ -407,18 +442,34 @@
                 </div>
 
                 <div class="formGroup">
-                    <label class="formLabel">Location</label>
-                    <input 
-                        type="text" 
-                        class="formInput" 
-                        placeholder="e.g., IIT Kharagpur"
-                        id="eventLocation"
-                        required>
-                    <p class="formHint">
-                        <i class="fa-solid fa-location-dot"></i>
-                        Tap on map to select location
+                    <label class="formLabel">Location (Text)</label>
+                    <input type="text" class="formInput" placeholder="e.g., IIT Kharagpur" id="eventLocation" required>
+                </div>
+                
+                <div class="formGroup">
+                    <label class="formLabel">Select Event Location on Map</label>
+                    <div class="uploadMapContainer">
+                        <div id="uploadMap" class="uploadMap"></div>
+                        <p class="formHint">
+                            <i class="fa-solid fa-map-pin"></i>
+                            Click anywhere on map to pin event location
+                        </p>
+                    </div>
+                    <div class="locationMethodButtons">
+                        <button type="button" class="locationMethodBtn" onclick="useHostGPS()">
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                            Use My Location
+                        </button>
+                        <button type="button" class="locationMethodBtn" onclick="searchHostLocation()">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            Search Location
+                        </button>
+                    </div>
+                    <p class="selectedLocationText" id="selectedLocationText">
+                        📍 No location pinned yet
                     </p>
                 </div>
+
 
                 <div class="formGroup">
                     <label class="formLabel">Description</label>
