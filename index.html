@@ -312,8 +312,21 @@
 
     <!-- Main Map Section -->
     <main>
-        <div class="map"></div>
+        <div class="map" id="mainMap">
+            <!-- Recenter Button (Top Left) -->
+            <div class="mapControls">
+                <button class="mapControlBtn" id="recenterBtn" title="Recenter to your location">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                </button>
+            </div>
+    
+            <!-- Fullscreen Button (Top Right) -->
+            <button class="mapFullscreenBtn" id="fullscreenBtn" title="Toggle fullscreen">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+        </div>
     </main>
+
 
     <!-- Events Section -->
     <section class="eventsSection">
