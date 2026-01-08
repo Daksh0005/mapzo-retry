@@ -1,54 +1,120 @@
 // ========================================
-// FIREBASE & GOOGLE MAPS INTEGRATION
+// MAPZO - EVENT DISCOVERY PLATFORM
+// Clean, Optimized Script
 // ========================================
 
-let map; // Main user map
-let uploadMap; // Host upload map
+// ========================================
+// 1. GLOBAL VARIABLES
+// ========================================
+
+let map = null;
+let uploadMap = null;
 let eventMarkers = [];
 let uploadMarker = null;
 let selectedEventLocation = null;
+let currentLocation = null;
+let selectedManualLocation = null;
+let searchTimeout = null;
+let mapInitialized = false;
+
+let currentFilters = {
+    date: null,
+    distance: 50,
+    category: 'all'
+};
+
+let currentDate = new Date();
+let selectedDate = null;
 
 // ========================================
-// 1. INITIALIZE GOOGLE MAPS
+// 2. GOOGLE MAPS INITIALIZATION
 // ========================================
 
-function initMap() {
+window.initMap = function () {
+    if (mapInitialized) {
+        console.log('Map already initialized');
+        return;
+    }
+
     const mapElement = document.querySelector('.map');
-    if (!mapElement) return;
+    if (!mapElement) {
+        console.error('Map element not found');
+        return;
+    }
+
+    console.log('Initializing Google Maps...');
 
     const defaultCenter = { lat: 22.3200, lng: 87.3150 };
 
-    map = new google.maps.Map(mapElement, {
-        center: currentLocation ?
-            { lat: currentLocation.lat, lng: currentLocation.lng } :
-            defaultCenter,
-        zoom: 14,
+    try {
+        // Check if google.maps is available
+        if (typeof google === 'undefined' || !google.maps) {
+            throw new Error('Google Maps not loaded');
+        }
 
-        // HIDE ALL DEFAULT CONTROLS
-        disableDefaultUI: true,
+        map = new google.maps.Map(mapElement, {
+            center: currentLocation || defaultCenter,
+            zoom: 14,
+            disableDefaultUI: true,
+            gestureHandling: 'greedy',
+            styles: [
+                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+                { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] }
+            ]
+        });
 
-        // Dark theme styling
-        styles: [
-            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-            { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] }
-        ]
-    });
+        mapInitialized = true;
+        console.log('✅ Map initialized successfully');
 
-    loadEventsFromFirebase();
+        // Wait for tiles to load
+        google.maps.event.addListenerOnce(map, 'tilesloaded', function () {
+            console.log('Map tiles loaded, fetching events...');
+            // Check if Firebase is ready
+            if (typeof db !== 'undefined') {
+                loadEventsFromFirebase();
+            } else {
+                console.error('Firebase not initialized');
+                setTimeout(loadEventsFromFirebase, 1000); // Retry after 1s
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Map initialization failed:', error);
+        showMapError();
+    }
+};
+
+
+function showMapError() {
+    const mapElement = document.querySelector('.map');
+    if (mapElement) {
+        mapElement.innerHTML = `
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 1000;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; color: #ff4444;"></i>
+                <h3 style="margin: 16px 0 8px; color: #fff;">Failed to Load Map</h3>
+                <p style="color: rgba(255,255,255,0.7); margin-bottom: 16px;">Check your connection or disable ad blocker</p>
+                <button onclick="location.reload()" style="padding: 12px 24px; background: #1db954; border: none; border-radius: 20px; color: #000; font-weight: 700; cursor: pointer;">
+                    Retry
+                </button>
+            </div>
+        `;
+    }
 }
-// Initialize upload map when modal opens
+
+// ========================================
+// 3. UPLOAD MAP (Host Event Form)
+// ========================================
+
 function initUploadMap() {
     const uploadMapElement = document.getElementById('uploadMap');
     if (!uploadMapElement) return;
 
-    const defaultCenter = currentLocation ?
-        { lat: currentLocation.lat, lng: currentLocation.lng } :
-        { lat: 22.3200, lng: 87.3150 };
+    const defaultCenter = currentLocation || { lat: 22.3200, lng: 87.3150 };
 
     uploadMap = new google.maps.Map(uploadMapElement, {
         center: defaultCenter,
@@ -59,19 +125,14 @@ function initUploadMap() {
         ]
     });
 
-    // Click to place marker
     uploadMap.addListener('click', function (e) {
         placeUploadMarker(e.latLng);
     });
 }
 
 function placeUploadMarker(location) {
-    // Remove old marker
-    if (uploadMarker) {
-        uploadMarker.setMap(null);
-    }
+    if (uploadMarker) uploadMarker.setMap(null);
 
-    // Place new marker
     uploadMarker = new google.maps.Marker({
         position: location,
         map: uploadMap,
@@ -95,7 +156,6 @@ function placeUploadMarker(location) {
         `✅ Location pinned at ${location.lat().toFixed(4)}, ${location.lng().toFixed(4)}`;
 }
 
-// Use host's GPS location
 function useHostGPS() {
     if (!navigator.geolocation) {
         alert('Geolocation not supported');
@@ -104,22 +164,21 @@ function useHostGPS() {
 
     navigator.geolocation.getCurrentPosition(
         function (position) {
-            const location = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-            };
+            const location = new google.maps.LatLng(
+                position.coords.latitude,
+                position.coords.longitude
+            );
             uploadMap.setCenter(location);
-            placeUploadMarker(new google.maps.LatLng(location.lat, location.lng));
+            placeUploadMarker(location);
         },
-        function (error) {
-            alert('Could not get your location. Please try clicking on the map.');
+        function () {
+            alert('Could not get your location. Please click on the map.');
         }
     );
 }
 
-// Search location for event
 function searchHostLocation() {
-    const query = prompt("Enter location to search (e.g., IIT Kharagpur, Delhi):");
+    const query = prompt("Enter location (e.g., IIT Kharagpur, Delhi):");
     if (!query) return;
 
     const geocoder = new google.maps.Geocoder();
@@ -130,35 +189,96 @@ function searchHostLocation() {
             uploadMap.setZoom(15);
             placeUploadMarker(location);
         } else {
-            alert('Location not found. Please try another search or click on the map.');
+            alert('Location not found. Try another search or click on map.');
         }
     });
 }
 
 // ========================================
-// 2. LOAD EVENTS FROM FIREBASE
+// 4. FIREBASE - LOAD EVENTS
 // ========================================
 
 function loadEventsFromFirebase() {
-    db.collection('events').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
-        const events = [];
-        snapshot.forEach((doc) => {
-            events.push({ id: doc.id, ...doc.data() });
+    console.log('Loading events from Firebase...');
+
+    db.collection('events')
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .onSnapshot(
+            (snapshot) => {
+                const events = [];
+                snapshot.forEach((doc) => {
+                    events.push({ id: doc.id, ...doc.data() });
+                });
+
+                console.log(`✅ Loaded ${events.length} events`);
+                renderEventCards(events);
+                addEventMarkers(events);
+            },
+            (error) => {
+                console.error('❌ Error loading events:', error);
+            }
+        );
+}
+
+// ========================================
+// 5. DISPLAY EVENT CARDS
+// ========================================
+
+function renderEventCards(events) {
+    const eventsScroll = document.querySelector('.eventsScroll');
+    if (!eventsScroll) return;
+
+    if (events.length === 0) {
+        eventsScroll.innerHTML = '<p style="color: rgba(255,255,255,0.5); text-align: center; padding: 40px;">No events found</p>';
+        return;
+    }
+
+    eventsScroll.innerHTML = '';
+
+    events.forEach(event => {
+        const card = document.createElement('div');
+        card.className = 'eventCard';
+        card.innerHTML = `
+            <div class="eventImage">
+                <img 
+                    src="${event.image || 'https://via.placeholder.com/400x200?text=Event'}" 
+                    alt="${event.title}"
+                    loading="lazy">
+                <span class="eventCategory">${event.category}</span>
+            </div>
+            <div class="eventInfo">
+                <h3 class="eventTitle">${event.title}</h3>
+                <p class="eventDate">
+                    <i class="fa-regular fa-calendar"></i> ${event.date}
+                </p>
+                <p class="eventLocation">
+                    <i class="fa-solid fa-location-dot"></i> ${event.location}
+                </p>
+                <div class="eventTags">
+                    ${(event.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+            </div>
+        `;
+
+        card.addEventListener('click', () => {
+            window.location.href = `event.html?id=${event.id}`;
         });
 
-        renderEventCards(events);
-        addEventMarkers(events);
+        eventsScroll.appendChild(card);
     });
 }
 
 // ========================================
-// 3. DISPLAY EVENT MARKERS ON MAP
+// 6. DISPLAY MAP MARKERS
 // ========================================
 
 function addEventMarkers(events) {
-    // Clear existing markers
+    // Clear old markers
     eventMarkers.forEach(marker => marker.setMap(null));
     eventMarkers = [];
+
+    if (!map) return;
 
     events.forEach(event => {
         if (!event.lat || !event.lng) return;
@@ -167,7 +287,7 @@ function addEventMarkers(events) {
             position: { lat: event.lat, lng: event.lng },
             map: map,
             title: event.title,
-            animation: google.maps.Animation.DROP,
+            optimized: true,
             icon: {
                 path: google.maps.SymbolPath.CIRCLE,
                 scale: 12,
@@ -213,49 +333,7 @@ function addEventMarkers(events) {
 }
 
 // ========================================
-// 4. RENDER EVENT CARDS
-// ========================================
-
-function renderEventCards(events) {
-    const eventsScroll = document.querySelector('.eventsScroll');
-    if (!eventsScroll) return;
-
-    eventsScroll.innerHTML = '';
-
-    events.forEach(event => {
-        const card = document.createElement('div');
-        card.className = 'eventCard';
-        card.innerHTML = `
-            <div class="eventImage">
-                <img src="${event.image || 'https://via.placeholder.com/400x200?text=Event'}" alt="${event.title}">
-                <span class="eventCategory">${event.category}</span>
-            </div>
-            <div class="eventInfo">
-                <h3 class="eventTitle">${event.title}</h3>
-                <p class="eventDate">
-                    <i class="fa-regular fa-calendar"></i>
-                    ${event.date}
-                </p>
-                <p class="eventLocation">
-                    <i class="fa-solid fa-location-dot"></i>
-                    ${event.location}
-                </p>
-                <div class="eventTags">
-                    ${(event.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
-            </div>
-        `;
-
-        card.addEventListener('click', () => {
-            window.location.href = `event.html?id=${event.id}`;
-        });
-
-        eventsScroll.appendChild(card);
-    });
-}
-
-// ========================================
-// 5. UPLOAD EVENT TO FIREBASE
+// 7. UPLOAD EVENT TO FIREBASE
 // ========================================
 
 async function handleEventSubmit() {
@@ -278,7 +356,7 @@ async function handleEventSubmit() {
         return;
     }
 
-    // Upload image to Firebase Storage
+    // Upload image
     let imageUrl = '';
     if (eventImageInput.files && eventImageInput.files[0]) {
         const file = eventImageInput.files[0];
@@ -289,18 +367,15 @@ async function handleEventSubmit() {
             imageUrl = await snapshot.ref.getDownloadURL();
         } catch (error) {
             console.error('Image upload error:', error);
-            alert('Failed to upload image. Event will be posted without image.');
         }
     }
 
-    // Create event object
+    // Save event
     const newEvent = {
         title: eventName,
         category: eventCategory,
         date: new Date(eventDate).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
+            month: 'short', day: 'numeric', year: 'numeric'
         }),
         time: eventTime,
         location: eventLocation,
@@ -312,7 +387,6 @@ async function handleEventSubmit() {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    // Save to Firestore
     try {
         await db.collection('events').add(newEvent);
 
@@ -337,7 +411,7 @@ async function handleEventSubmit() {
 }
 
 // ========================================
-// 6. UI FUNCTIONS (Menu, Modals, etc.)
+// 8. UI CONTROLS - MENU & MODALS
 // ========================================
 
 function toggleMenu() {
@@ -369,7 +443,6 @@ function openUploadForm() {
     uploadOverlay.classList.add("show");
     lockScroll();
 
-    // Initialize upload map after modal opens
     setTimeout(() => {
         if (!uploadMap) initUploadMap();
     }, 300);
@@ -383,14 +456,8 @@ function closeUploadForm() {
 }
 
 // ========================================
-// 7. FILTERS
+// 9. FILTERS
 // ========================================
-
-let currentFilters = {
-    date: null,
-    distance: 50,
-    category: 'all'
-};
 
 function openFilterModal() {
     const filterOverlay = document.querySelector(".filterOverlay");
@@ -408,11 +475,7 @@ function closeFilterModal() {
 }
 
 function resetFilters() {
-    currentFilters = {
-        date: null,
-        distance: 50,
-        category: 'all'
-    };
+    currentFilters = { date: null, distance: 50, category: 'all' };
     selectedDate = null;
 
     document.querySelectorAll('.quickFilterBtn').forEach(btn => btn.classList.remove('active'));
@@ -425,7 +488,7 @@ function resetFilters() {
     document.getElementById('distanceRange').value = 50;
 
     renderCalendar();
-    loadEventsFromFirebase(); // Reload all events
+    loadEventsFromFirebase();
 }
 
 function applyFilters() {
@@ -435,7 +498,7 @@ function applyFilters() {
             events.push({ id: doc.id, ...doc.data() });
         });
 
-        // Apply date filter
+        // Date filter
         if (currentFilters.date) {
             const selected = new Date(currentFilters.date);
             selected.setHours(0, 0, 0, 0);
@@ -448,21 +511,19 @@ function applyFilters() {
             });
         }
 
-        // Apply distance filter
+        // Distance filter
         if (currentLocation && currentFilters.distance) {
             events = events.filter(event => {
                 if (!event.lat || !event.lng) return false;
                 const distance = calculateDistance(
-                    currentLocation.lat,
-                    currentLocation.lng,
-                    event.lat,
-                    event.lng
+                    currentLocation.lat, currentLocation.lng,
+                    event.lat, event.lng
                 );
                 return distance <= currentFilters.distance;
             });
         }
 
-        // Apply category filter
+        // Category filter
         if (currentFilters.category && currentFilters.category !== 'all') {
             events = events.filter(e => e.category === currentFilters.category);
         }
@@ -485,11 +546,8 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 }
 
 // ========================================
-// 8. CALENDAR
+// 10. CALENDAR
 // ========================================
-
-let currentDate = new Date();
-let selectedDate = null;
 
 function renderCalendar() {
     const calendarDays = document.getElementById('calendarDays');
@@ -544,12 +602,8 @@ function renderCalendar() {
 }
 
 // ========================================
-// 9. USER LOCATION
+// 11. USER LOCATION
 // ========================================
-
-let currentLocation = null;
-let selectedManualLocation = null;
-let searchTimeout = null;
 
 function openLocationModal() {
     const locationOverlay = document.querySelector(".locationOverlay");
@@ -567,7 +621,7 @@ function closeLocationModal() {
 
 function enableGPS() {
     if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser');
+        alert('Geolocation not supported');
         return;
     }
 
@@ -578,21 +632,21 @@ function enableGPS() {
 
     navigator.geolocation.getCurrentPosition(
         function (position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            reverseGeocode(lat, lng);
+            reverseGeocode(position.coords.latitude, position.coords.longitude);
             closeLocationModal();
 
-            // Re-center map
             if (map) {
-                map.setCenter({ lat, lng });
+                map.setCenter({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
             }
         },
-        function (error) {
+        function () {
             if (locationDisplay) {
                 locationDisplay.textContent = 'Enable Location';
             }
-            alert('Could not get your location. Please try manual search.');
+            alert('Could not get your location.');
         }
     );
 }
@@ -601,34 +655,18 @@ async function reverseGeocode(lat, lng) {
     try {
         const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
-            {
-                headers: {
-                    'User-Agent': 'Mapzo/1.0'
-                }
-            }
+            { headers: { 'User-Agent': 'Mapzo/1.0' } }
         );
 
         const data = await response.json();
         const address = data.address;
-        let locationName = address.city ||
-            address.town ||
-            address.village ||
-            address.county ||
-            address.state_district ||
-            address.state ||
-            'Unknown Location';
+        const locationName = address.city || address.town || address.village ||
+            address.county || address.state || 'Unknown';
 
-        currentLocation = {
-            name: locationName,
-            lat: lat,
-            lng: lng,
-            fullAddress: data.display_name
-        };
-
+        currentLocation = { name: locationName, lat, lng, fullAddress: data.display_name };
         updateLocationDisplay(locationName);
     } catch (error) {
         console.error('Reverse geocoding error:', error);
-        alert('Could not determine your location.');
     }
 }
 
@@ -636,8 +674,7 @@ function updateLocationDisplay(locationName) {
     const locationDisplay = document.getElementById('locationDisplay');
     if (locationDisplay) {
         const displayName = locationName.length > 15 ?
-            locationName.substring(0, 15) + '...' :
-            locationName;
+            locationName.substring(0, 15) + '...' : locationName;
         locationDisplay.textContent = displayName;
         locationDisplay.title = locationName;
     }
@@ -665,9 +702,7 @@ function handleLocationSearch(query) {
         return;
     }
 
-    if (searchTimeout) {
-        clearTimeout(searchTimeout);
-    }
+    if (searchTimeout) clearTimeout(searchTimeout);
 
     suggestionsContainer.innerHTML = `
         <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
@@ -678,56 +713,29 @@ function handleLocationSearch(query) {
     searchTimeout = setTimeout(async () => {
         try {
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&layer=address`,
-                {
-                    headers: {
-                        'User-Agent': 'Mapzo/1.0'
-                    }
-                }
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10`,
+                { headers: { 'User-Agent': 'Mapzo/1.0' } }
             );
 
             const results = await response.json();
 
             if (results.length === 0) {
-                suggestionsContainer.innerHTML = `
-                    <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
-                        No locations found
-                    </div>
-                `;
+                suggestionsContainer.innerHTML = '<div style="padding: 20px; text-align: center;">No locations found</div>';
                 return;
             }
 
-            const filteredResults = results.filter(result => {
-                const type = result.type;
-                const addressType = result.address;
-
-                return type === 'city' ||
-                    type === 'town' ||
-                    type === 'village' ||
-                    type === 'administrative' ||
-                    type === 'county' ||
-                    type === 'state' ||
-                    addressType.city ||
-                    addressType.town ||
-                    addressType.village ||
-                    addressType.county ||
-                    addressType.state_district;
+            const filtered = results.filter(r => {
+                const t = r.type;
+                const a = r.address;
+                return t === 'city' || t === 'town' || t === 'village' ||
+                    a.city || a.town || a.village;
             });
-
-            if (filteredResults.length === 0) {
-                suggestionsContainer.innerHTML = `
-                    <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
-                        No cities or districts found
-                    </div>
-                `;
-                return;
-            }
 
             suggestionsContainer.innerHTML = "";
 
-            filteredResults.forEach(result => {
+            filtered.forEach(result => {
                 const address = result.address || {};
-                const locationName = address.city || address.town || address.village || address.county || address.state_district || result.name;
+                const locationName = address.city || address.town || address.village || result.name;
 
                 const locationData = {
                     name: locationName,
@@ -742,7 +750,7 @@ function handleLocationSearch(query) {
                     <div class="suggestionIcon"><i class="fa-solid fa-location-dot"></i></div>
                     <div class="suggestionText">
                         <h4>${locationName}</h4>
-                        <p>${address.state || ""}, ${address.country || ""}`.replace(/^, |, $/g, "") + `</p>
+                        <p>${address.state || ""}, ${address.country || ""}</p>
                     </div>
                 `;
 
@@ -750,12 +758,8 @@ function handleLocationSearch(query) {
                 suggestionsContainer.appendChild(item);
             });
         } catch (error) {
-            console.error('Location search error:', error);
-            suggestionsContainer.innerHTML = `
-                <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
-                    Search failed. Please try again.
-                </div>
-            `;
+            console.error('Search error:', error);
+            suggestionsContainer.innerHTML = '<div style="padding: 20px; text-align: center;">Search failed</div>';
         }
     }, 500);
 }
@@ -773,7 +777,7 @@ function selectLocation(e, locationData) {
 
 function confirmManualLocation() {
     if (!selectedManualLocation) {
-        alert("Please select a location from the suggestions");
+        alert("Please select a location");
         return;
     }
 
@@ -794,10 +798,70 @@ function confirmManualLocation() {
 }
 
 // ========================================
-// 10. AUTH & INITIALIZATION
+// 12. CUSTOM MAP CONTROLS
+// ========================================
+
+function initMapControls() {
+    // Recenter button
+    document.getElementById('recenterBtn')?.addEventListener('click', () => {
+        if (!map) {
+            alert('Map not loaded');
+            return;
+        }
+
+        if (currentLocation) {
+            map.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
+            map.setZoom(14);
+        } else {
+            if (confirm("Enable location to recenter map?")) {
+                enableGPS();
+            }
+        }
+    });
+
+    // Fullscreen button
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const mapElement = document.getElementById('mainMap');
+
+    if (fullscreenBtn && mapElement) {
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                mapElement.requestFullscreen().then(() => {
+                    fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+                }).catch(() => {
+                    alert('Fullscreen not supported');
+                });
+            } else {
+                document.exitFullscreen().then(() => {
+                    fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                });
+            }
+        });
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && fullscreenBtn) {
+            fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+        }
+    });
+}
+
+// ========================================
+// 13. INITIALIZATION
 // ========================================
 
 document.addEventListener("DOMContentLoaded", () => {
+    console.log('DOM loaded, initializing Mapzo...');
+
+    // Check if Google Maps already loaded
+    if (typeof google !== 'undefined' && google.maps && !mapInitialized) {
+        console.log('Google Maps already available');
+        window.initMap();
+    }
+
+    // Initialize controls
+    initMapControls();
+
     // Image preview
     const eventImageInput = document.getElementById("uploadEventImage");
     if (eventImageInput) {
@@ -806,16 +870,15 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!file) return;
 
             const reader = new FileReader();
-            reader.addEventListener("load", (ev) => {
+            reader.onload = (ev) => {
                 const preview = document.getElementById("imagePreview");
                 const placeholder = document.querySelector(".imagePlaceholder");
-                if (!preview || !placeholder) return;
-
-                preview.src = ev.target.result;
-                preview.style.display = "block";
-                placeholder.style.display = "none";
-            });
-
+                if (preview && placeholder) {
+                    preview.src = ev.target.result;
+                    preview.style.display = "block";
+                    placeholder.style.display = "none";
+                }
+            };
             reader.readAsDataURL(file);
         });
     }
@@ -823,17 +886,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // Auth modal
     const authOverlay = document.getElementById("authOverlay");
     const authCloseBtn = document.getElementById("authCloseBtn");
-    const loginPage = document.getElementById("loginPage");
-    const signupPage = document.getElementById("signupPage");
-    const authTitle = document.getElementById("authTitle");
     const goSignupBtn = document.getElementById("goSignupBtn");
     const goLoginBtn = document.getElementById("goLoginBtn");
 
     function openAuth(mode = "login") {
         if (!authOverlay) return;
-
         authOverlay.classList.add("show");
         lockScroll();
+
+        const loginPage = document.getElementById("loginPage");
+        const signupPage = document.getElementById("signupPage");
+        const authTitle = document.getElementById("authTitle");
 
         if (mode === "signup") {
             loginPage?.classList.remove("show");
@@ -886,14 +949,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Calendar navigation
-    const prevMonthBtn = document.getElementById("prevMonth");
-    const nextMonthBtn = document.getElementById("nextMonth");
-
-    prevMonthBtn?.addEventListener("click", () => {
+    document.getElementById("prevMonth")?.addEventListener("click", () => {
         currentDate.setMonth(currentDate.getMonth() - 1);
         renderCalendar();
     });
-    nextMonthBtn?.addEventListener("click", () => {
+    document.getElementById("nextMonth")?.addEventListener("click", () => {
         currentDate.setMonth(currentDate.getMonth() + 1);
         renderCalendar();
     });
@@ -919,11 +979,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-distance]").forEach((btn) => {
         btn.addEventListener("click", function () {
             const distance = Number(this.dataset.distance);
-            if (!distanceInput || !distanceRange) return;
-
-            distanceInput.value = distance;
-            distanceRange.value = Math.min(500, distance);
-            currentFilters.distance = distance;
+            if (distanceInput && distanceRange) {
+                distanceInput.value = distance;
+                distanceRange.value = Math.min(500, distance);
+                currentFilters.distance = distance;
+            }
         });
     });
 
@@ -937,95 +997,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Category search
-    const categorySearch = document.getElementById("categorySearch");
-    categorySearch?.addEventListener("input", function () {
+    document.getElementById("categorySearch")?.addEventListener("input", function () {
         const query = this.value.toLowerCase();
         document.querySelectorAll(".categoryCard").forEach((card) => {
             const text = (card.textContent || "").toLowerCase();
             card.style.display = text.includes(query) ? "flex" : "none";
         });
     });
-});
 
-// Escape key to close modals
-document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape') return;
+    // Escape key to close modals
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
 
-    const manualOverlay = document.querySelector('.manualLocationOverlay');
-    const locationOverlay = document.querySelector('.locationOverlay');
-    const filterOverlay = document.querySelector('.filterOverlay');
-    const uploadOverlay = document.querySelector('.uploadOverlay');
-    const menu = document.querySelector('.menu');
-
-    if (manualOverlay?.classList.contains("show")) {
-        manualOverlay.classList.remove("show");
-        unlockScrollIfNoOverlay();
-        return;
-    }
-
-    if (locationOverlay?.classList.contains('show')) {
-        closeLocationModal();
-        return;
-    }
-    if (filterOverlay?.classList.contains('show')) {
-        closeFilterModal();
-        return;
-    }
-    if (uploadOverlay?.classList.contains('show')) {
-        closeUploadForm();
-        return;
-    }
-    if (menu?.classList.contains('menuShow')) {
-        toggleMenu();
-        return;
-    }
-});
-
-// ========================================
-// CUSTOM MAP CONTROLS FUNCTIONALITY
-// ========================================
-
-// Recenter button
-document.getElementById('recenterBtn')?.addEventListener('click', () => {
-    if (!map) {
-        alert('Map not loaded yet');
-        return;
-    }
-
-    if (currentLocation) {
-        map.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
-        map.setZoom(14);
-    } else {
-        if (confirm("Enable location to recenter map?")) {
-            enableGPS();
-        }
-    }
-});
-
-// Fullscreen button
-const fullscreenBtn = document.getElementById('fullscreenBtn');
-const mapElement = document.getElementById('mainMap');
-
-if (fullscreenBtn && mapElement) {
-    fullscreenBtn.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-            mapElement.requestFullscreen().then(() => {
-                fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
-            }).catch(err => {
-                console.error('Fullscreen error:', err);
-                alert('Fullscreen not supported');
-            });
-        } else {
-            document.exitFullscreen().then(() => {
-                fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-            });
+        if (document.querySelector('.manualLocationOverlay.show')) {
+            document.querySelector('.manualLocationOverlay').classList.remove("show");
+            unlockScrollIfNoOverlay();
+        } else if (document.querySelector('.locationOverlay.show')) {
+            closeLocationModal();
+        } else if (document.querySelector('.filterOverlay.show')) {
+            closeFilterModal();
+        } else if (document.querySelector('.uploadOverlay.show')) {
+            closeUploadForm();
+        } else if (document.querySelector('.menu.menuShow')) {
+            toggleMenu();
         }
     });
-}
 
-// Handle fullscreen change
-document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && fullscreenBtn) {
-        fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-    }
+    console.log('✅ Mapzo initialized');
 });

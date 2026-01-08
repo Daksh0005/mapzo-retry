@@ -41,16 +41,6 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
     </script>
-
-    <!-- Google Maps API -->
-    <script>
-        function initMap() {
-            // Will be called when Maps API loads
-        }
-    </script>
-    <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAh0cLcA59_-Epn5rPyZNn-sigHeps4vyA&callback=initMap">
-        </script>
 </head>
 
 
@@ -644,7 +634,17 @@
         </div>
     </div>
 
-
     <script src="script.js"></script>
+    
+    <!-- Google Maps - Load After Script -->
+    <script>
+        window.initMap = function () {
+            console.log('Google Maps callback triggered');
+        };
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAh0cLcA59_-Epn5rPyZNn-sigHeps4vyA&callback=initMap&loading=async&libraries=places">
+        </script>
+
 </body>
 </html>
