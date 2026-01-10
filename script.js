@@ -1,18 +1,23 @@
 // ========================================
 // MAPZO - EVENT DISCOVERY PLATFORM
-// 3D Cards + Multiple Base64 Images
+// COMPLETE FINAL SCRIPT
+// Fixed: Login, Signup, GPS (Host), and "Enable Location" (User)
 // ========================================
 
 // ========================================
 // 1. GLOBAL VARIABLES
 // ========================================
 
+// ✅ API KEY
+const API_KEY = "AIzaSyBqeFuoFFt-z7YhRoWOIH2nKO_oV3hiQkk";
+
 let currentUser = null;
 
 // ✅ ADMIN ACCESS LIST
 const ALLOWED_HOST_EMAILS = [
-  "shreyashmishra506@gmail.com",
-  "realdaksharora@gmail.com"
+    "shreyashmishra506@gmail.com",
+    "realdaksharora@gmail.com",
+    "iitianshreyash25@gmail.com"
 ];
 
 let map = null;
@@ -21,22 +26,12 @@ let eventMarkers = [];
 let uploadMarker = null;
 let selectedEventLocation = null;
 let currentLocation = null;
-let selectedManualLocation = null;
-let searchTimeout = null;
 let mapInitialized = false;
-let selectedFiles = []; // New global to hold selected files
-
-let currentFilters = {
-    date: null,
-    distance: 50,
-    category: 'all'
-};
-
-let currentDate = new Date();
-let selectedDate = null;
+let selectedFiles = [];
+let userLocationMarker = null; // New variable for user's blue dot
 
 // ========================================
-// 2. GOOGLE MAPS INITIALIZATION (Standard)
+// 2. GOOGLE MAPS INITIALIZATION
 // ========================================
 
 window.initMap = function () {
@@ -45,6 +40,7 @@ window.initMap = function () {
     const mapElement = document.querySelector('.map');
     if (!mapElement) return;
 
+    // Default to Kharagpur if no location found
     const defaultCenter = { lat: 22.3200, lng: 87.3150 };
 
     try {
@@ -71,7 +67,7 @@ window.initMap = function () {
 
         google.maps.event.addListenerOnce(map, 'tilesloaded', function () {
             if (window.db) loadEventsFromFirebase();
-            else setTimeout(loadEventsFromFirebase, 1000);
+            else setTimeout(loadEventsFromFirebase, 1500);
         });
 
     } catch (error) {
@@ -129,55 +125,158 @@ function placeUploadMarker(location) {
         `✅ Lat: ${location.lat().toFixed(4)}, Lng: ${location.lng().toFixed(4)}`;
 }
 
+// ========================================
+// 4. GPS FUNCTIONS (Host & User)
+// ========================================
+
+// Function for HOST (Upload Page)
 function useHostGPS() {
-    if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+    if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+    }
+    const statusText = document.getElementById('selectedLocationText');
+    if(statusText) statusText.textContent = "⌛ Getting location...";
+
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const loc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-            uploadMap.setCenter(loc); placeUploadMarker(loc);
+            if (uploadMap) {
+                uploadMap.setCenter(loc);
+                placeUploadMarker(loc);
+                uploadMap.setZoom(16);
+            }
         },
-        () => alert('Could not get location.')
+        (error) => {
+            console.error(error);
+            alert('Could not get location. Make sure GPS is enabled.');
+        }
     );
 }
 
+// Function for HOST (Search)
 function searchHostLocation() {
-    const query = prompt("Enter location:");
+    const query = prompt("Enter a location to search:");
     if (!query) return;
+
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode({ address: query }, (results, status) => {
         if (status === 'OK' && results[0]) {
-            uploadMap.setCenter(results[0].geometry.location);
-            placeUploadMarker(results[0].geometry.location);
-        } else alert('Location not found.');
+            const loc = results[0].geometry.location;
+            if (uploadMap) {
+                uploadMap.setCenter(loc);
+                placeUploadMarker(loc);
+            }
+        } else {
+            alert('Location not found. Try a different name.');
+        }
     });
 }
 
+// ✅ NEW: Function for USER (Main Page "Enable Location" Button)
+// This fixes the "openLocationModal is not defined" error
+function openLocationModal() {
+    console.log("Getting User Location...");
+
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const userPos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            
+            currentLocation = userPos; // Save globally
+
+            if (map) {
+                map.setCenter(userPos);
+                map.setZoom(15);
+
+                // Remove old user marker if exists
+                if (userLocationMarker) userLocationMarker.setMap(null);
+
+                // Add "You are here" Blue Dot
+                userLocationMarker = new google.maps.Marker({
+                    position: userPos,
+                    map: map,
+                    title: "You are here",
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
+                        fillColor: "#4285F4",
+                        fillOpacity: 1,
+                        strokeColor: "white",
+                        strokeWeight: 2,
+                    }
+                });
+                
+                alert("Location found! 📍");
+            }
+        },
+        (error) => {
+            console.error("Error getting location:", error);
+            alert("Could not get your location. Please check your browser permissions.");
+        }
+    );
+}
+
 // ========================================
-// 4. AUTH & ADMIN
+// 5. AUTH & SESSION MANAGEMENT
 // ========================================
 
-auth.onAuthStateChanged((user) => {
+function checkSession() {
+    const token = localStorage.getItem('userToken');
+    const email = localStorage.getItem('userEmail');
+    const uid = localStorage.getItem('userId');
+
+    if (token && email) {
+        currentUser = { email: email, uid: uid || 'user' };
+        updateUIForLogin(currentUser);
+    } else {
+        currentUser = null;
+        updateUIForLogout();
+    }
+}
+
+function updateUIForLogin(user) {
+    const logSignBox = document.querySelector(".logSignBox");
+    const hostBar = document.querySelector(".hostBar");
+    const userEmail = user.email ? user.email.toLowerCase() : "";
+
+    if (logSignBox) {
+        logSignBox.innerHTML = `<p style="font-size:0.9rem;color:#aaa;margin-bottom:10px;">${user.email}</p><button class="logSign" onclick="handleLogout()" style="background:#ff4444;color:white;">Log out</button>`;
+    }
+    if (hostBar) {
+        hostBar.style.display = ALLOWED_HOST_EMAILS.includes(userEmail) ? "block" : "none";
+    }
+}
+
+function updateUIForLogout() {
     const logSignBox = document.querySelector(".logSignBox");
     const hostBar = document.querySelector(".hostBar");
 
-    if (user) {
-        currentUser = user;
-        const userEmail = user.email ? user.email.toLowerCase() : "";
-        if (logSignBox) {
-            logSignBox.innerHTML = `<p style="font-size:0.9rem;color:#aaa;margin-bottom:10px;">${user.email}</p><button class="logSign" onclick="auth.signOut()" style="background:#ff4444;color:white;">Log out</button>`;
-        }
-        if (hostBar) hostBar.style.display = ALLOWED_HOST_EMAILS.includes(userEmail) ? "block" : "none";
-    } else {
-        currentUser = null;
-        if (logSignBox) {
-            logSignBox.innerHTML = `<button class="logSign" onclick="openAuth('login')">Log in</button><button class="logSign" onclick="openAuth('signup')">Sign up</button>`;
-        }
-        if (hostBar) hostBar.style.display = "none";
+    if (logSignBox) {
+        logSignBox.innerHTML = `<button class="logSign" onclick="openAuth('login')">Log in</button><button class="logSign" onclick="openAuth('signup')">Sign up</button>`;
     }
-});
+    if (hostBar) hostBar.style.display = "none";
+}
+
+function handleLogout() {
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userId');
+    currentUser = null;
+    updateUIForLogout();
+    alert("Logged out successfully.");
+    window.location.reload();
+}
 
 // ========================================
-// 5. HELPER: COMPRESS IMAGE TO BASE64
+// 6. HELPER: COMPRESS IMAGE TO BASE64
 // ========================================
 function compressImage(file) {
     return new Promise((resolve, reject) => {
@@ -194,7 +293,6 @@ function compressImage(file) {
                 elem.height = img.height * scaleFactor;
                 const ctx = elem.getContext('2d');
                 ctx.drawImage(img, 0, 0, elem.width, elem.height);
-                // Compress to JPEG at 0.7 quality
                 resolve(elem.toDataURL('image/jpeg', 0.7));
             };
             img.onerror = (error) => reject(error);
@@ -204,7 +302,7 @@ function compressImage(file) {
 }
 
 // ========================================
-// 6. EVENT DISPLAY (Updated for 3D & Arrays)
+// 7. EVENT DISPLAY
 // ========================================
 
 function renderEventCards(events) {
@@ -217,7 +315,6 @@ function renderEventCards(events) {
     }
 
     eventsScroll.innerHTML = '';
-    const now = new Date();
 
     events.forEach(event => {
         let displayImage = 'https://via.placeholder.com/400x220?text=Event';
@@ -227,32 +324,10 @@ function renderEventCards(events) {
             displayImage = event.image;
         }
 
-        // --- 🔴 LIVE NOW LOGIC START ---
-        // Parse event date "Dec 25, 2025"
-        const eventDateObj = new Date(event.date); 
-        const isSameDay = eventDateObj.toDateString() === now.toDateString();
-        
-        // Parse time "14:30"
-        let isLive = false;
-        if (isSameDay && event.time) {
-            const [hours, mins] = event.time.split(':');
-            const eventStart = new Date(eventDateObj);
-            eventStart.setHours(hours, mins, 0);
-            
-            // Assume event lasts 3 hours (you can make this a field later)
-            const eventEnd = new Date(eventStart.getTime() + (3 * 60 * 60 * 1000));
-            
-            if (now >= eventStart && now <= eventEnd) {
-                isLive = true;
-            }
-        }
-        // --- 🔴 LIVE NOW LOGIC END ---
-
         const card = document.createElement('div');
         card.className = 'eventCard';
         card.innerHTML = `
             <div class="eventImage">
-                ${isLive ? '<div class="live-badge">LIVE NOW</div>' : ''}
                 <img src="${displayImage}" alt="${event.title}" loading="lazy">
                 <span class="eventCategory">${event.category}</span>
             </div>
@@ -268,7 +343,6 @@ function renderEventCards(events) {
         eventsScroll.appendChild(card);
     });
 }
-
 
 function addEventMarkers(events) {
     eventMarkers.forEach(marker => marker.setMap(null));
@@ -291,7 +365,7 @@ function addEventMarkers(events) {
 }
 
 // ========================================
-// 7. UPLOAD EVENT (MULTIPLE BASE64)
+// 8. UPLOAD EVENT
 // ========================================
 
 async function handleEventSubmit() {
@@ -316,18 +390,13 @@ async function handleEventSubmit() {
     if (!window.db) return alert("DB Error. Reload.");
 
     try {
-        // ✅ Process Multiple Images in parallel
         let imageUrls = [];
         if (selectedFiles.length > 0) {
-            console.log(`Compressing ${selectedFiles.length} images...`);
-            // Create an array of promises
             const uploadPromises = selectedFiles.map(file => compressImage(file));
-            // Wait for all to finish
             imageUrls = await Promise.all(uploadPromises);
-            console.log("All images processed.");
         }
 
-    const newEvent = {
+        const newEvent = {
             title: eventName,
             category: eventCategory,
             date: new Date(eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -335,23 +404,19 @@ async function handleEventSubmit() {
             location: eventLocation,
             description: eventDescription,
             tags: eventHashtags.split(' ').filter(tag => tag.startsWith('#')),
-            // ✅ Store array of strings instead of single string
             images: imageUrls, 
             lat: selectedEventLocation.lat,
             lng: selectedEventLocation.lng,
             createdAt: new Date(),
-
-            // ✅ NEW LINES ADDED HERE:
-            hostId: currentUser ? currentUser.uid : null, 
-            hostEmail: currentUser ? currentUser.email : null, 
+            hostId: currentUser ? currentUser.uid : 'anon', 
+            hostEmail: currentUser ? currentUser.email : 'anon', 
             views: 0 
         };
 
         await window.db.collection('events').add(newEvent);
 
-        // Reset Form & Globals
         document.getElementById('eventUploadForm').reset();
-        selectedFiles = []; // Clear selected files
+        selectedFiles = []; 
         document.getElementById('imagePreviewContainer').style.display = 'none';
         document.getElementById('uploadPlaceholder').style.display = 'flex';
         document.getElementById('selectedLocationText').textContent = '📍 No location pinned yet';
@@ -372,10 +437,9 @@ async function handleEventSubmit() {
 }
 
 // ========================================
-// 8. UI CONTROLS & INIT
+// 9. UI CONTROLS & INIT
 // ========================================
 
-// ... (Standard Menu/Auth/Filter functions omitted for brevity - keep your existing ones) ...
 function toggleMenu() { document.querySelector(".menu").classList.toggle("menuShow"); document.querySelector(".menuOverlay").classList.toggle("show"); }
 function openAuth(mode) {
     const overlay = document.getElementById("authOverlay"); overlay.classList.add("show");
@@ -396,15 +460,17 @@ function closeUploadForm() { document.querySelector(".uploadOverlay").classList.
 
 // Init Listeners
 document.addEventListener("DOMContentLoaded", () => {
+    // 1. Check Login on Load
+    checkSession();
+
+    // 2. Init Map
     if (typeof google !== 'undefined' && google.maps && !mapInitialized) window.initMap();
     
-    // ✅ NEW: Multiple File Selection Listener
+    // 3. File Input Listener
     const eventImageInput = document.getElementById("uploadEventImage");
     if (eventImageInput) {
         eventImageInput.addEventListener("change", (e) => {
-            // Convert fileList to Array and limit to 3
             selectedFiles = Array.from(e.target.files).slice(0, 3);
-            
             const placeholder = document.getElementById("uploadPlaceholder");
             const previewContainer = document.getElementById("imagePreviewContainer");
             const countSpan = document.getElementById("imageCount");
@@ -420,11 +486,99 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Auth Listeners
+    // 4. UI Listeners
     document.getElementById("authCloseBtn")?.addEventListener("click", closeAuth);
     document.getElementById("goSignupBtn")?.addEventListener("click", () => openAuth("signup"));
     document.getElementById("goLoginBtn")?.addEventListener("click", () => openAuth("login"));
-    document.getElementById("loginForm")?.addEventListener("submit", async (e) => { e.preventDefault(); try { await auth.signInWithEmailAndPassword(document.getElementById("loginEmail").value.trim(), document.getElementById("loginPass").value.trim()); closeAuth(); } catch (error) { alert(error.message); } });
+
+    // ✅ LOGIN LISTENER
+    document.getElementById("loginForm")?.addEventListener("submit", async (e) => { 
+        e.preventDefault(); 
+        const email = document.getElementById("loginEmail").value.trim();
+        const password = document.getElementById("loginPass").value.trim();
+        const btn = e.target.querySelector('button');
+        const oldText = btn.innerText;
+        btn.innerText = "Checking...";
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, returnSecureToken: true })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('userToken', data.idToken);
+                localStorage.setItem('userEmail', data.email);
+                localStorage.setItem('userId', data.localId);
+                checkSession(); 
+                closeAuth();
+                alert("Login Successful!");
+            } else {
+                const errMsg = data.error ? data.error.message : "Login Failed";
+                if(errMsg === "INVALID_LOGIN_CREDENTIALS" || errMsg === "INVALID_PASSWORD") alert("Incorrect Email or Password.");
+                else if(errMsg === "EMAIL_NOT_FOUND") alert("User not found. Please Sign Up first.");
+                else alert(errMsg);
+            }
+        } catch (error) { 
+            console.error(error);
+            alert("Network Error: " + error.message); 
+        } finally {
+            btn.innerText = oldText;
+            btn.disabled = false;
+        }
+    });
+
+    // ✅ SIGNUP LISTENER
+    const signupForm = document.getElementById("signupForm") || document.querySelector('#signupPage form');
+    if (signupForm) {
+        signupForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const emailInput = document.getElementById("signupEmail") || signupForm.querySelector('input[type="email"]');
+            const passInput = document.getElementById("signupPass") || signupForm.querySelector('input[type="password"]');
+            
+            if(!emailInput || !passInput) return alert("Error: Could not find Signup Inputs in HTML");
+
+            const email = emailInput.value.trim();
+            const password = passInput.value.trim();
+            const btn = e.target.querySelector('button');
+            const oldText = btn.innerText;
+            btn.innerText = "Creating...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, returnSecureToken: true })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert("Account Created! Logging in...");
+                    localStorage.setItem('userToken', data.idToken);
+                    localStorage.setItem('userEmail', data.email);
+                    localStorage.setItem('userId', data.localId);
+                    checkSession(); 
+                    closeAuth();
+                } else {
+                    const errMsg = data.error ? data.error.message : "Sign Up Failed";
+                    if(errMsg === "EMAIL_EXISTS") alert("Email already registered. Please Log In.");
+                    else alert(errMsg);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Network Error: " + error.message);
+            } finally {
+                btn.innerText = oldText;
+                btn.disabled = false;
+            }
+        });
+    }
 
     // Navigation Listeners
     document.querySelectorAll('.navItem').forEach(item => {
@@ -438,21 +592,24 @@ document.addEventListener("DOMContentLoaded", () => {
 function loadEventsFromFirebase() {
     if(!window.db) return;
     window.db.collection('events').orderBy('createdAt', 'desc').get().then((snapshot) => {
-        let events = []; snapshot.forEach((doc) => { events.push({ id: doc.id, ...doc.data() }); });
-        renderEventCards(events); addEventMarkers(events);
+        let events = []; 
+        snapshot.forEach((doc) => { events.push({ id: doc.id, ...doc.data() }); });
+        window.allEvents = events; 
+        renderEventCards(events); 
+        addEventMarkers(events);
     });
 }
+
 // ========================================
-// 9. SMART SEARCH (Autocomplete)
+// 10. SMART SEARCH
 // ========================================
 const searchInput = document.querySelector('.navSrchBar');
 const searchForm = document.querySelector('.navSearch');
 
 if (searchInput) {
-    // Create Dropdown Element
     const resultsBox = document.createElement('div');
     resultsBox.className = 'searchResultsBox';
-    searchForm.style.position = 'relative'; // Ensure relative positioning
+    searchForm.style.position = 'relative';
     searchForm.appendChild(resultsBox);
 
     searchInput.addEventListener('input', (e) => {
@@ -464,10 +621,6 @@ if (searchInput) {
             return;
         }
 
-        // Filter currently loaded events (window.db events should be cached in a global variable for best performance, 
-        // but here we can grab cards from DOM or fetch fresh. Ideally, maintain a global 'allEvents' array in loadEventsFromFirebase)
-        
-        // Assuming you updated loadEventsFromFirebase to save to window.allEvents:
         const matches = (window.allEvents || []).filter(event => 
             event.title.toLowerCase().includes(query) || 
             event.category.toLowerCase().includes(query)
@@ -493,40 +646,7 @@ if (searchInput) {
         }
     });
 
-    // Hide when clicking outside
     document.addEventListener('click', (e) => {
         if (!searchForm.contains(e.target)) resultsBox.style.display = 'none';
     });
 }
-
-// Update loadEventsFromFirebase to store global data for search
-// Replace your existing loadEventsFromFirebase with this:
-function loadEventsFromFirebase() {
-    if(!window.db) return;
-    window.db.collection('events').orderBy('createdAt', 'desc').get().then((snapshot) => {
-        let events = []; 
-        snapshot.forEach((doc) => { events.push({ id: doc.id, ...doc.data() }); });
-        
-        window.allEvents = events; // STORE GLOBALLY FOR SEARCH
-        
-        renderEventCards(events); 
-        addEventMarkers(events);
-    });
-}
-
-// ========================================
-// 10. DARK/LIGHT MODE TOGGLE
-// ========================================
-function toggleTheme() {
-    document.body.classList.toggle('light-mode');
-    const isLight = document.body.classList.contains('light-mode');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
-}
-
-// Init Theme on Load
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'light') document.body.classList.add('light-mode');
-
-// Add Toggle Button to Menu (Call this inside your existing DOMContentLoaded or manually add button in HTML)
-// Example: Add a button to .navMain or .menu in HTML:
-// <button onclick="toggleTheme()" class="themeToggle"><i class="fa-solid fa-circle-half-stroke"></i></button>
