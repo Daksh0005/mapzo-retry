@@ -2754,18 +2754,27 @@ body.eventPage {
 
 
 
-/* AUTH Overlay */
+/* ========================
+   CENTERED AUTH MODAL
+   ======================== */
+
 .authOverlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.88);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.85); /* Darker background focus */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 400;
+
+    /* Flexbox to Center the Modal */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px; /* Prevents touching edges on mobile */
 
     opacity: 0;
     pointer-events: none;
-    transition: opacity 220ms ease;
+    transition: opacity 0.3s ease;
 }
 
 .authOverlay.show {
@@ -2774,141 +2783,103 @@ body.eventPage {
 }
 
 .authModal {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
+    position: relative;
     width: 100%;
-    max-width: 520px;
-
-    background: linear-gradient(180deg, rgba(18, 18, 18, 0.98), rgba(10, 10, 10, 0.96));
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
-
-    transform: translateX(100%);
-    transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
+    max-width: 420px; /* Reduced width for a cleaner look */
+    height: auto;
+    max-height: 90vh; /* Prevent overflowing screen height */
+    
+    background: #181818;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px; /* Rounded corners */
+    
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    overflow-y: auto; /* Allow scrolling if content is too tall */
+    
+    /* Animation: Slide Up + Fade In */
+    transform: translateY(30px) scale(0.95);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy pop effect */
 }
 
 .authOverlay.show .authModal {
-    transform: translateX(0);
+    transform: translateY(0) scale(1);
+    opacity: 1;
 }
 
+/* Header Tweaks */
 .authHeader {
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: 10;
     display: grid;
     grid-template-columns: 40px 1fr 40px;
     align-items: center;
     gap: 10px;
 
-    padding: 16px;
-    background: rgba(0, 0, 0, 0.55);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.authBack {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    background: rgba(0, 0, 0, 0.25);
-    color: rgba(255, 255, 255, 0.9);
-    cursor: pointer;
+    padding: 20px 24px 10px;
+    background: #181818; /* Match modal bg */
+    border-bottom: none; /* Cleaner look without line */
 }
 
 .authTitle {
     margin: 0;
     text-align: center;
-    font-family: Montserrat, sans-serif;
-    font-weight: 900;
-    letter-spacing: -0.3px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #fff;
 }
 
+.authBack {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.authBack:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Body Padding */
 .authBody {
-    padding: 18px 16px 26px;
+    padding: 10px 24px 30px; /* More breathing room at bottom */
 }
 
-/* Pages (paginate inside modal) */
+/* Fix Pages sliding inside the smaller box */
 .authPage {
-    opacity: 0;
-    transform: translateX(14px);
-    pointer-events: none;
-    transition: opacity 220ms ease, transform 220ms ease;
+    display: none; /* Hide by default */
+    animation: fadeIn 0.3s ease;
 }
 
 .authPage.show {
+    display: block; /* Show only active page */
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
     pointer-events: auto;
 }
 
-.authSub {
-    margin: 0 0 16px;
-    color: rgba(255, 255, 255, 0.70);
-    line-height: 1.6;
-    font-weight: 600;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.authForm {
-    display: grid;
-    gap: 10px;
-}
-
-.authLabel {
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.78);
-    letter-spacing: 0.3px;
-    margin-top: 8px;
-}
-
+/* Input Fields - Darker Theme */
 .authInput {
-    width: 100%;
-    border-radius: 14px;
-    padding: 12px 12px;
-
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    background: rgba(0, 0, 0, 0.25);
-    color: var(--text-primary);
-    outline: none;
-
-    transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    background: #0f0f0f;
+    border: 1px solid #333;
+    color: #fff;
 }
-
 .authInput:focus {
-    background: rgba(0, 0, 0, 0.30);
-    border-color: rgba(29, 185, 84, 0.55);
-    box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.14);
-}
-
-.authPrimaryBtn {
-    margin-top: 10px;
-    height: 46px;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-
-    font-weight: 900;
-    letter-spacing: 0.3px;
-    color: #0b0b0b;
-
-    background: linear-gradient(135deg, var(--accent) 0%, #1ed760 100%);
-    box-shadow: 0 10px 28px rgba(29, 185, 84, 0.32);
-}
-
-.authGhostBtn {
-    margin-top: 12px;
-    width: 100%;
-    height: 44px;
-
-    border-radius: 14px;
-    cursor: pointer;
-
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    background: rgba(0, 0, 0, 0.18);
-    color: rgba(255, 255, 255, 0.80);
-    font-weight: 850;
+    background: #000;
+    border-color: var(--accent);
 }
 
 
@@ -3261,3 +3232,218 @@ main {
 .toast-notification.success { background: #1db954; color: black; }
 .toast-notification.error { background: #ff4444; }
 .toast-notification.info { background: #2196F3; }
+
+/* --- ADD TO BOTTOM OF style.css --- */
+
+/* Google Button Style */
+.authGoogleBtn {
+    width: 100%;
+    height: 46px;
+    background: #ffffff;
+    color: #1f1f1f;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 14px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+    margin-bottom: 16px;
+}
+
+.authGoogleBtn:hover {
+    background: #f2f2f2;
+    transform: translateY(-1px);
+}
+
+.authGoogleBtn:active {
+    transform: scale(0.98);
+}
+
+.authGoogleBtn img {
+    width: 20px;
+    height: 20px;
+}
+
+/* Divider Style */
+.authDivider {
+    display: flex;
+    align-items: center;
+    margin: 16px 0;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.authDivider::before,
+.authDivider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+}
+
+.authDivider span {
+    padding: 0 12px;
+}
+
+/* Password Toggle Style */
+.passwordWrapper {
+    position: relative;
+    width: 100%;
+}
+
+.togglePass {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.togglePass:hover {
+    color: var(--accent);
+}
+
+/* --- ADD TO BOTTOM OF style.css --- */
+
+/* 1. Rabbit & Header Animation */
+.welcome-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.auth-welcome-text {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.rabbit-track {
+    width: 40px;
+    height: 40px;
+    position: relative;
+    overflow: hidden; /* Hides rabbit when it runs out of frame */
+}
+
+.rabbit {
+    font-size: 1.8rem;
+    position: absolute;
+    /* Animation: Run, Flip, Run Back */
+    animation: rabbitRun 3s linear infinite;
+}
+
+@keyframes rabbitRun {
+    0% { transform: translateX(-40px) scaleX(1); opacity: 0; }
+    10% { opacity: 1; }
+    45% { transform: translateX(40px) scaleX(1); opacity: 1; }
+    50% { transform: translateX(40px) scaleX(-1); opacity: 1; } /* Turn around */
+    55% { transform: translateX(40px) scaleX(-1); opacity: 1; }
+    90% { transform: translateX(-40px) scaleX(-1); opacity: 1; }
+    100% { transform: translateX(-40px) scaleX(1); opacity: 0; }
+}
+
+/* 2. Fix Input Layout (Fixes the messy screenshot look) */
+.authForm {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+}
+
+.authLabel {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #b3b3b3;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 4px;
+}
+
+.authInput {
+    width: 100%; /* Forces full width */
+    height: 48px;
+    background: #2a2a2a;
+    border: 1px solid #404040;
+    border-radius: 12px;
+    padding: 0 16px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.authInput:focus {
+    background: #333;
+    border-color: #1db954; /* Green Border on Focus */
+    box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.15);
+}
+
+/* 3. Fix Buttons (Fixes the ugly default grey button) */
+.authPrimaryBtn {
+    margin-top: 12px;
+    width: 100%;
+    height: 50px;
+    background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
+    border: none;
+    border-radius: 25px; /* Pill shape */
+    color: #000;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
+}
+
+.authPrimaryBtn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(29, 185, 84, 0.5);
+}
+
+.authPrimaryBtn:active {
+    transform: scale(0.98);
+}
+
+/* 4. Fix "New Here" Link */
+.authFooterText {
+    text-align: center;
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 20px;
+}
+
+.authLink {
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: #1db954;
+    transition: color 0.2s;
+}
+
+.authLink:hover {
+    color: #1db954;
+}
+/* Add to style.css */
+.authTitle {
+    display: none; /* Hides the small header title since we now have the big "Welcome" text */
+}
