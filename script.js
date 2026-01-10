@@ -228,19 +228,40 @@ function openLocationModal() {
 // 5. AUTH & SESSION MANAGEMENT
 // ========================================
 
-function checkSession() {
-    const token = localStorage.getItem('userToken');
-    const email = localStorage.getItem('userEmail');
-    const uid = localStorage.getItem('userId');
+// ========================================
+// 5. AUTH & SESSION MANAGEMENT (IMPROVED)
+// ========================================
 
-    if (token && email) {
-        currentUser = { email: email, uid: uid || 'user' };
-        updateUIForLogin(currentUser);
+// Toggle Password Visibility
+function togglePassword(inputId, icon) {
+    const input = document.getElementById(inputId);
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+    }
+}
+
+// Global Auth State Listener (Replaces manual localStorage checks)
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
+        updateUIForLogin(user);
+        // Optional: Save to local storage if you need it for other scripts, 
+        // but Firebase SDK handles persistence automatically.
+        localStorage.setItem('userEmail', user.email);
+        localStorage.setItem('userId', user.uid);
     } else {
         currentUser = null;
         updateUIForLogout();
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userId');
     }
-}
+});
 
 function updateUIForLogin(user) {
     const logSignBox = document.querySelector(".logSignBox");
@@ -248,8 +269,16 @@ function updateUIForLogin(user) {
     const userEmail = user.email ? user.email.toLowerCase() : "";
 
     if (logSignBox) {
-        logSignBox.innerHTML = `<p style="font-size:0.9rem;color:#aaa;margin-bottom:10px;">${user.email}</p><button class="logSign" onclick="handleLogout()" style="background:#ff4444;color:white;">Log out</button>`;
+        logSignBox.innerHTML = `
+            <div style="text-align:center;">
+                <p style="font-size:0.8rem;color:#aaa;margin-bottom:6px;">${user.email}</p>
+                <button class="logSign" onclick="handleLogout()" style="background:rgba(255, 68, 68, 0.15); border:1px solid rgba(255,68,68,0.3); color:#ff4444; padding:8px 12px; font-size:0.9rem;">
+                    Sign Out
+                </button>
+            </div>`;
     }
+    
+    // Check Admin Logic
     if (hostBar) {
         hostBar.style.display = ALLOWED_HOST_EMAILS.includes(userEmail) ? "block" : "none";
     }
@@ -260,46 +289,185 @@ function updateUIForLogout() {
     const hostBar = document.querySelector(".hostBar");
 
     if (logSignBox) {
-        logSignBox.innerHTML = `<button class="logSign" onclick="openAuth('login')">Log in</button><button class="logSign" onclick="openAuth('signup')">Sign up</button>`;
+        logSignBox.innerHTML = `
+            <button class="logSign" onclick="openAuth('login')">Log in</button>
+            <button class="logSign" onclick="openAuth('signup')">Sign up</button>`;
     }
     if (hostBar) hostBar.style.display = "none";
 }
 
 function handleLogout() {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userId');
-    currentUser = null;
-    updateUIForLogout();
-    alert("Logged out successfully.");
-    window.location.reload();
+    auth.signOut().then(() => {
+        alert("Logged out successfully.");
+        window.location.reload();
+    }).catch((error) => {
+        console.error("Logout Error:", error);
+    });
+}
+
+// Google Login Function
+function handleGoogleLogin() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            // User signed in
+            const user = result.user;
+            console.log("Google Sign In Success:", user.email);
+            closeAuth();
+            alert(`Welcome, ${user.displayName || 'User'}! 🚀`);
+        })
+        .catch((error) => {
+            console.error("Google Error:", error);
+            alert("Google Sign In Failed: " + error.message);
+        });
 }
 
 // ========================================
-// 6. HELPER: COMPRESS IMAGE TO BASE64
+// 9. UI CONTROLS & INIT
 // ========================================
-function compressImage(file) {
-    return new Promise((resolve, reject) => {
-        const maxWidth = 800; 
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const elem = document.createElement('canvas');
-                const scaleFactor = maxWidth / img.width;
-                elem.width = maxWidth;
-                elem.height = img.height * scaleFactor;
-                const ctx = elem.getContext('2d');
-                ctx.drawImage(img, 0, 0, elem.width, elem.height);
-                resolve(elem.toDataURL('image/jpeg', 0.7));
-            };
-            img.onerror = (error) => reject(error);
-        };
-        reader.onerror = (error) => reject(error);
-    });
+
+function toggleMenu() { document.querySelector(".menu").classList.toggle("menuShow"); document.querySelector(".menuOverlay").classList.toggle("show"); }
+
+function openAuth(mode) {
+    const overlay = document.getElementById("authOverlay"); 
+    overlay.classList.add("show");
+    
+    const loginPage = document.getElementById("loginPage");
+    const signupPage = document.getElementById("signupPage");
+    const title = document.getElementById("authTitle");
+
+    if (mode === "signup") {
+        loginPage.classList.remove("show");
+        signupPage.classList.add("show");
+        title.textContent = "Sign up";
+    } else {
+        signupPage.classList.remove("show");
+        loginPage.classList.add("show");
+        title.textContent = "Log in";
+    }
 }
+
+function closeAuth() { document.getElementById("authOverlay").classList.remove("show"); }
+
+function openUploadForm() {
+    if (!currentUser) return alert("Log in first.");
+    const userEmail = currentUser.email ? currentUser.email.toLowerCase() : "";
+    if (!ALLOWED_HOST_EMAILS.includes(userEmail)) return alert("Not authorized.");
+    document.querySelector(".uploadOverlay").classList.add("show");
+    setTimeout(() => { if (!uploadMap) initUploadMap(); }, 300);
+}
+function closeUploadForm() { document.querySelector(".uploadOverlay").classList.remove("show"); }
+
+// Init Listeners
+document.addEventListener("DOMContentLoaded", () => {
+    // Note: checkSession() is removed because auth.onAuthStateChanged handles it automatically now.
+
+    // 1. Init Map
+    if (typeof google !== 'undefined' && google.maps && !mapInitialized) window.initMap();
+    
+    // 2. File Input Listener
+    const eventImageInput = document.getElementById("uploadEventImage");
+    if (eventImageInput) {
+        eventImageInput.addEventListener("change", (e) => {
+            selectedFiles = Array.from(e.target.files).slice(0, 3);
+            const placeholder = document.getElementById("uploadPlaceholder");
+            const previewContainer = document.getElementById("imagePreviewContainer");
+            const countSpan = document.getElementById("imageCount");
+            const imgPreview = document.getElementById("imagePreview");
+
+            if (selectedFiles.length > 0) {
+                // Show simple preview of first image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgPreview.src = e.target.result;
+                    imgPreview.style.display = 'block';
+                    document.querySelector('.imagePlaceholder').style.display = 'none';
+                }
+                reader.readAsDataURL(selectedFiles[0]);
+            }
+        });
+    }
+
+    // 3. UI Listeners
+    document.getElementById("authCloseBtn")?.addEventListener("click", closeAuth);
+    document.getElementById("goSignupBtn")?.addEventListener("click", () => openAuth("signup"));
+    document.getElementById("goLoginBtn")?.addEventListener("click", () => openAuth("login"));
+
+    // 4. Google Auth Listeners
+    document.getElementById("googleLoginBtn")?.addEventListener("click", handleGoogleLogin);
+    document.getElementById("googleSignupBtn")?.addEventListener("click", handleGoogleLogin);
+
+    // ✅ LOGIN LISTENER (Using Firebase SDK)
+    document.getElementById("loginForm")?.addEventListener("submit", (e) => { 
+        e.preventDefault(); 
+        const email = document.getElementById("loginEmail").value.trim();
+        const password = document.getElementById("loginPass").value.trim();
+        const btn = e.target.querySelector('button[type="submit"]');
+        
+        const oldText = btn.innerText;
+        btn.innerText = "Verifying...";
+        btn.disabled = true;
+
+        auth.signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                // Signed in
+                closeAuth();
+                alert("Login Successful!");
+            })
+            .catch((error) => {
+                let msg = error.message;
+                if(error.code === 'auth/wrong-password') msg = "Incorrect password.";
+                if(error.code === 'auth/user-not-found') msg = "No account found with this email.";
+                alert(msg);
+            })
+            .finally(() => {
+                btn.innerText = oldText;
+                btn.disabled = false;
+            });
+    });
+
+    // ✅ SIGNUP LISTENER (Using Firebase SDK)
+    const signupForm = document.getElementById("signupForm");
+    if (signupForm) {
+        signupForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const email = document.getElementById("signupEmail").value.trim();
+            const password = document.getElementById("signupPass").value.trim();
+            const btn = e.target.querySelector('button[type="submit"]');
+            
+            if(password.length < 6) return alert("Password should be at least 6 characters");
+
+            const oldText = btn.innerText;
+            btn.innerText = "Creating...";
+            btn.disabled = true;
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Signed up
+                    closeAuth();
+                    alert("Account Created Successfully! Welcome.");
+                })
+                .catch((error) => {
+                    let msg = error.message;
+                    if(error.code === 'auth/email-already-in-use') msg = "Email already in use. Please Log In.";
+                    alert(msg);
+                })
+                .finally(() => {
+                    btn.innerText = oldText;
+                    btn.disabled = false;
+                });
+        });
+    }
+
+    // Navigation Listeners
+    document.querySelectorAll('.navItem').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.navItem').forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
 
 // ========================================
 // 7. EVENT DISPLAY
