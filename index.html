@@ -400,35 +400,79 @@
                 <h3 class="authTitle" id="authTitle">Log in</h3>
                 <div style="width:40px"></div>
             </div>
-            <div class="authBody">
-                <section class="authPage show" id="loginPage">
-                    <p class="authSub">Welcome back. Discover what’s happening near you.</p>
-                    <form class="authForm" id="loginForm">
-                        <label class="authLabel">Email</label>
-                        <input class="authInput" type="email" id="loginEmail" placeholder="you@email.com" required>
-                        <label class="authLabel">Password</label>
-                        <input class="authInput" type="password" id="loginPass" placeholder="••••••••" required>
-                        <button class="authPrimaryBtn" type="submit">Log in</button>
-                    </form>
-                    <button class="authGhostBtn" type="button" id="goSignupBtn">New here? Create an account</button>
-                </section>
-                <section class="authPage" id="signupPage">
-                    <p class="authSub">Create an account to save events and host yours.</p>
-                    <form class="authForm" id="signupForm">
-                        <label class="authLabel">Name</label>
-                        <input class="authInput" type="text" id="signupName" placeholder="Your name" required>
-                        <label class="authLabel">Email</label>
-                        <input class="authInput" type="email" id="signupEmail" placeholder="you@email.com" required>
-                        <label class="authLabel">Password</label>
-                        <input class="authInput" type="password" id="signupPass" placeholder="Create a password"
-                            required>
-                        <button class="authPrimaryBtn" type="submit">Create account</button>
-                    </form>
-                    <button class="authGhostBtn" type="button" id="goLoginBtn">Already have an account? Log in</button>
-                </section>
+           <div class="authBody">
+    <section class="authPage show" id="loginPage">
+        
+        <div class="welcome-header">
+            <h2 class="auth-welcome-text">Welcome</h2>
+            <div class="rabbit-track">
+                <div class="rabbit">🐇</div>
             </div>
         </div>
-    </div>
+        
+        <button class="authGoogleBtn" id="googleLoginBtn">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+            Continue with Google
+        </button>
+
+        <div class="authDivider"><span>OR</span></div>
+
+        <form class="authForm" id="loginForm">
+            <div class="input-group">
+                <label class="authLabel">Email</label>
+                <input class="authInput" type="email" id="loginEmail" placeholder="name@example.com" required>
+            </div>
+            
+            <div class="input-group">
+                <label class="authLabel">Password</label>
+                <div class="passwordWrapper">
+                    <input class="authInput" type="password" id="loginPass" placeholder="••••••••" required>
+                    <i class="fa-regular fa-eye togglePass" onclick="togglePassword('loginPass', this)"></i>
+                </div>
+            </div>
+
+            <button class="authPrimaryBtn" type="submit">Log in</button>
+        </form>
+        
+        <p class="authFooterText">
+            New here? <span class="authLink" onclick="openAuth('signup')">Create an account</span>
+        </p>
+    </section>
+
+    <section class="authPage" id="signupPage">
+        <div class="welcome-header">
+            <h2 class="auth-welcome-text">Join Us</h2>
+        </div>
+
+        <button class="authGoogleBtn" id="googleSignupBtn">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+            Continue with Google
+        </button>
+
+        <div class="authDivider"><span>OR</span></div>
+
+        <form class="authForm" id="signupForm">
+            <div class="input-group">
+                <label class="authLabel">Email</label>
+                <input class="authInput" type="email" id="signupEmail" placeholder="name@example.com" required>
+            </div>
+            
+            <div class="input-group">
+                <label class="authLabel">Password</label>
+                <div class="passwordWrapper">
+                    <input class="authInput" type="password" id="signupPass" placeholder="Create password" required>
+                    <i class="fa-regular fa-eye togglePass" onclick="togglePassword('signupPass', this)"></i>
+                </div>
+            </div>
+
+            <button class="authPrimaryBtn" type="submit">Create account</button>
+        </form>
+
+        <p class="authFooterText">
+            Already have an account? <span class="authLink" onclick="openAuth('login')">Log in</span>
+        </p>
+    </section>
+</div>
 
     <script src="script.js"></script>
 
