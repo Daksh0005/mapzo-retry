@@ -1,3 +1,74 @@
+/* --- ADD TO TOP OF CSS (:root) --- */
+:root {
+    /* Existing variables... */
+    --bg-primary: #121212;
+    --text-primary: #ffffff;
+    /* ... */
+}
+
+/* Light Mode Overrides */
+body.light-mode {
+    --bg-primary: #ffffff;
+    --bg-navbar: #f0f0f0;
+    --bg-surface: #e0e0e0;
+    --bg-hover: #d0d0d0;
+    --text-primary: #121212;
+    --text-secondary: #555555;
+}
+
+body.light-mode .navBar1, 
+body.light-mode .menu {
+    background: #ffffff;
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+body.light-mode .eventCard,
+body.light-mode .locationModal,
+body.light-mode .filterModal {
+    background: #f8f8f8;
+    color: #000;
+    border-color: #ddd;
+}
+body.light-mode .commentInput {
+    background: #fff;
+    color: #000;
+    border: 1px solid #ccc;
+}
+
+/* --- SMART SEARCH STYLES --- */
+.searchResultsBox {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--bg-hover);
+    border-radius: 12px;
+    margin-top: 8px;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+.searchResultItem {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: var(--text-primary);
+}
+
+.searchResultItem:hover {
+    background: var(--bg-hover);
+}
+
+.searchResultItem:last-child {
+    border-bottom: none;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -10,7 +81,7 @@
 }
 input, textarea {
     -webkit-user-select: text;
-    user-select: text;
+    
 }
 button:focus:not(:focus-visible),
 a:focus:not(:focus-visible) {
@@ -825,124 +896,169 @@ input:focus-visible {
 .seeAll:hover {
     color: var(--accent);
 }
+/* =========================
+   3D EVENT CARDS & GALLERY
+   ========================= */
+
+/* Container with Perspective */
 .eventsScroll {
     display: flex;
-    gap: 16px;
+    gap: 30px;
     overflow-x: auto;
-    overflow-y: hidden;
-    padding: 8px 4px 16px 4px;
+    padding: 40px 20px; /* Increased padding for hover lift */
+    perspective: 1000px; /* Critical for 3D effect */
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
 }
 
 .eventsScroll::-webkit-scrollbar {
-    height: 8px;
-}
-
-.eventsScroll::-webkit-scrollbar-track {
-    background: var(--bg-surface);
-    border-radius: 4px;
+    height: 6px;
 }
 
 .eventsScroll::-webkit-scrollbar-thumb {
-    background: var(--bg-hover);
-    border-radius: 4px;
-    transition: background 0.2s ease;
+    background: #333;
+    border-radius: 3px;
 }
 
-.eventsScroll::-webkit-scrollbar-thumb:hover {
-    background: var(--accent);
-}
-
+/* 3D Card Base */
 .eventCard {
-    min-width: 280px;
-    max-width: 280px;
-    background: var(--bg-surface);
-    border-radius: 12px;
-    overflow: hidden;
+    min-width: 300px;
+    max-width: 300px;
+    background: #1a1a1a;
+    border-radius: 20px;
+    position: relative;
+    transform-style: preserve-3d; /* Enables 3D children */
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy transition */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
     cursor: pointer;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-    will-change: transform;
 }
 
+/* 3D Hover State */
 .eventCard:hover {
-    background: var(--bg-hover);
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(-15px) rotateX(5deg) rotateY(-2deg);
+    border-color: #1db954;
+    box-shadow: 
+        20px 20px 60px rgba(0,0,0,0.6),
+        0 0 15px rgba(29, 185, 84, 0.3); /* Green glow */
+    z-index: 10;
 }
 
+/* Image Layer (Pops out) */
 .eventImage {
     position: relative;
     width: 100%;
-    height: 180px;
+    height: 220px;
+    border-radius: 20px 20px 0 0;
     overflow: hidden;
+    transform: translateZ(20px); /* Moves image forward in 3D */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
 .eventImage img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
+    transition: transform 0.5s ease;
 }
 
 .eventCard:hover .eventImage img {
-    transform: scale(1.05);
+    transform: scale(1.1); /* Zoom effect */
 }
 
+/* Category Badge (Pops out most) */
 .eventCategory {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    background: var(--accent);
-    color: #000000;
-    padding: 4px 12px;
-    border-radius: 16px;
+    top: 15px;
+    right: 15px;
+    background: #1db954;
+    color: #000;
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transform: translateZ(40px); /* Highest layer */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
+/* Info Section (Middle Layer) */
 .eventInfo {
-    padding: 16px;
+    padding: 20px;
+    background: #1a1a1a;
+    border-radius: 0 0 20px 20px;
+    transform: translateZ(30px); /* Middle layer */
 }
 
 .eventTitle {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 12px 0;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    line-height: 1.4;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
+/* Date & Location */
 .eventDate,
 .eventLocation {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin: 6px 0;
+    font-size: 0.9rem;
+    color: #b3b3b3;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    margin-bottom: 6px;
+    transform: translateZ(20px);
 }
 
 .eventDate i,
 .eventLocation i {
-    color: var(--accent);
-    font-size: 0.9rem;
+    color: #1db954;
+    width: 20px;
+    text-align: center;
 }
 
+/* Tags */
 .eventTags {
     display: flex;
-    gap: 6px;
-    margin-top: 12px;
     flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+    transform: translateZ(25px);
 }
 
+.tag {
+    background: rgba(255, 255, 255, 0.1);
+    color: #1db954;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Gallery Scroll Snap (For Event Detail Page) */
+.galleryContainer {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scroll-snap-type: x mandatory;
+}
+
+.galleryItem {
+    min-width: 280px;
+    height: 350px;
+    border-radius: 16px;
+    overflow: hidden;
+    scroll-snap-align: center;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.galleryItem img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 .tag {
     background: var(--bg-hover);
     color: var(--accent);
@@ -3080,3 +3196,68 @@ main {
     font-weight: 700;
     cursor: pointer;
 }
+/* ========================
+   NEW FEATURES STYLES
+   ======================== */
+
+/* 1. LIVE NOW BADGE */
+.live-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: #ff0000;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.6);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: pulseRed 2s infinite;
+}
+
+.live-badge::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+}
+
+@keyframes pulseRed {
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+}
+
+/* 2. TOAST NOTIFICATIONS (Host Announcements / Offline Status) */
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #333;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 1000;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    min-width: 300px;
+    text-align: center;
+}
+
+.toast-notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.toast-notification.success { background: #1db954; color: black; }
+.toast-notification.error { background: #ff4444; }
+.toast-notification.info { background: #2196F3; }

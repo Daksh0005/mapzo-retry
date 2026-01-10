@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>My Profile - Mapzo</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body style="padding: 20px;">
+    <a href="index.html" class="uploadBack"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    
+    <div style="max-width: 600px; margin: 30px auto;">
+        <h1 id="userName">Loading...</h1>
+        <p id="userEmail" style="color:#888;"></p>
+        
+        <div style="margin-top: 40px;">
+            <h3><i class="fa-solid fa-calendar-check"></i> Events You Host</h3>
+            <div id="hostedEventsList" class="commentsList" style="margin-top:15px;">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // Copy Firebase Config Here
+        // ...
+        
+        firebase.auth().onAuthStateChanged(user => {
+            if(user) {
+                document.getElementById('userName').textContent = user.displayName || "User";
+                document.getElementById('userEmail').textContent = user.email;
+                
+                // Fetch Hosted Events
+                const db = firebase.firestore();
+                db.collection('events').where('hostId', '==', user.uid).get().then(snap => {
+                    const list = document.getElementById('hostedEventsList');
+                    if(snap.empty) {
+                        list.innerHTML = "<p>You haven't hosted any events yet.</p>";
+                        return;
+                    }
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        const div = document.createElement('div');
+                        div.className = 'commentItem'; // Reusing style
+                        div.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong>${d.title}</strong>
+                                <span style="color:#1db954; font-size:0.8rem;">
+                                    <i class="fa-solid fa-eye"></i> ${d.views || 0} Views
+                                </span>
+                            </div>
+                            <p style="font-size:0.85rem; color:#aaa; margin-top:4px;">${d.date}</p>
+                        `;
+                        div.onclick = () => window.location.href = `event.html?id=${doc.id}`;
+                        div.style.cursor = "pointer";
+                        list.appendChild(div);
+                    });
+                });
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</body>
+</html>

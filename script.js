@@ -1,11 +1,19 @@
 // ========================================
 // MAPZO - EVENT DISCOVERY PLATFORM
-// Clean, Optimized Script
+// 3D Cards + Multiple Base64 Images
 // ========================================
 
 // ========================================
 // 1. GLOBAL VARIABLES
 // ========================================
+
+let currentUser = null;
+
+// ✅ ADMIN ACCESS LIST
+const ALLOWED_HOST_EMAILS = [
+    "shreyashmishra506@gmail.com",
+    "realdaksharora@gmail.com"
+];
 
 let map = null;
 let uploadMap = null;
@@ -16,6 +24,7 @@ let currentLocation = null;
 let selectedManualLocation = null;
 let searchTimeout = null;
 let mapInitialized = false;
+let selectedFiles = []; // New global to hold selected files
 
 let currentFilters = {
     date: null,
@@ -27,30 +36,19 @@ let currentDate = new Date();
 let selectedDate = null;
 
 // ========================================
-// 2. GOOGLE MAPS INITIALIZATION
+// 2. GOOGLE MAPS INITIALIZATION (Standard)
 // ========================================
 
 window.initMap = function () {
-    if (mapInitialized) {
-        console.log('Map already initialized');
-        return;
-    }
+    if (mapInitialized) return;
 
     const mapElement = document.querySelector('.map');
-    if (!mapElement) {
-        console.error('Map element not found');
-        return;
-    }
-
-    console.log('Initializing Google Maps...');
+    if (!mapElement) return;
 
     const defaultCenter = { lat: 22.3200, lng: 87.3150 };
 
     try {
-        // Check if google.maps is available
-        if (typeof google === 'undefined' || !google.maps) {
-            throw new Error('Google Maps not loaded');
-        }
+        if (typeof google === 'undefined' || !google.maps) throw new Error('Google Maps not loaded');
 
         map = new google.maps.Map(mapElement, {
             center: currentLocation || defaultCenter,
@@ -69,42 +67,17 @@ window.initMap = function () {
         });
 
         mapInitialized = true;
-        console.log('✅ Map initialized successfully');
+        console.log('✅ Map initialized');
 
-        // Wait for tiles to load
         google.maps.event.addListenerOnce(map, 'tilesloaded', function () {
-            console.log('Map tiles loaded, fetching events...');
-            // Check if Firebase is ready
-            if (typeof db !== 'undefined') {
-                loadEventsFromFirebase();
-            } else {
-                console.error('Firebase not initialized');
-                setTimeout(loadEventsFromFirebase, 1000); // Retry after 1s
-            }
+            if (window.db) loadEventsFromFirebase();
+            else setTimeout(loadEventsFromFirebase, 1000);
         });
 
     } catch (error) {
-        console.error('❌ Map initialization failed:', error);
-        showMapError();
+        console.error('❌ Map init failed:', error);
     }
 };
-
-
-function showMapError() {
-    const mapElement = document.querySelector('.map');
-    if (mapElement) {
-        mapElement.innerHTML = `
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 1000;">
-                <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; color: #ff4444;"></i>
-                <h3 style="margin: 16px 0 8px; color: #fff;">Failed to Load Map</h3>
-                <p style="color: rgba(255,255,255,0.7); margin-bottom: 16px;">Check your connection or disable ad blocker</p>
-                <button onclick="location.reload()" style="padding: 12px 24px; background: #1db954; border: none; border-radius: 20px; color: #000; font-weight: 700; cursor: pointer;">
-                    Retry
-                </button>
-            </div>
-        `;
-    }
-}
 
 // ========================================
 // 3. UPLOAD MAP (Host Event Form)
@@ -153,76 +126,85 @@ function placeUploadMarker(location) {
     };
 
     document.getElementById('selectedLocationText').textContent =
-        `✅ Location pinned at ${location.lat().toFixed(4)}, ${location.lng().toFixed(4)}`;
+        `✅ Lat: ${location.lat().toFixed(4)}, Lng: ${location.lng().toFixed(4)}`;
 }
 
 function useHostGPS() {
-    if (!navigator.geolocation) {
-        alert('Geolocation not supported');
-        return;
-    }
-
+    if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
     navigator.geolocation.getCurrentPosition(
-        function (position) {
-            const location = new google.maps.LatLng(
-                position.coords.latitude,
-                position.coords.longitude
-            );
-            uploadMap.setCenter(location);
-            placeUploadMarker(location);
+        (position) => {
+            const loc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+            uploadMap.setCenter(loc); placeUploadMarker(loc);
         },
-        function () {
-            alert('Could not get your location. Please click on the map.');
-        }
+        () => alert('Could not get location.')
     );
 }
 
 function searchHostLocation() {
-    const query = prompt("Enter location (e.g., IIT Kharagpur, Delhi):");
+    const query = prompt("Enter location:");
     if (!query) return;
-
     const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ address: query }, function (results, status) {
+    geocoder.geocode({ address: query }, (results, status) => {
         if (status === 'OK' && results[0]) {
-            const location = results[0].geometry.location;
-            uploadMap.setCenter(location);
-            uploadMap.setZoom(15);
-            placeUploadMarker(location);
-        } else {
-            alert('Location not found. Try another search or click on map.');
-        }
+            uploadMap.setCenter(results[0].geometry.location);
+            placeUploadMarker(results[0].geometry.location);
+        } else alert('Location not found.');
     });
 }
 
 // ========================================
-// 4. FIREBASE - LOAD EVENTS
+// 4. AUTH & ADMIN
 // ========================================
 
-function loadEventsFromFirebase() {
-    console.log('Loading events from Firebase...');
+auth.onAuthStateChanged((user) => {
+    const logSignBox = document.querySelector(".logSignBox");
+    const hostBar = document.querySelector(".hostBar");
 
-    db.collection('events')
-        .orderBy('createdAt', 'desc')
-        .limit(50)
-        .onSnapshot(
-            (snapshot) => {
-                const events = [];
-                snapshot.forEach((doc) => {
-                    events.push({ id: doc.id, ...doc.data() });
-                });
+    if (user) {
+        currentUser = user;
+        const userEmail = user.email ? user.email.toLowerCase() : "";
+        if (logSignBox) {
+            logSignBox.innerHTML = `<p style="font-size:0.9rem;color:#aaa;margin-bottom:10px;">${user.email}</p><button class="logSign" onclick="auth.signOut()" style="background:#ff4444;color:white;">Log out</button>`;
+        }
+        if (hostBar) hostBar.style.display = ALLOWED_HOST_EMAILS.includes(userEmail) ? "block" : "none";
+    } else {
+        currentUser = null;
+        if (logSignBox) {
+            logSignBox.innerHTML = `<button class="logSign" onclick="openAuth('login')">Log in</button><button class="logSign" onclick="openAuth('signup')">Sign up</button>`;
+        }
+        if (hostBar) hostBar.style.display = "none";
+    }
+});
 
-                console.log(`✅ Loaded ${events.length} events`);
-                renderEventCards(events);
-                addEventMarkers(events);
-            },
-            (error) => {
-                console.error('❌ Error loading events:', error);
-            }
-        );
+// ========================================
+// 5. HELPER: COMPRESS IMAGE TO BASE64
+// ========================================
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const maxWidth = 800;
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const elem = document.createElement('canvas');
+                const scaleFactor = maxWidth / img.width;
+                elem.width = maxWidth;
+                elem.height = img.height * scaleFactor;
+                const ctx = elem.getContext('2d');
+                ctx.drawImage(img, 0, 0, elem.width, elem.height);
+                // Compress to JPEG at 0.7 quality
+                resolve(elem.toDataURL('image/jpeg', 0.7));
+            };
+            img.onerror = (error) => reject(error);
+        };
+        reader.onerror = (error) => reject(error);
+    });
 }
 
 // ========================================
-// 5. DISPLAY EVENT CARDS
+// 6. EVENT DISPLAY (Updated for 3D & Arrays)
 // ========================================
 
 function renderEventCards(events) {
@@ -235,108 +217,88 @@ function renderEventCards(events) {
     }
 
     eventsScroll.innerHTML = '';
+    const now = new Date();
 
     events.forEach(event => {
+        let displayImage = 'https://via.placeholder.com/400x220?text=Event';
+        if (event.images && Array.isArray(event.images) && event.images.length > 0) {
+            displayImage = event.images[0];
+        } else if (event.image) {
+            displayImage = event.image;
+        }
+
+        // --- 🔴 LIVE NOW LOGIC START ---
+        // Parse event date "Dec 25, 2025"
+        const eventDateObj = new Date(event.date);
+        const isSameDay = eventDateObj.toDateString() === now.toDateString();
+
+        // Parse time "14:30"
+        let isLive = false;
+        if (isSameDay && event.time) {
+            const [hours, mins] = event.time.split(':');
+            const eventStart = new Date(eventDateObj);
+            eventStart.setHours(hours, mins, 0);
+
+            // Assume event lasts 3 hours (you can make this a field later)
+            const eventEnd = new Date(eventStart.getTime() + (3 * 60 * 60 * 1000));
+
+            if (now >= eventStart && now <= eventEnd) {
+                isLive = true;
+            }
+        }
+        // --- 🔴 LIVE NOW LOGIC END ---
+
         const card = document.createElement('div');
         card.className = 'eventCard';
         card.innerHTML = `
             <div class="eventImage">
-                <img 
-                    src="${event.image || 'https://via.placeholder.com/400x200?text=Event'}" 
-                    alt="${event.title}"
-                    loading="lazy">
+                ${isLive ? '<div class="live-badge">LIVE NOW</div>' : ''}
+                <img src="${displayImage}" alt="${event.title}" loading="lazy">
                 <span class="eventCategory">${event.category}</span>
             </div>
             <div class="eventInfo">
                 <h3 class="eventTitle">${event.title}</h3>
-                <p class="eventDate">
-                    <i class="fa-regular fa-calendar"></i> ${event.date}
-                </p>
-                <p class="eventLocation">
-                    <i class="fa-solid fa-location-dot"></i> ${event.location}
-                </p>
-                <div class="eventTags">
-                    ${(event.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
+                <p class="eventDate"><i class="fa-regular fa-calendar"></i> ${event.date}</p>
+                <p class="eventLocation"><i class="fa-solid fa-location-dot"></i> ${event.location}</p>
             </div>
         `;
-
         card.addEventListener('click', () => {
             window.location.href = `event.html?id=${event.id}`;
         });
-
         eventsScroll.appendChild(card);
     });
 }
 
-// ========================================
-// 6. DISPLAY MAP MARKERS
-// ========================================
 
 function addEventMarkers(events) {
-    // Clear old markers
     eventMarkers.forEach(marker => marker.setMap(null));
     eventMarkers = [];
-
     if (!map) return;
 
     events.forEach(event => {
         if (!event.lat || !event.lng) return;
-
         const marker = new google.maps.Marker({
             position: { lat: event.lat, lng: event.lng },
             map: map,
-            title: event.title,
-            optimized: true,
-            icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 12,
-                fillColor: "#1db954",
-                fillOpacity: 0.9,
-                strokeColor: "#ffffff",
-                strokeWeight: 3
-            }
-        });
-
-        const infoWindow = new google.maps.InfoWindow({
-            content: `
-                <div style="font-family: 'Inter', sans-serif; padding: 8px; max-width: 200px;">
-                    <h3 style="margin: 0 0 8px; font-size: 1rem; font-weight: 700; color: #1db954;">
-                        ${event.title}
-                    </h3>
-                    <p style="margin: 4px 0; font-size: 0.85rem; color: #666;">
-                        <i class="fa-regular fa-calendar"></i> ${event.date}
-                    </p>
-                    <p style="margin: 4px 0; font-size: 0.85rem; color: #666;">
-                        <i class="fa-solid fa-location-dot"></i> ${event.location}
-                    </p>
-                    <button onclick="window.location.href='event.html?id=${event.id}'" 
-                        style="margin-top: 10px; padding: 8px 16px; background: #1db954; 
-                        border: none; border-radius: 20px; color: #000; font-weight: 700; 
-                        cursor: pointer; width: 100%;">
-                        View Event
-                    </button>
-                </div>
-            `
+            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 10, fillColor: "#1db954", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2 }
         });
 
         marker.addListener('click', () => {
-            eventMarkers.forEach(m => {
-                if (m.infoWindow) m.infoWindow.close();
-            });
-            infoWindow.open(map, marker);
+            window.location.href = `event.html?id=${event.id}`;
         });
-
-        marker.infoWindow = infoWindow;
         eventMarkers.push(marker);
     });
 }
 
 // ========================================
-// 7. UPLOAD EVENT TO FIREBASE
+// 7. UPLOAD EVENT (MULTIPLE BASE64)
 // ========================================
 
 async function handleEventSubmit() {
+    const submitBtn = document.querySelector('.uploadSubmit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Posting...";
+
     const eventName = document.getElementById('eventName').value;
     const eventCategory = document.getElementById('uploadEventCategory').value;
     const eventDate = document.getElementById('eventDate').value;
@@ -344,684 +306,227 @@ async function handleEventSubmit() {
     const eventLocation = document.getElementById('eventLocation').value;
     const eventDescription = document.getElementById('eventDescription').value;
     const eventHashtags = document.getElementById('eventHashtags').value;
-    const eventImageInput = document.getElementById('uploadEventImage');
 
-    if (!eventName || !eventCategory || !eventDate || !eventLocation) {
-        alert('Please fill in all required fields!');
+    if (!eventName || !eventCategory || !eventDate || !eventLocation || !selectedEventLocation) {
+        alert('Please fill required fields and pin location.');
+        submitBtn.disabled = false; submitBtn.textContent = "Post";
         return;
     }
 
-    if (!selectedEventLocation) {
-        alert('Please select event location on the map!');
-        return;
-    }
-
-    // Upload image
-    let imageUrl = '';
-    if (eventImageInput.files && eventImageInput.files[0]) {
-        const file = eventImageInput.files[0];
-        const storageRef = storage.ref('event-images/' + Date.now() + '_' + file.name);
-
-        try {
-            const snapshot = await storageRef.put(file);
-            imageUrl = await snapshot.ref.getDownloadURL();
-        } catch (error) {
-            console.error('Image upload error:', error);
-        }
-    }
-
-    // Save event
-    const newEvent = {
-        title: eventName,
-        category: eventCategory,
-        date: new Date(eventDate).toLocaleDateString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric'
-        }),
-        time: eventTime,
-        location: eventLocation,
-        description: eventDescription,
-        tags: eventHashtags.split(' ').filter(tag => tag.startsWith('#')),
-        image: imageUrl,
-        lat: selectedEventLocation.lat,
-        lng: selectedEventLocation.lng,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
+    if (!window.db) return alert("DB Error. Reload.");
 
     try {
-        await db.collection('events').add(newEvent);
-
-        // Reset form
-        document.getElementById('eventUploadForm').reset();
-        document.getElementById('imagePreview').style.display = 'none';
-        document.querySelector('.imagePlaceholder').style.display = 'flex';
-        document.getElementById('selectedLocationText').textContent = '📍 No location pinned yet';
-
-        if (uploadMarker) {
-            uploadMarker.setMap(null);
-            uploadMarker = null;
+        // ✅ Process Multiple Images in parallel
+        let imageUrls = [];
+        if (selectedFiles.length > 0) {
+            console.log(`Compressing ${selectedFiles.length} images...`);
+            // Create an array of promises
+            const uploadPromises = selectedFiles.map(file => compressImage(file));
+            // Wait for all to finish
+            imageUrls = await Promise.all(uploadPromises);
+            console.log("All images processed.");
         }
+
+        const newEvent = {
+            title: eventName,
+            category: eventCategory,
+            date: new Date(eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            time: eventTime,
+            location: eventLocation,
+            description: eventDescription,
+            tags: eventHashtags.split(' ').filter(tag => tag.startsWith('#')),
+            // ✅ Store array of strings instead of single string
+            images: imageUrls,
+            lat: selectedEventLocation.lat,
+            lng: selectedEventLocation.lng,
+            createdAt: new Date(),
+
+            // ✅ NEW LINES ADDED HERE:
+            hostId: currentUser ? currentUser.uid : null,
+            hostEmail: currentUser ? currentUser.email : null,
+            views: 0
+        };
+
+        await window.db.collection('events').add(newEvent);
+
+        // Reset Form & Globals
+        document.getElementById('eventUploadForm').reset();
+        selectedFiles = []; // Clear selected files
+        document.getElementById('imagePreviewContainer').style.display = 'none';
+        document.getElementById('uploadPlaceholder').style.display = 'flex';
+        document.getElementById('selectedLocationText').textContent = '📍 No location pinned yet';
+        if (uploadMarker) { uploadMarker.setMap(null); uploadMarker = null; }
         selectedEventLocation = null;
 
         closeUploadForm();
         alert('Event posted successfully! 🎉');
+        loadEventsFromFirebase();
+
     } catch (error) {
-        console.error('Error posting event:', error);
-        alert('Failed to post event. Please try again.');
+        console.error('Error:', error);
+        alert('Failed: ' + error.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Post";
     }
 }
 
 // ========================================
-// 8. UI CONTROLS - MENU & MODALS
+// 8. UI CONTROLS & INIT
 // ========================================
 
-function toggleMenu() {
-    const menu = document.querySelector(".menu");
-    const overlay = document.querySelector(".menuOverlay");
-    if (!menu || !overlay) return;
-
-    menu.classList.toggle("menuShow");
-    overlay.classList.toggle("show");
-
-    if (menu.classList.contains("menuShow")) lockScroll();
-    else unlockScrollIfNoOverlay();
+// ... (Standard Menu/Auth/Filter functions omitted for brevity - keep your existing ones) ...
+function toggleMenu() { document.querySelector(".menu").classList.toggle("menuShow"); document.querySelector(".menuOverlay").classList.toggle("show"); }
+function openAuth(mode) {
+    const overlay = document.getElementById("authOverlay"); overlay.classList.add("show");
+    document.getElementById(mode === "signup" ? "signupPage" : "loginPage").classList.add("show");
+    document.getElementById(mode === "signup" ? "loginPage" : "signupPage").classList.remove("show");
+    document.getElementById("authTitle").textContent = mode === "signup" ? "Sign up" : "Log in";
 }
-
-function lockScroll() {
-    document.body.classList.add("noScroll");
-}
-
-function unlockScrollIfNoOverlay() {
-    const anyOpen = document.querySelector(
-        ".menu.menuShow, .uploadOverlay.show, .filterOverlay.show, .locationOverlay.show, .manualLocationOverlay.show, .authOverlay.show"
-    );
-    if (!anyOpen) document.body.classList.remove("noScroll");
-}
+function closeAuth() { document.getElementById("authOverlay").classList.remove("show"); }
 
 function openUploadForm() {
-    const uploadOverlay = document.querySelector(".uploadOverlay");
-    if (!uploadOverlay) return;
-    uploadOverlay.classList.add("show");
-    lockScroll();
-
-    setTimeout(() => {
-        if (!uploadMap) initUploadMap();
-    }, 300);
+    if (!currentUser) return alert("Log in first.");
+    const userEmail = currentUser.email ? currentUser.email.toLowerCase() : "";
+    if (!ALLOWED_HOST_EMAILS.includes(userEmail)) return alert("Not authorized.");
+    document.querySelector(".uploadOverlay").classList.add("show");
+    setTimeout(() => { if (!uploadMap) initUploadMap(); }, 300);
 }
+function closeUploadForm() { document.querySelector(".uploadOverlay").classList.remove("show"); }
 
-function closeUploadForm() {
-    const uploadOverlay = document.querySelector(".uploadOverlay");
-    if (!uploadOverlay) return;
-    uploadOverlay.classList.remove("show");
-    unlockScrollIfNoOverlay();
-}
-
-// ========================================
-// 9. FILTERS
-// ========================================
-
-function openFilterModal() {
-    const filterOverlay = document.querySelector(".filterOverlay");
-    if (!filterOverlay) return;
-    filterOverlay.classList.add("show");
-    lockScroll();
-    renderCalendar();
-}
-
-function closeFilterModal() {
-    const filterOverlay = document.querySelector(".filterOverlay");
-    if (!filterOverlay) return;
-    filterOverlay.classList.remove("show");
-    unlockScrollIfNoOverlay();
-}
-
-function resetFilters() {
-    currentFilters = { date: null, distance: 50, category: 'all' };
-    selectedDate = null;
-
-    document.querySelectorAll('.quickFilterBtn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.categoryCard').forEach(card => {
-        card.classList.remove('active');
-        if (card.dataset.category === 'all') card.classList.add('active');
-    });
-
-    document.getElementById('distanceInput').value = 50;
-    document.getElementById('distanceRange').value = 50;
-
-    renderCalendar();
-    loadEventsFromFirebase();
-}
-
-function applyFilters() {
-    db.collection('events').get().then((snapshot) => {
-        let events = [];
-        snapshot.forEach((doc) => {
-            events.push({ id: doc.id, ...doc.data() });
-        });
-
-        // Date filter
-        if (currentFilters.date) {
-            const selected = new Date(currentFilters.date);
-            selected.setHours(0, 0, 0, 0);
-
-            events = events.filter(ev => {
-                const evDate = new Date(ev.date);
-                if (isNaN(evDate)) return false;
-                evDate.setHours(0, 0, 0, 0);
-                return evDate.getTime() === selected.getTime();
-            });
-        }
-
-        // Distance filter
-        if (currentLocation && currentFilters.distance) {
-            events = events.filter(event => {
-                if (!event.lat || !event.lng) return false;
-                const distance = calculateDistance(
-                    currentLocation.lat, currentLocation.lng,
-                    event.lat, event.lng
-                );
-                return distance <= currentFilters.distance;
-            });
-        }
-
-        // Category filter
-        if (currentFilters.category && currentFilters.category !== 'all') {
-            events = events.filter(e => e.category === currentFilters.category);
-        }
-
-        renderEventCards(events);
-        addEventMarkers(events);
-        closeFilterModal();
-    });
-}
-
-function calculateDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-// ========================================
-// 10. CALENDAR
-// ========================================
-
-function renderCalendar() {
-    const calendarDays = document.getElementById('calendarDays');
-    const currentMonth = document.getElementById('currentMonth');
-
-    if (!calendarDays || !currentMonth) return;
-
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-
-    currentMonth.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const today = new Date();
-
-    calendarDays.innerHTML = '';
-
-    for (let i = 0; i < firstDay; i++) {
-        const emptyDay = document.createElement('div');
-        emptyDay.className = 'calendarDay disabled';
-        calendarDays.appendChild(emptyDay);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayElement = document.createElement('button');
-        dayElement.className = 'calendarDay';
-        dayElement.textContent = day;
-
-        const dateToCheck = new Date(year, month, day);
-
-        if (dateToCheck.toDateString() === today.toDateString()) {
-            dayElement.classList.add('today');
-        }
-
-        if (selectedDate && dateToCheck.toDateString() === selectedDate.toDateString()) {
-            dayElement.classList.add('selected');
-        }
-
-        if (dateToCheck < today.setHours(0, 0, 0, 0)) {
-            dayElement.classList.add('disabled');
-        } else {
-            dayElement.addEventListener('click', () => {
-                selectedDate = new Date(year, month, day);
-                currentFilters.date = selectedDate;
-                renderCalendar();
-            });
-        }
-
-        calendarDays.appendChild(dayElement);
-    }
-}
-
-// ========================================
-// 11. USER LOCATION
-// ========================================
-
-function openLocationModal() {
-    const locationOverlay = document.querySelector(".locationOverlay");
-    if (!locationOverlay) return;
-    locationOverlay.classList.add("show");
-    lockScroll();
-}
-
-function closeLocationModal() {
-    const locationOverlay = document.querySelector(".locationOverlay");
-    if (!locationOverlay) return;
-    locationOverlay.classList.remove("show");
-    unlockScrollIfNoOverlay();
-}
-
-function enableGPS() {
-    if (!navigator.geolocation) {
-        alert('Geolocation not supported');
-        return;
-    }
-
-    const locationDisplay = document.getElementById('locationDisplay');
-    if (locationDisplay) {
-        locationDisplay.innerHTML = `Getting<br>Location....`;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        function (position) {
-            reverseGeocode(position.coords.latitude, position.coords.longitude);
-            closeLocationModal();
-
-            if (map) {
-                map.setCenter({
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                });
-            }
-        },
-        function () {
-            if (locationDisplay) {
-                locationDisplay.textContent = 'Enable Location';
-            }
-            alert('Could not get your location.');
-        }
-    );
-}
-
-async function reverseGeocode(lat, lng) {
-    try {
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
-            { headers: { 'User-Agent': 'Mapzo/1.0' } }
-        );
-
-        const data = await response.json();
-        const address = data.address;
-        const locationName = address.city || address.town || address.village ||
-            address.county || address.state || 'Unknown';
-
-        currentLocation = { name: locationName, lat, lng, fullAddress: data.display_name };
-        updateLocationDisplay(locationName);
-    } catch (error) {
-        console.error('Reverse geocoding error:', error);
-    }
-}
-
-function updateLocationDisplay(locationName) {
-    const locationDisplay = document.getElementById('locationDisplay');
-    if (locationDisplay) {
-        const displayName = locationName.length > 15 ?
-            locationName.substring(0, 15) + '...' : locationName;
-        locationDisplay.textContent = displayName;
-        locationDisplay.title = locationName;
-    }
-}
-
-function showManualInput() {
-    closeLocationModal();
-    const manualOverlay = document.querySelector(".manualLocationOverlay");
-    if (!manualOverlay) return;
-    manualOverlay.classList.add("show");
-    lockScroll();
-}
-
-function backToLocationOptions() {
-    const manualOverlay = document.querySelector(".manualLocationOverlay");
-    if (manualOverlay) manualOverlay.classList.remove("show");
-    openLocationModal();
-}
-
-function handleLocationSearch(query) {
-    const suggestionsContainer = document.getElementById('locationSuggestions');
-
-    if (!query || query.trim().length < 2) {
-        suggestionsContainer.innerHTML = '';
-        return;
-    }
-
-    if (searchTimeout) clearTimeout(searchTimeout);
-
-    suggestionsContainer.innerHTML = `
-        <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
-            <i class="fa-solid fa-spinner fa-spin"></i> Searching...
-        </div>
-    `;
-
-    searchTimeout = setTimeout(async () => {
-        try {
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10`,
-                { headers: { 'User-Agent': 'Mapzo/1.0' } }
-            );
-
-            const results = await response.json();
-
-            if (results.length === 0) {
-                suggestionsContainer.innerHTML = '<div style="padding: 20px; text-align: center;">No locations found</div>';
-                return;
-            }
-
-            const filtered = results.filter(r => {
-                const t = r.type;
-                const a = r.address;
-                return t === 'city' || t === 'town' || t === 'village' ||
-                    a.city || a.town || a.village;
-            });
-
-            suggestionsContainer.innerHTML = "";
-
-            filtered.forEach(result => {
-                const address = result.address || {};
-                const locationName = address.city || address.town || address.village || result.name;
-
-                const locationData = {
-                    name: locationName,
-                    lat: parseFloat(result.lat),
-                    lng: parseFloat(result.lon),
-                    fullAddress: result.display_name
-                };
-
-                const item = document.createElement("div");
-                item.className = "suggestionItem";
-                item.innerHTML = `
-                    <div class="suggestionIcon"><i class="fa-solid fa-location-dot"></i></div>
-                    <div class="suggestionText">
-                        <h4>${locationName}</h4>
-                        <p>${address.state || ""}, ${address.country || ""}</p>
-                    </div>
-                `;
-
-                item.addEventListener("click", (e) => selectLocation(e, locationData));
-                suggestionsContainer.appendChild(item);
-            });
-        } catch (error) {
-            console.error('Search error:', error);
-            suggestionsContainer.innerHTML = '<div style="padding: 20px; text-align: center;">Search failed</div>';
-        }
-    }, 500);
-}
-
-function selectLocation(e, locationData) {
-    selectedManualLocation = locationData;
-
-    document.querySelectorAll('.suggestionItem').forEach(item => {
-        item.classList.remove('selected');
-    });
-
-    const clicked = e.target.closest('.suggestionItem');
-    if (clicked) clicked.classList.add('selected');
-}
-
-function confirmManualLocation() {
-    if (!selectedManualLocation) {
-        alert("Please select a location");
-        return;
-    }
-
-    currentLocation = selectedManualLocation;
-    updateLocationDisplay(selectedManualLocation.name);
-
-    if (map) {
-        map.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
-    }
-
-    const manualOverlay = document.querySelector(".manualLocationOverlay");
-    if (manualOverlay) manualOverlay.classList.remove("show");
-    unlockScrollIfNoOverlay();
-
-    document.getElementById("manualLocationInput").value = "";
-    document.getElementById("locationSuggestions").innerHTML = "";
-    selectedManualLocation = null;
-}
-
-// ========================================
-// 12. CUSTOM MAP CONTROLS
-// ========================================
-
-function initMapControls() {
-    // Recenter button
-    document.getElementById('recenterBtn')?.addEventListener('click', () => {
-        if (!map) {
-            alert('Map not loaded');
-            return;
-        }
-
-        if (currentLocation) {
-            map.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
-            map.setZoom(14);
-        } else {
-            if (confirm("Enable location to recenter map?")) {
-                enableGPS();
-            }
-        }
-    });
-
-    // Fullscreen button
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const mapElement = document.getElementById('mainMap');
-
-    if (fullscreenBtn && mapElement) {
-        fullscreenBtn.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                mapElement.requestFullscreen().then(() => {
-                    fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
-                }).catch(() => {
-                    alert('Fullscreen not supported');
-                });
-            } else {
-                document.exitFullscreen().then(() => {
-                    fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-                });
-            }
-        });
-    }
-
-    document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement && fullscreenBtn) {
-            fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-        }
-    });
-}
-
-// ========================================
-// 13. INITIALIZATION
-// ========================================
-
+// Init Listeners
 document.addEventListener("DOMContentLoaded", () => {
-    console.log('DOM loaded, initializing Mapzo...');
+    if (typeof google !== 'undefined' && google.maps && !mapInitialized) window.initMap();
 
-    // Check if Google Maps already loaded
-    if (typeof google !== 'undefined' && google.maps && !mapInitialized) {
-        console.log('Google Maps already available');
-        window.initMap();
-    }
-
-    // Initialize controls
-    initMapControls();
-
-    // Image preview
+    // ✅ NEW: Multiple File Selection Listener
     const eventImageInput = document.getElementById("uploadEventImage");
     if (eventImageInput) {
         eventImageInput.addEventListener("change", (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
+            // Convert fileList to Array and limit to 3
+            selectedFiles = Array.from(e.target.files).slice(0, 3);
 
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const preview = document.getElementById("imagePreview");
-                const placeholder = document.querySelector(".imagePlaceholder");
-                if (preview && placeholder) {
-                    preview.src = ev.target.result;
-                    preview.style.display = "block";
-                    placeholder.style.display = "none";
-                }
-            };
-            reader.readAsDataURL(file);
-        });
-    }
+            const placeholder = document.getElementById("uploadPlaceholder");
+            const previewContainer = document.getElementById("imagePreviewContainer");
+            const countSpan = document.getElementById("imageCount");
 
-    // Auth modal
-    const authOverlay = document.getElementById("authOverlay");
-    const authCloseBtn = document.getElementById("authCloseBtn");
-    const goSignupBtn = document.getElementById("goSignupBtn");
-    const goLoginBtn = document.getElementById("goLoginBtn");
-
-    function openAuth(mode = "login") {
-        if (!authOverlay) return;
-        authOverlay.classList.add("show");
-        lockScroll();
-
-        const loginPage = document.getElementById("loginPage");
-        const signupPage = document.getElementById("signupPage");
-        const authTitle = document.getElementById("authTitle");
-
-        if (mode === "signup") {
-            loginPage?.classList.remove("show");
-            signupPage?.classList.add("show");
-            if (authTitle) authTitle.textContent = "Sign up";
-        } else {
-            signupPage?.classList.remove("show");
-            loginPage?.classList.add("show");
-            if (authTitle) authTitle.textContent = "Log in";
-        }
-    }
-
-    function closeAuth() {
-        authOverlay?.classList.remove("show");
-        unlockScrollIfNoOverlay();
-    }
-
-    authCloseBtn?.addEventListener("click", closeAuth);
-    authOverlay?.addEventListener("click", (e) => {
-        if (e.target === authOverlay) closeAuth();
-    });
-    goSignupBtn?.addEventListener("click", () => openAuth("signup"));
-    goLoginBtn?.addEventListener("click", () => openAuth("login"));
-
-    document.querySelectorAll("[data-open-auth='login']").forEach((btn) =>
-        btn.addEventListener("click", () => openAuth("login"))
-    );
-    document.querySelectorAll("[data-open-auth='signup']").forEach((btn) =>
-        btn.addEventListener("click", () => openAuth("signup"))
-    );
-
-    document.getElementById("loginForm")?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        closeAuth();
-    });
-    document.getElementById("signupForm")?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        closeAuth();
-    });
-
-    // Filter tabs
-    document.querySelectorAll(".filterTab").forEach((tab) => {
-        tab.addEventListener("click", function () {
-            document.querySelectorAll(".filterTab").forEach((t) => t.classList.remove("active"));
-            document.querySelectorAll(".filterTabContent").forEach((c) => c.classList.remove("active"));
-
-            this.classList.add("active");
-            document.getElementById(this.dataset.tab + "Tab")?.classList.add("active");
-        });
-    });
-
-    // Calendar navigation
-    document.getElementById("prevMonth")?.addEventListener("click", () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar();
-    });
-    document.getElementById("nextMonth")?.addEventListener("click", () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar();
-    });
-
-    // Distance controls
-    const distanceInput = document.getElementById("distanceInput");
-    const distanceRange = document.getElementById("distanceRange");
-
-    if (distanceInput && distanceRange) {
-        distanceInput.addEventListener("input", function () {
-            const value = Math.min(5000, Math.max(0, Number(this.value || 0)));
-            this.value = value;
-            distanceRange.value = Math.min(500, value);
-            currentFilters.distance = value;
-        });
-
-        distanceRange.addEventListener("input", function () {
-            distanceInput.value = this.value;
-            currentFilters.distance = Number(this.value);
-        });
-    }
-
-    document.querySelectorAll("[data-distance]").forEach((btn) => {
-        btn.addEventListener("click", function () {
-            const distance = Number(this.dataset.distance);
-            if (distanceInput && distanceRange) {
-                distanceInput.value = distance;
-                distanceRange.value = Math.min(500, distance);
-                currentFilters.distance = distance;
+            if (selectedFiles.length > 0) {
+                placeholder.style.display = "none";
+                previewContainer.style.display = "block";
+                countSpan.textContent = selectedFiles.length;
+            } else {
+                placeholder.style.display = "flex";
+                previewContainer.style.display = "none";
             }
         });
-    });
+    }
 
-    // Category cards
-    document.querySelectorAll("[data-category]").forEach((card) => {
-        card.addEventListener("click", function () {
-            document.querySelectorAll("[data-category]").forEach((c) => c.classList.remove("active"));
-            this.classList.add("active");
-            currentFilters.category = this.dataset.category;
+    // Auth Listeners
+    document.getElementById("authCloseBtn")?.addEventListener("click", closeAuth);
+    document.getElementById("goSignupBtn")?.addEventListener("click", () => openAuth("signup"));
+    document.getElementById("goLoginBtn")?.addEventListener("click", () => openAuth("login"));
+    document.getElementById("loginForm")?.addEventListener("submit", async (e) => { e.preventDefault(); try { await auth.signInWithEmailAndPassword(document.getElementById("loginEmail").value.trim(), document.getElementById("loginPass").value.trim()); closeAuth(); } catch (error) { alert(error.message); } });
+
+    // Navigation Listeners
+    document.querySelectorAll('.navItem').forEach(item => {
+        item.addEventListener('click', function () {
+            document.querySelectorAll('.navItem').forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
         });
     });
+});
 
-    // Category search
-    document.getElementById("categorySearch")?.addEventListener("input", function () {
-        const query = this.value.toLowerCase();
-        document.querySelectorAll(".categoryCard").forEach((card) => {
-            const text = (card.textContent || "").toLowerCase();
-            card.style.display = text.includes(query) ? "flex" : "none";
-        });
+function loadEventsFromFirebase() {
+    if (!window.db) return;
+    window.db.collection('events').orderBy('createdAt', 'desc').get().then((snapshot) => {
+        let events = []; snapshot.forEach((doc) => { events.push({ id: doc.id, ...doc.data() }); });
+        renderEventCards(events); addEventMarkers(events);
     });
+}
+// ========================================
+// 9. SMART SEARCH (Autocomplete)
+// ========================================
+const searchInput = document.querySelector('.navSrchBar');
+const searchForm = document.querySelector('.navSearch');
 
-    // Escape key to close modals
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape') return;
+if (searchInput) {
+    // Create Dropdown Element
+    const resultsBox = document.createElement('div');
+    resultsBox.className = 'searchResultsBox';
+    searchForm.style.position = 'relative'; // Ensure relative positioning
+    searchForm.appendChild(resultsBox);
 
-        if (document.querySelector('.manualLocationOverlay.show')) {
-            document.querySelector('.manualLocationOverlay').classList.remove("show");
-            unlockScrollIfNoOverlay();
-        } else if (document.querySelector('.locationOverlay.show')) {
-            closeLocationModal();
-        } else if (document.querySelector('.filterOverlay.show')) {
-            closeFilterModal();
-        } else if (document.querySelector('.uploadOverlay.show')) {
-            closeUploadForm();
-        } else if (document.querySelector('.menu.menuShow')) {
-            toggleMenu();
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        resultsBox.innerHTML = '';
+
+        if (query.length < 2) {
+            resultsBox.style.display = 'none';
+            return;
+        }
+
+        // Filter currently loaded events (window.db events should be cached in a global variable for best performance, 
+        // but here we can grab cards from DOM or fetch fresh. Ideally, maintain a global 'allEvents' array in loadEventsFromFirebase)
+
+        // Assuming you updated loadEventsFromFirebase to save to window.allEvents:
+        const matches = (window.allEvents || []).filter(event =>
+            event.title.toLowerCase().includes(query) ||
+            event.category.toLowerCase().includes(query)
+        );
+
+        if (matches.length > 0) {
+            resultsBox.style.display = 'block';
+            matches.slice(0, 5).forEach(event => {
+                const div = document.createElement('div');
+                div.className = 'searchResultItem';
+                div.innerHTML = `
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <div>
+                        <p style="font-weight:700; margin:0; font-size:0.9rem;">${event.title}</p>
+                        <p style="margin:0; font-size:0.75rem; color:#888;">${event.location}</p>
+                    </div>
+                `;
+                div.onclick = () => window.location.href = `event.html?id=${event.id}`;
+                resultsBox.appendChild(div);
+            });
+        } else {
+            resultsBox.style.display = 'none';
         }
     });
 
-    console.log('✅ Mapzo initialized');
-});
+    // Hide when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchForm.contains(e.target)) resultsBox.style.display = 'none';
+    });
+}
+
+// Update loadEventsFromFirebase to store global data for search
+// Replace your existing loadEventsFromFirebase with this:
+function loadEventsFromFirebase() {
+    if (!window.db) return;
+    window.db.collection('events').orderBy('createdAt', 'desc').get().then((snapshot) => {
+        let events = [];
+        snapshot.forEach((doc) => { events.push({ id: doc.id, ...doc.data() }); });
+
+        window.allEvents = events; // STORE GLOBALLY FOR SEARCH
+
+        renderEventCards(events);
+        addEventMarkers(events);
+    });
+}
+
+// ========================================
+// 10. DARK/LIGHT MODE TOGGLE
+// ========================================
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    const isLight = document.body.classList.contains('light-mode');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+}
+
+// Init Theme on Load
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'light') document.body.classList.add('light-mode');
+
+// Add Toggle Button to Menu (Call this inside your existing DOMContentLoaded or manually add button in HTML)
+// Example: Add a button to .navMain or .menu in HTML:
+// <button onclick="toggleTheme()" class="themeToggle"><i class="fa-solid fa-circle-half-stroke"></i></button>

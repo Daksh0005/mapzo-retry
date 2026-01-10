@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -20,32 +22,35 @@
     <meta name="apple-mobile-web-app-title" content="Mapzo" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <script>
-        // Firebase Configuration - REPLACE WITH YOUR CONFIG FROM FIREBASE CONSOLE
+        // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyBqeFuoFfT-z7YhRoWOIH2nKO_oV3hiQkk",
+            authDomain: "mapzo-368c2.firebaseapp.com",
+            projectId: "mapzo-368c2",
+            storageBucket: "mapzo-368c2.firebasestorage.app",
+            messagingSenderId: "803894616922",
+            appId: "1:803894616922:web:ec5d59b466b90c75538963",
+            measurementId: "G-97HKCXB2L9"
         };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
+
+        const auth = firebase.auth();
         const db = firebase.firestore();
-        const storage = firebase.storage();
+
+        // Window globals
+        window.auth = auth;
+        window.db = db;
     </script>
 </head>
 
-
 <body>
-    <!-- Top Navigation Bar -->
     <nav class="navBar1" role="navigation" aria-label="Main navigation">
         <div class="navLeft">
             <img src="Untitled.png" alt="Mapzo Logo" class="navLogo">
@@ -56,7 +61,6 @@
         </button>
     </nav>
 
-    <!-- Search Bar with Location -->
     <header class="navMain">
         <div class="navLoc" onclick="openLocationModal()">
             <i class="fa-solid fa-location-dot"></i>
@@ -67,18 +71,13 @@
             <p class="locDes">Filters</p>
         </div>
         <form class="navSearch" role="search">
-            <input 
-                placeholder="#Hashtags" 
-                type="search" 
-                class="navSrchBar"
-                aria-label="Search events by hashtag">
+            <input placeholder="#Hashtags" type="search" class="navSrchBar" aria-label="Search events by hashtag">
             <button class="navButton" type="submit" aria-label="Search">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </button>
         </form>
     </header>
 
-    <!-- Location Selection Modal -->
     <div class="locationOverlay">
         <div class="locationModal">
             <div class="locationHeader">
@@ -87,27 +86,18 @@
                 </button>
                 <h2 class="locationTitle">Set Your Location</h2>
             </div>
-            
             <div class="locationContent">
                 <button class="locationOption" onclick="enableGPS()">
-                    <div class="optionIcon">
-                        <i class="fa-solid fa-location-crosshairs"></i>
-                    </div>
+                    <div class="optionIcon"><i class="fa-solid fa-location-crosshairs"></i></div>
                     <div class="optionText">
                         <h3>Enable Location</h3>
                         <p>Use your device GPS to detect location</p>
                     </div>
                     <i class="fa-solid fa-chevron-right optionArrow"></i>
                 </button>
-                
-                <div class="divider">
-                    <span>OR</span>
-                </div>
-                
+                <div class="divider"><span>OR</span></div>
                 <button class="locationOption" onclick="showManualInput()">
-                    <div class="optionIcon">
-                        <i class="fa-solid fa-pen"></i>
-                    </div>
+                    <div class="optionIcon"><i class="fa-solid fa-pen"></i></div>
                     <div class="optionText">
                         <h3>Fill Manually</h3>
                         <p>Search and select your location</p>
@@ -118,67 +108,38 @@
         </div>
     </div>
 
-    <!-- Manual Location Input Modal -->
     <div class="manualLocationOverlay">
         <div class="manualLocationModal">
             <div class="locationHeader">
-                <button class="locationBack" onclick="backToLocationOptions()">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
+                <button class="locationBack" onclick="backToLocationOptions()"><i
+                        class="fa-solid fa-arrow-left"></i></button>
                 <h2 class="locationTitle">Search Location</h2>
-                <button class="locationDone" onclick="confirmManualLocation()">
-                    Done
-                </button>
+                <button class="locationDone" onclick="confirmManualLocation()">Done</button>
             </div>
-            
             <div class="searchContainer">
                 <div class="locationSearchBox">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input 
-                        type="text" 
-                        class="locationSearchInput" 
-                        id="manualLocationInput"
-                        placeholder="Type city, district, or village..."
-                        oninput="handleLocationSearch(this.value)">
+                    <input type="text" class="locationSearchInput" id="manualLocationInput"
+                        placeholder="Type city, district, or village..." oninput="handleLocationSearch(this.value)">
                 </div>
-                
-                <div class="locationSuggestions" id="locationSuggestions">
-                    <!-- Suggestions will be added here dynamically -->
-                </div>
+                <div class="locationSuggestions" id="locationSuggestions"></div>
             </div>
         </div>
     </div>
 
-    <!-- Filter Modal -->
     <div class="filterOverlay">
         <div class="filterModal">
             <div class="filterHeader">
-                <button class="filterClose" onclick="closeFilterModal()">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <button class="filterClose" onclick="closeFilterModal()"><i class="fa-solid fa-xmark"></i></button>
                 <h2 class="filterTitle">Filters</h2>
-                <button class="filterReset" onclick="resetFilters()">
-                    Reset
-                </button>
+                <button class="filterReset" onclick="resetFilters()">Reset</button>
             </div>
-
             <div class="filterTabs">
-                <button class="filterTab active" data-tab="date">
-                    <i class="fa-regular fa-calendar"></i>
-                    Date
-                </button>
-                <button class="filterTab" data-tab="distance">
-                    <i class="fa-solid fa-location-dot"></i>
-                    Distance
-                </button>
-                <button class="filterTab" data-tab="category">
-                    <i class="fa-solid fa-grid-2"></i>
-                    Category
-                </button>
+                <button class="filterTab active" data-tab="date"><i class="fa-regular fa-calendar"></i> Date</button>
+                <button class="filterTab" data-tab="distance"><i class="fa-solid fa-location-dot"></i> Distance</button>
+                <button class="filterTab" data-tab="category"><i class="fa-solid fa-grid-2"></i> Category</button>
             </div>
-
             <div class="filterContent">
-                <!-- Date Filter Tab -->
                 <div class="filterTabContent active" id="dateTab">
                     <div class="quickFilters">
                         <button class="quickFilterBtn active" data-quick="today">Today</button>
@@ -186,62 +147,33 @@
                         <button class="quickFilterBtn" data-quick="week">This Week</button>
                         <button class="quickFilterBtn" data-quick="month">This Month</button>
                     </div>
-                    
                     <div class="calendarContainer">
                         <div class="calendarHeader">
-                            <button class="calendarNav" id="prevMonth">
-                                <i class="fa-solid fa-chevron-left"></i>
-                            </button>
+                            <button class="calendarNav" id="prevMonth"><i class="fa-solid fa-chevron-left"></i></button>
                             <span class="calendarMonth" id="currentMonth">December 2025</span>
-                            <button class="calendarNav" id="nextMonth">
-                                <i class="fa-solid fa-chevron-right"></i>
-                            </button>
+                            <button class="calendarNav" id="nextMonth"><i
+                                    class="fa-solid fa-chevron-right"></i></button>
                         </div>
                         <div class="calendarWeekdays">
-                            <span>Sun</span>
-                            <span>Mon</span>
-                            <span>Tue</span>
-                            <span>Wed</span>
-                            <span>Thu</span>
-                            <span>Fri</span>
-                            <span>Sat</span>
+                            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
                         </div>
-                        <div class="calendarDays" id="calendarDays">
-                        </div>
+                        <div class="calendarDays" id="calendarDays"></div>
                     </div>
                 </div>
-
-                <!-- Distance Filter Tab -->
                 <div class="filterTabContent" id="distanceTab">
                     <div class="distanceInput">
                         <label class="distanceLabel">Enter distance in kilometers</label>
                         <div class="distanceField">
-                            <input 
-                                type="number" 
-                                class="distanceValue" 
-                                id="distanceInput"
-                                placeholder="0"
-                                min="0"
+                            <input type="number" class="distanceValue" id="distanceInput" placeholder="0" min="0"
                                 max="5000">
                             <span class="distanceUnit">km</span>
                         </div>
                         <div class="distanceSlider">
-                            <input 
-                                type="range" 
-                                class="distanceRange" 
-                                id="distanceRange"
-                                min="0"
-                                max="500"
-                                value="50"
+                            <input type="range" class="distanceRange" id="distanceRange" min="0" max="500" value="50"
                                 step="5">
-                            <div class="distanceMarkers">
-                                <span>0</span>
-                                <span>250</span>
-                                <span>500+</span>
-                            </div>
+                            <div class="distanceMarkers"><span>0</span><span>250</span><span>500+</span></div>
                         </div>
                     </div>
-                    
                     <div class="quickFilters">
                         <button class="quickFilterBtn" data-distance="5">5 km</button>
                         <button class="quickFilterBtn" data-distance="10">10 km</button>
@@ -251,119 +183,82 @@
                         <button class="quickFilterBtn" data-distance="500">500 km</button>
                     </div>
                 </div>
-
-                <!-- Category Filter Tab -->
                 <div class="filterTabContent" id="categoryTab">
                     <div class="categorySearch">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input 
-                            type="text" 
-                            class="categorySearchInput" 
-                            id="categorySearch"
+                        <input type="text" class="categorySearchInput" id="categorySearch"
                             placeholder="Search categories...">
                     </div>
-                    
                     <div class="categoryGrid" id="categoryGrid">
-                        <button class="categoryCard active" data-category="all">
-                            <i class="fa-solid fa-grid-2"></i>
-                            <span>All</span>
-                        </button>
-                        <button class="categoryCard" data-category="Music">
-                            <i class="fa-solid fa-music"></i>
-                            <span>Music</span>
-                        </button>
-                        <button class="categoryCard" data-category="Tech">
-                            <i class="fa-solid fa-laptop-code"></i>
-                            <span>Tech</span>
-                        </button>
-                        <button class="categoryCard" data-category="Sports">
-                            <i class="fa-solid fa-basketball"></i>
-                            <span>Sports</span>
-                        </button>
-                        <button class="categoryCard" data-category="Cultural">
-                            <i class="fa-solid fa-masks-theater"></i>
-                            <span>Cultural</span>
-                        </button>
-                        <button class="categoryCard" data-category="Food">
-                            <i class="fa-solid fa-utensils"></i>
-                            <span>Food</span>
-                        </button>
+                        <button class="categoryCard active" data-category="all"><i
+                                class="fa-solid fa-grid-2"></i><span>All</span></button>
+                        <button class="categoryCard" data-category="Music"><i
+                                class="fa-solid fa-music"></i><span>Music</span></button>
+                        <button class="categoryCard" data-category="Tech"><i
+                                class="fa-solid fa-laptop-code"></i><span>Tech</span></button>
+                        <button class="categoryCard" data-category="Sports"><i
+                                class="fa-solid fa-basketball"></i><span>Sports</span></button>
+                        <button class="categoryCard" data-category="Cultural"><i
+                                class="fa-solid fa-masks-theater"></i><span>Cultural</span></button>
+                        <button class="categoryCard" data-category="Food"><i
+                                class="fa-solid fa-utensils"></i><span>Food</span></button>
                     </div>
                 </div>
             </div>
-
             <div class="filterFooter">
-                <button class="filterApply" onclick="applyFilters()">
-                    Apply Filters
-                </button>
+                <button class="filterApply" onclick="applyFilters()">Apply Filters</button>
             </div>
         </div>
     </div>
 
-    <!-- Main Map Section -->
     <main>
         <div class="map" id="mainMap">
-            <!-- Recenter Button (Top Left) -->
             <div class="mapControls">
                 <button class="mapControlBtn" id="recenterBtn" title="Recenter to your location">
                     <i class="fa-solid fa-location-crosshairs"></i>
                 </button>
             </div>
-    
-            <!-- Fullscreen Button (Top Right) -->
             <button class="mapFullscreenBtn" id="fullscreenBtn" title="Toggle fullscreen">
                 <i class="fa-solid fa-expand"></i>
             </button>
         </div>
     </main>
 
-    <!-- Events Section -->
-    <section class="eventsSection">
+    <section class="eventsSection" id="events-section">
         <div class="sectionHeader">
             <h2 class="sectionTitle">Relevant Events</h2>
             <a href="#" class="seeAll">See all</a>
         </div>
         <div class="eventsScroll">
-            <!-- Event cards will be dynamically added here -->
         </div>
     </section>
 
-    <!-- Floating Host Event Button -->
     <div class="hostBar">
         <button class="hostBox" aria-label="Add Event" onclick="openUploadForm()">
             <i class="fa-solid fa-plus"></i>
         </button>
     </div>
 
-    <!-- Menu Overlay -->
     <div class="menuOverlay" onclick="toggleMenu()"></div>
 
-    <!-- Side Menu -->
     <div class="menu">
-        <button class="menuClose" onclick="toggleMenu()" aria-label="Close menu">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-
+        <button class="menuClose" onclick="toggleMenu()" aria-label="Close menu"><i
+                class="fa-solid fa-xmark"></i></button>
         <div class="menuSection">
             <p class="menuTitle">Account</p>
             <div class="logSignBox">
                 <button class="logSign" data-open-auth="login">Log in</button>
                 <button class="logSign" data-open-auth="signup">Sign up</button>
             </div>
-
         </div>
-
         <div class="menuDivider"></div>
-
         <div class="menuSection">
             <p class="menuTitle">Settings</p>
             <a class="otherMenu" href="settings.html#notifications">Notifications</a>
             <a class="otherMenu" href="settings.html#verification">Verification as Host</a>
             <a class="otherMenu" href="settings.html#permissions">Permissions</a>
         </div>
-
         <div class="menuDivider"></div>
-
         <div class="menuSection">
             <p class="menuTitle">Support</p>
             <a class="otherMenu" href="legal.html#terms">Terms & Conditions</a>
@@ -371,38 +266,24 @@
         </div>
     </div>
 
-    <!-- Event Upload Modal -->
     <div class="uploadOverlay">
         <div class="uploadModal">
             <div class="uploadHeader">
-                <button class="uploadBack" onclick="closeUploadForm()" aria-label="Go back">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
+                <button class="uploadBack" onclick="closeUploadForm()" aria-label="Go back"><i
+                        class="fa-solid fa-arrow-left"></i></button>
                 <h2 class="uploadTitle">Host an Event</h2>
-                <button class="uploadSubmit" onclick="handleEventSubmit()">
-                    Post
-                </button>
+                <button class="uploadSubmit" onclick="handleEventSubmit()">Post</button>
             </div>
-
             <form class="uploadForm" id="eventUploadForm">
                 <div class="formGroup">
                     <label class="formLabel">Title</label>
-                    <input 
-                        type="text" 
-                        class="formInput" 
-                        placeholder="e.g., DJ Night at Spring Fest"
-                        id="eventName"
+                    <input type="text" class="formInput" placeholder="e.g., DJ Night at Spring Fest" id="eventName"
                         required>
                 </div>
-
                 <div class="formGroup">
                     <label class="formLabel">Upload Image</label>
                     <div class="imageUpload">
-                        <input 
-                            type="file" 
-                            class="imageInput" 
-                            id="uploadEventImage"
-                            accept="image/*">
+                        <input type="file" class="imageInput" id="uploadEventImage" accept="image/*">
                         <div class="imagePlaceholder">
                             <i class="fa-solid fa-image"></i>
                             <p>Tap to upload event image</p>
@@ -410,7 +291,6 @@
                         <img class="imagePreview" id="imagePreview" style="display: none;">
                     </div>
                 </div>
-
                 <div class="formGroup">
                     <label class="formLabel">Category</label>
                     <select class="formSelect" id="uploadEventCategory" required>
@@ -423,72 +303,43 @@
                         <option value="Other">Other</option>
                     </select>
                 </div>
-
                 <div class="formRow">
                     <div class="formGroup">
                         <label class="formLabel">Date</label>
-                        <input 
-                            type="date" 
-                            class="formInput" 
-                            id="eventDate"
-                            required>
+                        <input type="date" class="formInput" id="eventDate" required>
                     </div>
                     <div class="formGroup">
                         <label class="formLabel">Time</label>
-                        <input 
-                            type="time" 
-                            class="formInput" 
-                            id="eventTime"
-                            required>
+                        <input type="time" class="formInput" id="eventTime" required>
                     </div>
                 </div>
-
                 <div class="formGroup">
                     <label class="formLabel">Location (Text)</label>
                     <input type="text" class="formInput" placeholder="e.g., IIT Kharagpur" id="eventLocation" required>
                 </div>
-                
                 <div class="formGroup">
                     <label class="formLabel">Select Event Location on Map</label>
                     <div class="uploadMapContainer">
                         <div id="uploadMap" class="uploadMap"></div>
-                        <p class="formHint">
-                            <i class="fa-solid fa-map-pin"></i>
-                            Click anywhere on map to pin event location
-                        </p>
+                        <p class="formHint"><i class="fa-solid fa-map-pin"></i> Click anywhere on map to pin event
+                            location</p>
                     </div>
                     <div class="locationMethodButtons">
-                        <button type="button" class="locationMethodBtn" onclick="useHostGPS()">
-                            <i class="fa-solid fa-location-crosshairs"></i>
-                            Use My Location
-                        </button>
-                        <button type="button" class="locationMethodBtn" onclick="searchHostLocation()">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            Search Location
-                        </button>
+                        <button type="button" class="locationMethodBtn" onclick="useHostGPS()"><i
+                                class="fa-solid fa-location-crosshairs"></i> Use My Location</button>
+                        <button type="button" class="locationMethodBtn" onclick="searchHostLocation()"><i
+                                class="fa-solid fa-magnifying-glass"></i> Search Location</button>
                     </div>
-                    <p class="selectedLocationText" id="selectedLocationText">
-                        📍 No location pinned yet
-                    </p>
+                    <p class="selectedLocationText" id="selectedLocationText">📍 No location pinned yet</p>
                 </div>
-
-
                 <div class="formGroup">
                     <label class="formLabel">Description</label>
-                    <textarea 
-                        class="formTextarea" 
-                        placeholder="Tell people about your event..."
-                        id="eventDescription"
+                    <textarea class="formTextarea" placeholder="Tell people about your event..." id="eventDescription"
                         rows="4"></textarea>
                 </div>
-
                 <div class="formGroup">
                     <label class="formLabel">Hashtags</label>
-                    <input 
-                        type="text" 
-                        class="formInput" 
-                        placeholder="#music #party #fest"
-                        id="eventHashtags">
+                    <input type="text" class="formInput" placeholder="#music #party #fest" id="eventHashtags">
                 </div>
             </form>
         </div>
@@ -496,39 +347,11 @@
 
     <footer class="siteFooter">
         <div class="footerSocialRow" aria-label="Social links">
-            <a class="socialBubble fb"
-                href="https://facebook.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Mapzo on Facebook">
-                <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
-            </a>
-
-            <a class="socialBubble ig"
-                href="https://www.instagram.com/mapzo.official?igsh=MW40bWFieGJqcHQ5cw=="
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Mapzo on Instagram">
-                <i class="fa-brands fa-instagram" aria-hidden="true"></i>
-            </a>
-
-            <a class="socialBubble x"
-                href="https://x.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Mapzo on X (Twitter)">
-                <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
-            </a>
-
-            <a class="socialBubble in"
-                href="https://linkedin.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Mapzo on LinkedIn">
-                <i class="fa-brands fa-linkedin-in" aria-hidden="true"></i>
-            </a>
+            <a class="socialBubble fb" href="#" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+            <a class="socialBubble ig" href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a class="socialBubble x" href="#" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+            <a class="socialBubble in" href="#" target="_blank"><i class="fa-brands fa-linkedin-in"></i></a>
         </div>
-
         <div class="footerInner">
             <div class="footerBrand">
                 <div class="footerBrandRow">
@@ -537,7 +360,6 @@
                 </div>
                 <p class="footerTagline">Never miss out anything!</p>
             </div>
-
             <div class="footerCard">
                 <div class="footerFounder">
                     <img class="founderAvatar" src="founder.jpeg" alt="Daksh Arora">
@@ -547,7 +369,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="footerCard">
                 <div class="footerInstitute">
                     <img class="instituteThumb" src="college.jpg" alt="IIT Kharagpur">
@@ -557,7 +378,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="footerLinks">
                 <p class="footerCardTitle">Legal</p>
                 <a href="legal.html#terms">Terms & Conditions</a>
@@ -567,84 +387,83 @@
                 <a href="legal.html#contact">Contact</a>
             </div>
         </div>
-
         <div class="footerBottom">
             <p>© <span id="year"></span> Mapzo. All rights reserved.</p>
         </div>
     </footer>
 
-    <!-- AUTH OVERLAY -->
     <div class="authOverlay" id="authOverlay">
         <div class="authModal" role="dialog" aria-modal="true" aria-label="Account">
-    
             <div class="authHeader">
-                <button class="authBack" id="authCloseBtn" type="button" aria-label="Close">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
-    
+                <button class="authBack" id="authCloseBtn" type="button" aria-label="Close"><i
+                        class="fa-solid fa-arrow-left"></i></button>
                 <h3 class="authTitle" id="authTitle">Log in</h3>
-    
                 <div style="width:40px"></div>
             </div>
-    
             <div class="authBody">
-    
-                <!-- LOGIN PAGE -->
                 <section class="authPage show" id="loginPage">
                     <p class="authSub">Welcome back. Discover what’s happening near you.</p>
-    
                     <form class="authForm" id="loginForm">
                         <label class="authLabel">Email</label>
                         <input class="authInput" type="email" id="loginEmail" placeholder="you@email.com" required>
-    
                         <label class="authLabel">Password</label>
                         <input class="authInput" type="password" id="loginPass" placeholder="••••••••" required>
-    
                         <button class="authPrimaryBtn" type="submit">Log in</button>
                     </form>
-    
-                    <button class="authGhostBtn" type="button" id="goSignupBtn">
-                        New here? Create an account
-                    </button>
+                    <button class="authGhostBtn" type="button" id="goSignupBtn">New here? Create an account</button>
                 </section>
-    
-                <!-- SIGNUP PAGE -->
                 <section class="authPage" id="signupPage">
                     <p class="authSub">Create an account to save events and host yours.</p>
-    
                     <form class="authForm" id="signupForm">
                         <label class="authLabel">Name</label>
                         <input class="authInput" type="text" id="signupName" placeholder="Your name" required>
-    
                         <label class="authLabel">Email</label>
                         <input class="authInput" type="email" id="signupEmail" placeholder="you@email.com" required>
-    
                         <label class="authLabel">Password</label>
-                        <input class="authInput" type="password" id="signupPass" placeholder="Create a password" required>
-    
+                        <input class="authInput" type="password" id="signupPass" placeholder="Create a password"
+                            required>
                         <button class="authPrimaryBtn" type="submit">Create account</button>
                     </form>
-    
-                    <button class="authGhostBtn" type="button" id="goLoginBtn">
-                        Already have an account? Log in
-                    </button>
+                    <button class="authGhostBtn" type="button" id="goLoginBtn">Already have an account? Log in</button>
                 </section>
-    
             </div>
         </div>
     </div>
 
     <script src="script.js"></script>
-    
-    <!-- Google Maps - Load After Script -->
-    <script>
-        window.initMap = function () {
-            console.log('Google Maps callback triggered');
-        };
-    </script>
+
     <script async defer
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAh0cLcA59_-Epn5rPyZNn-sigHeps4vyA&callback=initMap&loading=async&libraries=places">
         </script>
+    <script>
+        // 1. REGISTER SERVICE WORKER (OFFLINE MODE)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('✅ Service Worker Registered'))
+                    .catch(err => console.log('❌ SW Registration Failed:', err));
+            });
+        }
 
+        // 2. OFFLINE STATUS LISTENER
+        window.addEventListener('online', () => showToast('You are back online! 🌐', 'success'));
+        window.addEventListener('offline', () => showToast('You are offline. Showing cached events. 🔌', 'error'));
+
+        // 3. TOAST NOTIFICATION FUNCTION
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
 </body>
+
 </html>

@@ -1,62 +1,576 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Event - Mapzo</title>
 
-  <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap"
+    rel="stylesheet">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    /* Specific styles for event details */
+    body {
+      background-color: #000;
+      color: #fff;
+      padding-bottom: 40px;
+    }
+
+    .eventPageContainer {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header & Image */
+    .eventHeader {
+      position: relative;
+      width: 100%;
+      height: 350px;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      background: #1a1a1a;
+    }
+
+    .eventHeader img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .eventCategoryBadge {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: #1db954;
+      color: #000;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .eventTitle {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+    }
+
+    /* Info Cards */
+    .infoCard {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .infoRow {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .infoRow:last-child {
+      margin-bottom: 0;
+    }
+
+    .infoIcon {
+      width: 40px;
+      height: 40px;
+      background: #2a2a2a;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1db954;
+      margin-right: 15px;
+    }
+
+    .infoText h4 {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #888;
+    }
+
+    .infoText p {
+      margin: 2px 0 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .descCard {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .descTitle {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      color: #1db954;
+      font-weight: 700;
+    }
+
+    .descText {
+      line-height: 1.6;
+      color: #ccc;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+    }
+
+    .backButton {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 15px;
+      background: #2a2a2a;
+      border-radius: 30px;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+
+    .backButton i {
+      margin-right: 8px;
+    }
+
+    /* ====================
+           RATINGS & COMMENTS 
+           ==================== */
+    .commentsSection {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .commentsHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .commentsTitle {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #1db954;
+    }
+
+    .avgRating {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #ffc107;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Comment Input Area */
+    .commentForm {
+      margin-bottom: 25px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 20px;
+    }
+
+    .starRating {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+    }
+
+    .starRating input {
+      display: none;
+    }
+
+    .starRating label {
+      font-size: 1.5rem;
+      color: #444;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .starRating label:hover,
+    .starRating label:hover~label,
+    .starRating input:checked~label {
+      color: #ffc107;
+    }
+
+    .commentInput {
+      width: 100%;
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      resize: none;
+      margin-bottom: 10px;
+    }
+
+    .commentInput:focus {
+      outline: none;
+      border-color: #1db954;
+    }
+
+    .submitCommentBtn {
+      background: #1db954;
+      color: #000;
+      font-weight: 700;
+      padding: 8px 20px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .submitCommentBtn:disabled {
+      background: #444;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    /* Comments List */
+    .commentsList {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .commentItem {
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+    }
+
+    .commentUser {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .commentStars {
+      color: #ffc107;
+      font-size: 0.8rem;
+    }
+
+    .commentText {
+      color: #ccc;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .commentDate {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 5px;
+    }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 
-<body class="eventPage">
-  <!-- Top bar -->
-  <nav class="navBar1" role="navigation" aria-label="Event navigation">
-    <div class="navLeft">
-      <button class="navMenu" aria-label="Go back" onclick="history.back()">
-        <i class="fa-solid fa-arrow-left"></i>
-      </button>
-      <p class="navBrand">Event Page</p>
+<body>
+
+  <div class="eventPageContainer">
+    <button onclick="window.location.href='index.html'" class="backButton">
+      <i class="fa-solid fa-arrow-left"></i> Back
+    </button>
+
+    <div id="loadingState" style="text-align: center; margin-top: 50px;">
+      <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2rem; color: #1db954;"></i>
+      <p style="margin-top: 15px; color: #888;">Loading Event...</p>
     </div>
-  </nav>
 
-  <main class="eventWrap">
-    <section class="eventHero">
-      <img id="eventImage" class="eventHeroImg" alt="Event image" />
-      <div class="eventHeroMeta">
-        <span id="eventCategory" class="eventHeroTag">Category</span>
-        <h1 id="eventTitle" class="eventHeroTitle">Loading...</h1>
+    <div id="eventContent" style="display: none;">
+      <div class="eventHeader">
+        <img id="displayImage" src="" alt="Event Cover">
+        <span class="eventCategoryBadge" id="displayCategory">Category</span>
+      </div>
 
-        <div class="eventHeroInfo">
-          <p id="eventDate" class="eventInfoRow"><i class="fa-regular fa-calendar"></i> </p>
-          <p id="eventTime" class="eventInfoRow"><i class="fa-regular fa-clock"></i> </p>
-          <p id="eventLocation" class="eventInfoRow"><i class="fa-solid fa-location-dot"></i> </p>
+      <h1 class="eventTitle" id="displayTitle">Event Title</h1>
+
+      <div class="infoCard">
+        <div class="infoRow">
+          <div class="infoIcon"><i class="fa-regular fa-calendar"></i></div>
+          <div class="infoText">
+            <h4>Date & Time</h4>
+            <p><span id="displayDate"></span> • <span id="displayTime"></span></p>
+          </div>
+        </div>
+        <div class="infoRow">
+          <div class="infoIcon"><i class="fa-solid fa-location-dot"></i></div>
+          <div class="infoText">
+            <h4>Location</h4>
+            <p id="displayLocation">Location Name</p>
+          </div>
         </div>
       </div>
-    </section>
 
-    <section class="eventSection">
-      <h2 class="eventSectionTitle">About</h2>
-      <p id="eventDescription" class="eventDescription"></p>
+      <div class="descCard">
+        <h3 class="descTitle">About Event</h3>
+        <p class="descText" id="displayDesc">Description goes here...</p>
+        <p style="margin-top: 15px; color: #1db954; font-weight: 600;" id="displayTags"></p>
+      </div>
 
-      <div id="eventTags" class="eventTags"></div>
-    </section>
+      <div class="commentsSection">
+        <div class="commentsHeader">
+          <span class="commentsTitle">Reviews & Chat</span>
+          <span class="avgRating"><i class="fa-solid fa-star"></i> <span id="avgRatingVal">--</span></span>
+        </div>
 
-    <section class="eventSection">
-      <h2 class="eventSectionTitle">Comments</h2>
+        <div class="commentForm" id="addCommentBox">
+          <div class="starRating">
+            <input type="radio" name="rating" id="star5" value="5"><label for="star5" title="5 stars">★</label>
+            <input type="radio" name="rating" id="star4" value="4"><label for="star4" title="4 stars">★</label>
+            <input type="radio" name="rating" id="star3" value="3"><label for="star3" title="3 stars">★</label>
+            <input type="radio" name="rating" id="star2" value="2"><label for="star2" title="2 stars">★</label>
+            <input type="radio" name="rating" id="star1" value="1"><label for="star1" title="1 star">★</label>
+          </div>
+          <textarea class="commentInput" id="commentText" rows="3" placeholder="Share your experience..."></textarea>
+          <button class="submitCommentBtn" onclick="submitComment()">Post Review</button>
+        </div>
+        <div id="loginToComment"
+          style="display:none; text-align:center; padding:15px; background:#2a2a2a; border-radius:8px; margin-bottom:20px;">
+          <p style="color:#aaa;">Please log in to rate and comment.</p>
+        </div>
 
-      <form id="commentForm" class="commentForm">
-        <textarea id="commentText" class="commentInput" rows="3" placeholder="Write a comment..." required></textarea>
-        <button class="commentBtn" type="submit">Post</button>
-      </form>
+        <div class="commentsList" id="commentsList">
+          <p style="text-align:center; color:#666;">No reviews yet. Be the first!</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      <div id="commentsList" class="commentsList"></div>
-    </section>
-  </main>
+  <script>
+    // --- 1. FIREBASE CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBqeFuoFfT-z7YhRoWOIH2nKO_oV3hiQkk",
+      authDomain: "mapzo-368c2.firebaseapp.com",
+      projectId: "mapzo-368c2",
+      storageBucket: "mapzo-368c2.firebasestorage.app",
+      messagingSenderId: "803894616922",
+      appId: "1:803894616922:web:ec5d59b466b90c75538963",
+      measurementId: "G-97HKCXB2L9"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
 
-  <script src="event.js"></script>
+    // --- 2. GET ID FROM URL ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get('id');
+    let currentUser = null;
+
+    // --- 3. CHECK AUTH ---
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('addCommentBox').style.display = 'block';
+        document.getElementById('loginToComment').style.display = 'none';
+      } else {
+        currentUser = null;
+        document.getElementById('addCommentBox').style.display = 'none';
+        document.getElementById('loginToComment').style.display = 'block';
+      }
+    });
+
+    // --- 4. LOAD DATA ---
+    if (eventId) {
+      loadEventDetails();
+      loadComments();
+    } else {
+      // This handles the "Direct Open" error
+      document.getElementById('loadingState').innerHTML = '<p>No event ID provided. <br><a href="index.html" style="color:#1db954;">Go back to Home</a></p>';
+    }
+
+    function loadEventDetails() {
+      const eventRef = db.collection('events').doc(eventId);
+
+      // Increment View Counter (Quietly fail if permissions issues)
+      eventRef.update({
+        views: firebase.firestore.FieldValue.increment(1)
+      }).catch(err => console.log("View count skipped:", err));
+
+      eventRef.get().then((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+
+          document.getElementById('displayTitle').textContent = data.title;
+          document.getElementById('displayCategory').textContent = data.category;
+          document.getElementById('displayDate').textContent = data.date;
+          document.getElementById('displayTime').textContent = data.time;
+          document.getElementById('displayLocation').textContent = data.location;
+          document.getElementById('displayDesc').textContent = data.description;
+
+          // Image Handling
+          let imgUrl = 'https://via.placeholder.com/600x350?text=No+Image';
+          if (data.images && data.images.length > 0) imgUrl = data.images[0];
+          else if (data.image) imgUrl = data.image;
+          document.getElementById('displayImage').src = imgUrl;
+
+          if (data.tags) document.getElementById('displayTags').textContent = data.tags.join(' ');
+
+          // --- HOST ANNOUNCEMENT CHECK ---
+          if (data.announcement) {
+            const announcementDiv = document.createElement('div');
+            announcementDiv.style.cssText = `
+        background: rgba(255, 68, 68, 0.2); 
+        border: 1px solid #ff4444; 
+        color: #ffcccc; 
+        padding: 15px; 
+        border-radius: 12px; 
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    `;
+            announcementDiv.innerHTML = `
+        <i class="fa-solid fa-bullhorn" style="font-size: 1.2rem; color: #ff4444;"></i>
+        <div>
+            <h4 style="margin:0; font-size:0.95rem; color:#fff;">Host Announcement</h4>
+            <p style="margin:4px 0 0; font-size:0.9rem;">${data.announcement}</p>
+        </div>
+    `;
+
+            // Insert after title
+            const titleEl = document.getElementById('displayTitle');
+            titleEl.parentNode.insertBefore(announcementDiv, titleEl.nextSibling);
+          }
+          injectActionButtons(data);
+
+          document.getElementById('loadingState').style.display = 'none';
+          document.getElementById('eventContent').style.display = 'block';
+        } else {
+          document.getElementById('loadingState').innerHTML = '<p>Event not found.</p>';
+        }
+      }).catch(err => {
+        console.error(err);
+        document.getElementById('loadingState').innerHTML = '<p>Error loading data. Check console.</p>';
+      });
+    }
+
+    function injectActionButtons(data) {
+      const infoCard = document.querySelector('.infoCard');
+
+      // Map Link
+      const mapUrl = (data.lat && data.lng)
+        ? `https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.location)}`;
+
+      // Calendar Link
+      const startTime = new Date(`${data.date} ${data.time}`).toISOString().replace(/-|:|\.\d\d\d/g, "");
+      const endTime = new Date(new Date(`${data.date} ${data.time}`).getTime() + 7200000).toISOString().replace(/-|:|\.\d\d\d/g, "");
+      const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${startTime}/${endTime}&details=${encodeURIComponent(data.description)}&location=${encodeURIComponent(data.location)}`;
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.style.cssText = "display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;";
+
+      actionsDiv.innerHTML = `
+                <a href="${mapUrl}" target="_blank" style="flex:1; background:#1db954; color:black; padding:10px; border-radius:8px; text-align:center; text-decoration:none; font-weight:700; font-family:'Inter',sans-serif;">
+                    <i class="fa-solid fa-location-arrow"></i> Directions
+                </a>
+                <a href="${calUrl}" target="_blank" style="flex:1; background:#333; color:white; padding:10px; border-radius:8px; text-align:center; text-decoration:none; font-weight:600; font-family:'Inter',sans-serif;">
+                    <i class="fa-regular fa-calendar-plus"></i> Add to Cal
+                </a>
+                <button onclick="shareEvent('${data.title}')" style="flex:1; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
+                    <i class="fa-solid fa-share-nodes"></i> Share
+                </button>
+            `;
+
+      infoCard.appendChild(actionsDiv);
+    }
+
+    window.shareEvent = async (title) => {
+      if (navigator.share) {
+        try { await navigator.share({ title: title, text: `Check out ${title} on Mapzo!`, url: window.location.href }); }
+        catch (err) { console.log('Share canceled'); }
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+        alert("Link copied to clipboard!");
+      }
+    };
+
+    function submitComment() {
+      if (!currentUser) return alert("Please log in first.");
+      const text = document.getElementById('commentText').value.trim();
+      const ratingInput = document.querySelector('input[name="rating"]:checked');
+      const rating = ratingInput ? parseInt(ratingInput.value) : 0;
+
+      if (rating === 0) return alert("Please select a star rating.");
+      if (text === "") return alert("Please write a comment.");
+
+      db.collection('events').doc(eventId).collection('comments').add({
+        userId: currentUser.uid,
+        userEmail: currentUser.email,
+        userName: currentUser.displayName || currentUser.email.split('@')[0],
+        rating: rating,
+        text: text,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        alert("Review posted!");
+        document.getElementById('commentText').value = "";
+        document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+      }).catch(err => alert("Error: " + err.message));
+    }
+
+    function loadComments() {
+      db.collection('events').doc(eventId).collection('comments')
+        .orderBy('timestamp', 'desc')
+        .onSnapshot((snapshot) => {
+          const list = document.getElementById('commentsList');
+          list.innerHTML = "";
+
+          if (snapshot.empty) {
+            list.innerHTML = '<p style="text-align:center; color:#666;">No reviews yet. Be the first!</p>';
+            document.getElementById('avgRatingVal').textContent = "--";
+            return;
+          }
+
+          let totalRating = 0;
+          let count = 0;
+
+          snapshot.forEach(doc => {
+            const c = doc.data();
+            totalRating += c.rating;
+            count++;
+
+            const dateObj = c.timestamp ? c.timestamp.toDate() : new Date();
+            const dateStr = dateObj.toLocaleDateString();
+
+            let starsHtml = "";
+            for (let i = 0; i < 5; i++) starsHtml += i < c.rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
+
+            const item = document.createElement('div');
+            item.className = 'commentItem';
+            item.innerHTML = `
+                            <div class="commentUser"><span>${c.userName}</span><span class="commentStars">${starsHtml}</span></div>
+                            <div class="commentText">${c.text}</div>
+                            <div class="commentDate">${dateStr}</div>
+                        `;
+            list.appendChild(item);
+          });
+          document.getElementById('avgRatingVal').textContent = (totalRating / count).toFixed(1);
+        });
+    }
+  </script>
 </body>
+
 </html>
