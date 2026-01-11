@@ -1,24 +1,39 @@
 {
-  "name": "Mapzo",
+  "name": "Mapzo - Discover Events",
   "short_name": "Mapzo",
-  "description": "Discover local events...",
-  "categories": ["events", "social"],
-  "prefer_related_applications": false,
-  "related_applications": [],
-  "iarc_rating_id": "e.g. 123456",
-  "icons": [ ... ],
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#1db954",
+  "description": "Discover local events, host your own, and chat in real-time with the Mapzo community.",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
   "screenshots": [
-      {
-          "src": "screenshot1.png",
-          "sizes": "1080x1920",
-          "type": "image/png",
-          "form_factor": "narrow"
-      },
-      {
-          "src": "screenshot2.png",
-          "sizes": "1920x1080",
-          "type": "image/png",
-          "form_factor": "wide"
-      }
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Mapzo Mobile Home"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Mapzo Desktop View"
+    }
   ]
 }
