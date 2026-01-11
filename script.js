@@ -79,11 +79,12 @@ window.initMap = function () {
         if (typeof google === 'undefined' || !google.maps) throw new Error('Google Maps not loaded');
 
         map = new google.maps.Map(mapElement, {
-            center: currentLocation || defaultCenter,
-            zoom: 14,
-            disableDefaultUI: true,
-            gestureHandling: 'greedy',
-            styles: [
+    center: currentLocation || defaultCenter,
+    zoom: 14,
+    disableDefaultUI: true, // You have custom buttons, so keep this true
+    gestureHandling: 'greedy', // 'greedy' allows one-finger panning (good for apps)
+    clickableIcons: false, // Prevents clicking random map POIs which can be annoying on mobile
+    styles: [
                 { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
                 { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
                 { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
