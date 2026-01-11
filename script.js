@@ -19,7 +19,8 @@ let currentUser = null;
 const ALLOWED_HOST_EMAILS = [
     "shreyashmishra506@gmail.com",
     "realdaksharora@gmail.com",
-    "iitianshreyash25@gmail.com"
+    "iitianshreyash25@gmail.com",
+    "aadityasingh1439@gmail.com"
 ];
 
 let map = null;
