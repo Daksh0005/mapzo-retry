@@ -91,6 +91,14 @@ a {
     text-decoration: none;
 }
 
+/* --- FIX 1: FORCE MAP INTERACTION ON MOBILE --- */
+/* This overrides the global user-select: none for maps */
+.map, .map * {
+    -webkit-user-select: auto !important;
+    user-select: auto !important;
+    touch-action: pan-x pan-y !important;
+}
+
 :root {
     --bg-primary: #121212;
     --bg-navbar: #000000;
@@ -689,7 +697,7 @@ main {
     text-transform: uppercase;
     color: var(--text-secondary);
     margin-bottom: 12px;
-    padding-left: 4px;
+    padding--left: 4px;
 }
 
 .logSign {
@@ -934,14 +942,20 @@ input:focus-visible {
     cursor: pointer;
 }
 
-/* 3D Hover State */
-.eventCard:hover {
-    transform: translateY(-15px) rotateX(5deg) rotateY(-2deg);
-    border-color: #1db954;
-    box-shadow: 
-        20px 20px 60px rgba(0,0,0,0.6),
-        0 0 15px rgba(29, 185, 84, 0.3); /* Green glow */
-    z-index: 10;
+/* FIX 2: MOBILE SCROLLING FIX - Only hover on devices with hover */
+@media (hover: hover) {
+    .eventCard:hover {
+        transform: translateY(-15px) rotateX(5deg) rotateY(-2deg);
+        border-color: #1db954;
+        box-shadow: 
+            20px 20px 60px rgba(0,0,0,0.6),
+            0 0 15px rgba(29, 185, 84, 0.3); /* Green glow */
+        z-index: 10;
+    }
+    
+    .eventCard:hover .eventImage img {
+        transform: scale(1.1); /* Zoom effect */
+    }
 }
 
 /* Image Layer (Pops out) */
@@ -960,10 +974,6 @@ input:focus-visible {
     height: 100%;
     object-fit: cover;
     transition: transform 0.5s ease;
-}
-
-.eventCard:hover .eventImage img {
-    transform: scale(1.1); /* Zoom effect */
 }
 
 /* Category Badge (Pops out most) */
@@ -2755,9 +2765,10 @@ body.eventPage {
 
 
 /* ========================
-   CENTERED AUTH MODAL
+   CENTERED AUTH MODAL (FIXED)
    ======================== */
 
+/* FIX 3: INVISIBLE OVERLAY FIX (Ghost Clicks) */
 .authOverlay {
     position: fixed;
     inset: 0;
@@ -2773,12 +2784,14 @@ body.eventPage {
     padding: 20px; /* Prevents touching edges on mobile */
 
     opacity: 0;
+    visibility: hidden; /* FIX: Hides it completely from clicks */
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .authOverlay.show {
     opacity: 1;
+    visibility: visible; /* FIX: Shows it when active */
     pointer-events: auto;
 }
 
@@ -2863,7 +2876,7 @@ body.eventPage {
     display: block; /* Show only active page */
     opacity: 1;
     transform: none;
-    pointer-events: auto;
+    /* Removed pointer-events: auto here to prevent conflict */
 }
 
 @keyframes fadeIn {
