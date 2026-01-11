@@ -39,7 +39,9 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
 
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -111,8 +113,7 @@
     <div class="manualLocationOverlay">
         <div class="manualLocationModal">
             <div class="locationHeader">
-                <button class="locationBack" onclick="backToLocationOptions()"><i
-                        class="fa-solid fa-arrow-left"></i></button>
+                <button class="locationBack" onclick="backToLocationOptions()"><i class="fa-solid fa-arrow-left"></i></button>
                 <h2 class="locationTitle">Search Location</h2>
                 <button class="locationDone" onclick="confirmManualLocation()">Done</button>
             </div>
@@ -151,8 +152,7 @@
                         <div class="calendarHeader">
                             <button class="calendarNav" id="prevMonth"><i class="fa-solid fa-chevron-left"></i></button>
                             <span class="calendarMonth" id="currentMonth">December 2025</span>
-                            <button class="calendarNav" id="nextMonth"><i
-                                    class="fa-solid fa-chevron-right"></i></button>
+                            <button class="calendarNav" id="nextMonth"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                         <div class="calendarWeekdays">
                             <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
@@ -164,13 +164,11 @@
                     <div class="distanceInput">
                         <label class="distanceLabel">Enter distance in kilometers</label>
                         <div class="distanceField">
-                            <input type="number" class="distanceValue" id="distanceInput" placeholder="0" min="0"
-                                max="5000">
+                            <input type="number" class="distanceValue" id="distanceInput" placeholder="0" min="0" max="5000">
                             <span class="distanceUnit">km</span>
                         </div>
                         <div class="distanceSlider">
-                            <input type="range" class="distanceRange" id="distanceRange" min="0" max="500" value="50"
-                                step="5">
+                            <input type="range" class="distanceRange" id="distanceRange" min="0" max="500" value="50" step="5">
                             <div class="distanceMarkers"><span>0</span><span>250</span><span>500+</span></div>
                         </div>
                     </div>
@@ -186,22 +184,15 @@
                 <div class="filterTabContent" id="categoryTab">
                     <div class="categorySearch">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" class="categorySearchInput" id="categorySearch"
-                            placeholder="Search categories...">
+                        <input type="text" class="categorySearchInput" id="categorySearch" placeholder="Search categories...">
                     </div>
                     <div class="categoryGrid" id="categoryGrid">
-                        <button class="categoryCard active" data-category="all"><i
-                                class="fa-solid fa-grid-2"></i><span>All</span></button>
-                        <button class="categoryCard" data-category="Music"><i
-                                class="fa-solid fa-music"></i><span>Music</span></button>
-                        <button class="categoryCard" data-category="Tech"><i
-                                class="fa-solid fa-laptop-code"></i><span>Tech</span></button>
-                        <button class="categoryCard" data-category="Sports"><i
-                                class="fa-solid fa-basketball"></i><span>Sports</span></button>
-                        <button class="categoryCard" data-category="Cultural"><i
-                                class="fa-solid fa-masks-theater"></i><span>Cultural</span></button>
-                        <button class="categoryCard" data-category="Food"><i
-                                class="fa-solid fa-utensils"></i><span>Food</span></button>
+                        <button class="categoryCard active" data-category="all"><i class="fa-solid fa-grid-2"></i><span>All</span></button>
+                        <button class="categoryCard" data-category="Music"><i class="fa-solid fa-music"></i><span>Music</span></button>
+                        <button class="categoryCard" data-category="Tech"><i class="fa-solid fa-laptop-code"></i><span>Tech</span></button>
+                        <button class="categoryCard" data-category="Sports"><i class="fa-solid fa-basketball"></i><span>Sports</span></button>
+                        <button class="categoryCard" data-category="Cultural"><i class="fa-solid fa-masks-theater"></i><span>Cultural</span></button>
+                        <button class="categoryCard" data-category="Food"><i class="fa-solid fa-utensils"></i><span>Food</span></button>
                     </div>
                 </div>
             </div>
@@ -230,7 +221,7 @@
             <a href="#" class="seeAll">See all</a>
         </div>
         <div class="eventsScroll">
-        </div>
+            </div>
     </section>
 
     <div class="hostBar">
@@ -242,8 +233,8 @@
     <div class="menuOverlay" onclick="toggleMenu()"></div>
 
     <div class="menu">
-        <button class="menuClose" onclick="toggleMenu()" aria-label="Close menu"><i
-                class="fa-solid fa-xmark"></i></button>
+        <button class="menuClose" onclick="toggleMenu()" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
+        
         <div class="menuSection">
             <p class="menuTitle">Account</p>
             <div class="logSignBox">
@@ -251,14 +242,18 @@
                 <button class="logSign" data-open-auth="signup">Sign up</button>
             </div>
         </div>
+        
         <div class="menuDivider"></div>
+        
         <div class="menuSection">
             <p class="menuTitle">Settings</p>
-            <a class="otherMenu" href="settings.html#notifications">Notifications</a>
-            <a class="otherMenu" href="settings.html#verification">Verification as Host</a>
-            <a class="otherMenu" href="settings.html#permissions">Permissions</a>
+            <div class="otherMenu" onclick="openSettingsModal('notifications')">Notifications</div>
+            <div class="otherMenu" onclick="openSettingsModal('verification')">Verification as Host</div>
+            <div class="otherMenu" onclick="openSettingsModal('permissions')">Permissions</div>
         </div>
+
         <div class="menuDivider"></div>
+        
         <div class="menuSection">
             <p class="menuTitle">Support</p>
             <a class="otherMenu" href="legal.html#terms">Terms & Conditions</a>
@@ -268,79 +263,99 @@
 
     <div class="uploadOverlay">
         <div class="uploadModal">
+            
             <div class="uploadHeader">
-                <button class="uploadBack" onclick="closeUploadForm()" aria-label="Go back"><i
-                        class="fa-solid fa-arrow-left"></i></button>
-                <h2 class="uploadTitle">Host an Event</h2>
-                <button class="uploadSubmit" onclick="handleEventSubmit()">Post</button>
+                <button class="uploadBack" onclick="closeUploadForm()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h2 class="uploadTitle">Host Experience</h2>
+                <button class="uploadSubmit" onclick="handleEventSubmit()">
+                    Publish <i class="fa-solid fa-rocket"></i>
+                </button>
             </div>
+
             <form class="uploadForm" id="eventUploadForm">
-                <div class="formGroup">
-                    <label class="formLabel">Title</label>
-                    <input type="text" class="formInput" placeholder="e.g., DJ Night at Spring Fest" id="eventName"
-                        required>
-                </div>
-                <div class="formGroup">
-                    <label class="formLabel">Upload Image</label>
-                    <div class="imageUpload">
+                
+                <div class="coverUploadSection">
+                    <div class="imageUpload heroUpload">
                         <input type="file" class="imageInput" id="uploadEventImage" accept="image/*">
-                        <div class="imagePlaceholder">
-                            <i class="fa-solid fa-image"></i>
-                            <p>Tap to upload event image</p>
+                        
+                        <div class="imagePlaceholder" id="uploadPlaceholder">
+                            <div class="iconPulse">
+                                <i class="fa-solid fa-camera"></i>
+                            </div>
+                            <h3>Add Cover Photo</h3>
+                            <p>Make it stand out</p>
                         </div>
-                        <img class="imagePreview" id="imagePreview" style="display: none;">
+
+                        <div class="imagePreviewContainer" id="imagePreviewContainer" style="display: none;">
+                            <img class="imagePreview" id="imagePreview">
+                            <div class="editOverlay">
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="formGroup">
-                    <label class="formLabel">Category</label>
-                    <select class="formSelect" id="uploadEventCategory" required>
-                        <option value="">Select category</option>
-                        <option value="Music">Music</option>
-                        <option value="Tech">Tech</option>
-                        <option value="Sports">Sports</option>
-                        <option value="Cultural">Cultural</option>
-                        <option value="Food">Food</option>
-                        <option value="Other">Other</option>
-                    </select>
+
+                <div class="formSection">
+                    <input type="text" class="formInput heroInput" placeholder="Give your event a catchy title..." id="eventName" required>
                 </div>
-                <div class="formRow">
+
+                <div class="formRow grid-3">
                     <div class="formGroup">
-                        <label class="formLabel">Date</label>
-                        <input type="date" class="formInput" id="eventDate" required>
+                        <label class="miniLabel"><i class="fa-solid fa-calendar"></i> DATE</label>
+                        <input type="date" class="formInput glassInput" id="eventDate" required>
                     </div>
                     <div class="formGroup">
-                        <label class="formLabel">Time</label>
-                        <input type="time" class="formInput" id="eventTime" required>
+                        <label class="miniLabel"><i class="fa-solid fa-clock"></i> TIME</label>
+                        <input type="time" class="formInput glassInput" id="eventTime" required>
+                    </div>
+                    <div class="formGroup">
+                        <label class="miniLabel"><i class="fa-solid fa-tag"></i> TYPE</label>
+                        <select class="formSelect glassInput" id="uploadEventCategory" required>
+                            <option value="" disabled selected>Select...</option>
+                            <option value="Music">🎵 Music</option>
+                            <option value="Tech">💻 Tech</option>
+                            <option value="Sports">⚽ Sports</option>
+                            <option value="Cultural">🎭 Cultural</option>
+                            <option value="Food">🍔 Food</option>
+                            <option value="Party">🎉 Party</option>
+                        </select>
                     </div>
                 </div>
-                <div class="formGroup">
-                    <label class="formLabel">Location (Text)</label>
-                    <input type="text" class="formInput" placeholder="e.g., IIT Kharagpur" id="eventLocation" required>
-                </div>
-                <div class="formGroup">
-                    <label class="formLabel">Select Event Location on Map</label>
-                    <div class="uploadMapContainer">
+
+                <div class="formSection mapSection">
+                    <label class="sectionHeader">
+                        <i class="fa-solid fa-map-location-dot"></i> Set Location
+                    </label>
+                    
+                    <div class="locationInputGroup">
+                        <input type="text" class="formInput locationField" placeholder="Search venue or address..." id="eventLocation" required>
+                        <button type="button" class="gpsBtn" onclick="useHostGPS()" title="Use Current Location">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </button>
+                    </div>
+
+                    <div class="uploadMapWrapper">
                         <div id="uploadMap" class="uploadMap"></div>
-                        <p class="formHint"><i class="fa-solid fa-map-pin"></i> Click anywhere on map to pin event
-                            location</p>
+                        <div class="mapHint">
+                            <i class="fa-solid fa-location-dot"></i> Tap map to pin location
+                        </div>
                     </div>
-                    <div class="locationMethodButtons">
-                        <button type="button" class="locationMethodBtn" onclick="useHostGPS()"><i
-                                class="fa-solid fa-location-crosshairs"></i> Use My Location</button>
-                        <button type="button" class="locationMethodBtn" onclick="searchHostLocation()"><i
-                                class="fa-solid fa-magnifying-glass"></i> Search Location</button>
+                    <p class="selectedLocationText" id="selectedLocationText">No location pinned yet</p>
+                </div>
+
+                <div class="formSection">
+                    <div class="formGroup">
+                        <label class="sectionHeader">Description</label>
+                        <textarea class="formTextarea glassInput" placeholder="Tell people why they should come..." id="eventDescription" rows="4"></textarea>
                     </div>
-                    <p class="selectedLocationText" id="selectedLocationText">📍 No location pinned yet</p>
+                    <div class="formGroup">
+                        <label class="sectionHeader">Hashtags</label>
+                        <input type="text" class="formInput glassInput" placeholder="#fun #music #weekend" id="eventHashtags">
+                    </div>
                 </div>
-                <div class="formGroup">
-                    <label class="formLabel">Description</label>
-                    <textarea class="formTextarea" placeholder="Tell people about your event..." id="eventDescription"
-                        rows="4"></textarea>
-                </div>
-                <div class="formGroup">
-                    <label class="formLabel">Hashtags</label>
-                    <input type="text" class="formInput" placeholder="#music #party #fest" id="eventHashtags">
-                </div>
+
             </form>
         </div>
     </div>
@@ -395,84 +410,182 @@
     <div class="authOverlay" id="authOverlay">
         <div class="authModal" role="dialog" aria-modal="true" aria-label="Account">
             <div class="authHeader">
-                <button class="authBack" id="authCloseBtn" type="button" aria-label="Close"><i
-                        class="fa-solid fa-arrow-left"></i></button>
+                <button class="authBack" id="authCloseBtn" type="button" aria-label="Close"><i class="fa-solid fa-arrow-left"></i></button>
                 <h3 class="authTitle" id="authTitle">Log in</h3>
                 <div style="width:40px"></div>
             </div>
-           <div class="authBody">
-    <section class="authPage show" id="loginPage">
-        
-        <div class="welcome-header">
-            <h2 class="auth-welcome-text">Welcome</h2>
-            <div class="rabbit-track">
-                <div class="rabbit">🐇</div>
+            <div class="authBody">
+                <section class="authPage show" id="loginPage">
+                    <div class="welcome-header">
+                        <h2 class="auth-welcome-text">Welcome</h2>
+                        <div class="rabbit-track">
+                            <div class="rabbit">🐇</div>
+                        </div>
+                    </div>
+                    
+                    <button class="authGoogleBtn" id="googleLoginBtn">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        Continue with Google
+                    </button>
+
+                    <div class="authDivider"><span>OR</span></div>
+
+                    <form class="authForm" id="loginForm">
+                        <div class="input-group">
+                            <label class="authLabel">Email</label>
+                            <input class="authInput" type="email" id="loginEmail" placeholder="name@example.com" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="authLabel">Password</label>
+                            <div class="passwordWrapper">
+                                <input class="authInput" type="password" id="loginPass" placeholder="••••••••" required>
+                                <i class="fa-regular fa-eye togglePass" onclick="togglePassword('loginPass', this)"></i>
+                            </div>
+                        </div>
+                        <button class="authPrimaryBtn" type="submit">Log in</button>
+                    </form>
+                    <p class="authFooterText">
+                        New here? <span class="authLink" onclick="openAuth('signup')">Create an account</span>
+                    </p>
+                </section>
+
+                <section class="authPage" id="signupPage">
+                    <div class="welcome-header">
+                        <h2 class="auth-welcome-text">Join Us</h2>
+                    </div>
+
+                    <button class="authGoogleBtn" id="googleSignupBtn">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        Continue with Google
+                    </button>
+
+                    <div class="authDivider"><span>OR</span></div>
+
+                    <form class="authForm" id="signupForm">
+                        <div class="input-group">
+                            <label class="authLabel">Email</label>
+                            <input class="authInput" type="email" id="signupEmail" placeholder="name@example.com" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="authLabel">Password</label>
+                            <div class="passwordWrapper">
+                                <input class="authInput" type="password" id="signupPass" placeholder="Create password" required>
+                                <i class="fa-regular fa-eye togglePass" onclick="togglePassword('signupPass', this)"></i>
+                            </div>
+                        </div>
+                        <button class="authPrimaryBtn" type="submit">Create account</button>
+                    </form>
+                    <p class="authFooterText">
+                        Already have an account? <span class="authLink" onclick="openAuth('login')">Log in</span>
+                    </p>
+                </section>
             </div>
         </div>
-        
-        <button class="authGoogleBtn" id="googleLoginBtn">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
-            Continue with Google
-        </button>
+    </div>
 
-        <div class="authDivider"><span>OR</span></div>
-
-        <form class="authForm" id="loginForm">
-            <div class="input-group">
-                <label class="authLabel">Email</label>
-                <input class="authInput" type="email" id="loginEmail" placeholder="name@example.com" required>
+    <div class="authOverlay" id="notifOverlay">
+        <div class="authModal">
+            <div class="authHeader">
+                <button class="authBack" onclick="closeSettingsModal('notifOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="authTitle">Notifications</h3>
+                <div style="width:40px"></div>
             </div>
-            
-            <div class="input-group">
-                <label class="authLabel">Password</label>
-                <div class="passwordWrapper">
-                    <input class="authInput" type="password" id="loginPass" placeholder="••••••••" required>
-                    <i class="fa-regular fa-eye togglePass" onclick="togglePassword('loginPass', this)"></i>
+            <div class="authBody">
+                <div class="settingItem">
+                    <div class="settingText">
+                        <h4>Event Reminders</h4>
+                        <p>Get notified 1 hour before events start</p>
+                    </div>
+                    <label class="toggleSwitch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="settingItem">
+                    <div class="settingText">
+                        <h4>Nearby Alerts</h4>
+                        <p>Notify when events are within 5km</p>
+                    </div>
+                    <label class="toggleSwitch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="settingItem">
+                    <div class="settingText">
+                        <h4>Host Updates</h4>
+                        <p>Updates about your hosted events</p>
+                    </div>
+                    <label class="toggleSwitch">
+                        <input type="checkbox">
+                        <span class="slider"></span>
+                    </label>
                 </div>
             </div>
-
-            <button class="authPrimaryBtn" type="submit">Log in</button>
-        </form>
-        
-        <p class="authFooterText">
-            New here? <span class="authLink" onclick="openAuth('signup')">Create an account</span>
-        </p>
-    </section>
-
-    <section class="authPage" id="signupPage">
-        <div class="welcome-header">
-            <h2 class="auth-welcome-text">Join Us</h2>
         </div>
+    </div>
 
-        <button class="authGoogleBtn" id="googleSignupBtn">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
-            Continue with Google
-        </button>
-
-        <div class="authDivider"><span>OR</span></div>
-
-        <form class="authForm" id="signupForm">
-            <div class="input-group">
-                <label class="authLabel">Email</label>
-                <input class="authInput" type="email" id="signupEmail" placeholder="name@example.com" required>
+    <div class="authOverlay" id="permOverlay">
+        <div class="authModal">
+            <div class="authHeader">
+                <button class="authBack" onclick="closeSettingsModal('permOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="authTitle">Permissions</h3>
+                <div style="width:40px"></div>
             </div>
-            
-            <div class="input-group">
-                <label class="authLabel">Password</label>
-                <div class="passwordWrapper">
-                    <input class="authInput" type="password" id="signupPass" placeholder="Create password" required>
-                    <i class="fa-regular fa-eye togglePass" onclick="togglePassword('signupPass', this)"></i>
+            <div class="authBody">
+                <div class="permItem">
+                    <div class="permIcon"><i class="fa-solid fa-location-dot"></i></div>
+                    <div class="permText">
+                        <h4>Location Access</h4>
+                        <p id="permLocationStatus">Checking...</p>
+                    </div>
+                    <button class="permBtn" onclick="requestLocationPerm()">Allow</button>
+                </div>
+                <div class="permItem">
+                    <div class="permIcon"><i class="fa-solid fa-bell"></i></div>
+                    <div class="permText">
+                        <h4>Push Notifications</h4>
+                        <p id="permNotifStatus">Checking...</p>
+                    </div>
+                    <button class="permBtn" onclick="requestNotifPerm()">Allow</button>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <button class="authPrimaryBtn" type="submit">Create account</button>
-        </form>
-
-        <p class="authFooterText">
-            Already have an account? <span class="authLink" onclick="openAuth('login')">Log in</span>
-        </p>
-    </section>
-</div>
+    <div class="authOverlay" id="verifyOverlay">
+        <div class="authModal">
+            <div class="authHeader">
+                <button class="authBack" onclick="closeSettingsModal('verifyOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="authTitle">Host Verification</h3>
+                <div style="width:40px"></div>
+            </div>
+            <div class="authBody">
+                <p style="color:#aaa; font-size:0.9rem; margin-bottom:20px; text-align:center;">
+                    Submit your details to become a verified host on Mapzo.
+                </p>
+                <form class="authForm" id="hostVerifyForm">
+                    <div class="input-group">
+                        <label class="authLabel">Full Name</label>
+                        <input class="authInput" type="text" id="hostName" placeholder="Daksh Arora" required>
+                    </div>
+                    <div class="input-group">
+                        <label class="authLabel">Gmail Address</label>
+                        <input class="authInput" type="email" id="hostEmail" placeholder="example@gmail.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label class="authLabel">Contact Number</label>
+                        <input class="authInput" type="tel" id="hostPhone" placeholder="+91 98765 43210" required>
+                    </div>
+                    <div class="input-group">
+                        <label class="authLabel">Why do you want to be a host?</label>
+                        <textarea class="authInput" id="hostReason" rows="4" style="height:auto; padding-top:12px;" placeholder="I organize college fests and local gigs..." required></textarea>
+                    </div>
+                    <button type="submit" class="authPrimaryBtn">Submit Request</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 
