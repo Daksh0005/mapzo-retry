@@ -843,7 +843,46 @@ function closeChatModal() {
 // ========================================
 // 12. UPLOAD EVENT (ENHANCED WITH CHAT SETUP)
 // ========================================
+// ========================================
+// HELPER: IMAGE COMPRESSION
+// ========================================
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // Resize logic: Max width 800px to save DB space
+                const MAX_WIDTH = 800;
+                let width = img.width;
+                let height = img.height;
 
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Return Base64 string (JPEG at 70% quality)
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+            };
+            
+            img.onerror = (error) => reject(error);
+        };
+        
+        reader.onerror = (error) => reject(error);
+    });
+}
 async function handleEventSubmit() {
     const submitBtn = document.querySelector('.uploadSubmit');
     submitBtn.disabled = true;
