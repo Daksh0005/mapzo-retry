@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Mapzo - Discover Events",
   "short_name": "Mapzo",
   "start_url": "/index.html",
@@ -6,7 +7,9 @@
   "background_color": "#121212",
   "theme_color": "#1db954",
   "description": "Discover local events, host your own, and chat in real-time with the Mapzo community.",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["events", "social", "lifestyle"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -26,6 +29,7 @@
       "src": "/screenshot-mobile.png",
       "sizes": "1080x1920",
       "type": "image/png",
+      "form_factor": "narrow",
       "label": "Mapzo Mobile Home"
     },
     {
