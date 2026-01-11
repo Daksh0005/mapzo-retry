@@ -1,4 +1,4 @@
-]// ========================================
+// ========================================
 // MAPZO - EVENT DISCOVERY PLATFORM
 // ENHANCED SCRIPT WITH EMOJI PINS & REAL-TIME CHAT
 // Features: 
