@@ -1,4 +1,4 @@
-// ========================================
+]// ========================================
 // MAPZO - EVENT DISCOVERY PLATFORM
 // ENHANCED SCRIPT WITH EMOJI PINS & REAL-TIME CHAT
 // Features: 
@@ -79,12 +79,12 @@ window.initMap = function () {
         if (typeof google === 'undefined' || !google.maps) throw new Error('Google Maps not loaded');
 
         map = new google.maps.Map(mapElement, {
-    center: currentLocation || defaultCenter,
-    zoom: 14,
-    disableDefaultUI: true, // You have custom buttons, so keep this true
-    gestureHandling: 'greedy', // 'greedy' allows one-finger panning (good for apps)
-    clickableIcons: false, // Prevents clicking random map POIs which can be annoying on mobile
-    styles: [
+            center: currentLocation || defaultCenter,
+            zoom: 14,
+            disableDefaultUI: true, // You have custom buttons, so keep this true
+            gestureHandling: 'greedy', // 'greedy' allows one-finger panning (good for apps)
+            clickableIcons: false, // Prevents clicking random map POIs which can be annoying on mobile
+            styles: [
                 { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
                 { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
                 { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
@@ -109,7 +109,7 @@ window.initMap = function () {
 };
 
 // ========================================
-// 5. UPLOAD MAP (Host Event Form)
+// 5. UPLOAD MAP (Host Event Form) - USES GOOGLE MAPS API
 // ========================================
 
 function initUploadMap() {
@@ -121,6 +121,7 @@ function initUploadMap() {
     uploadMap = new google.maps.Map(uploadMapElement, {
         center: defaultCenter,
         zoom: 14,
+        disableDefaultUI: false, // Enable controls for the host map
         styles: [
             { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
             { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
@@ -141,11 +142,11 @@ function placeUploadMarker(location) {
         animation: google.maps.Animation.DROP,
         icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 15,
+            scale: 12,
             fillColor: "#1db954",
             fillOpacity: 1,
             strokeColor: "#ffffff",
-            strokeWeight: 4
+            strokeWeight: 3
         }
     });
 
@@ -155,7 +156,9 @@ function placeUploadMarker(location) {
     };
 
     document.getElementById('selectedLocationText').textContent =
-        `✅ Lat: ${location.lat().toFixed(4)}, Lng: ${location.lng().toFixed(4)}`;
+        `✅ Selected: ${location.lat().toFixed(4)}, ${location.lng().toFixed(4)}`;
+        
+    document.getElementById('selectedLocationText').style.color = "#1db954";
 }
 
 // ========================================
@@ -168,7 +171,10 @@ function useHostGPS() {
         return;
     }
     const statusText = document.getElementById('selectedLocationText');
-    if(statusText) statusText.textContent = "⌛ Getting location...";
+    if(statusText) {
+        statusText.textContent = "⌛ Getting location...";
+        statusText.style.color = "#aaa";
+    }
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -187,8 +193,11 @@ function useHostGPS() {
 }
 
 function searchHostLocation() {
-    const query = prompt("Enter a location to search:");
-    if (!query) return;
+    const query = document.getElementById('eventLocation').value;
+    if (!query) {
+        alert("Please type a location in the 'Set Location' box first.");
+        return;
+    }
 
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode({ address: query }, (results, status) => {
@@ -199,7 +208,7 @@ function searchHostLocation() {
                 placeUploadMarker(loc);
             }
         } else {
-            alert('Location not found. Try a different name.');
+            alert('Location not found. Try be more specific.');
         }
     });
 }
@@ -287,12 +296,17 @@ function updateUIForLogin(user) {
     const hostBar = document.querySelector(".hostBar");
     const userEmail = user.email ? user.email.toLowerCase() : "";
 
+    // Modified to link to Profile Page
     if (logSignBox) {
         logSignBox.innerHTML = `
             <div style="text-align:center;">
-                <p style="font-size:0.8rem;color:#aaa;margin-bottom:6px;">${user.email}</p>
-                <button class="logSign" onclick="handleLogout()" style="background:rgba(255, 68, 68, 0.15); border:1px solid rgba(255,68,68,0.3); color:#ff4444; padding:8px 12px; font-size:0.9rem;">
-                    Sign Out
+                <img src="${user.photoURL || 'https://via.placeholder.com/40'}" 
+                     style="width:40px; height:40px; border-radius:50%; object-fit:cover; margin-bottom:8px; border:2px solid #1db954;">
+                <p style="font-size:0.8rem;color:#fff;margin-bottom:10px;font-weight:700;">${user.displayName || 'User'}</p>
+                
+                <button class="logSign" onclick="window.location.href='profile.html'" 
+                        style="background:rgba(29, 185, 84, 0.2); border:1px solid #1db954; color:#fff; margin-bottom:8px;">
+                    View Profile
                 </button>
             </div>`;
     }
@@ -300,6 +314,20 @@ function updateUIForLogin(user) {
     if (hostBar) {
         hostBar.style.display = ALLOWED_HOST_EMAILS.includes(userEmail) ? "block" : "none";
     }
+
+    // Ensure User Doc Exists in Firestore
+    const userRef = window.db.collection('users').doc(user.uid);
+    userRef.get().then((doc) => {
+        if (!doc.exists) {
+            userRef.set({
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName || user.email.split('@')[0],
+                photoURL: user.photoURL || null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    });
 }
 
 function updateUIForLogout() {
@@ -1326,21 +1354,29 @@ fixFilterButtons();
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof google !== 'undefined' && google.maps && !mapInitialized) window.initMap();
     
+    // --- UPDATED IMAGE PREVIEW LOGIC (Recommended Fix) ---
     const eventImageInput = document.getElementById("uploadEventImage");
     if (eventImageInput) {
         eventImageInput.addEventListener("change", (e) => {
-            selectedFiles = Array.from(e.target.files).slice(0, 3);
+            selectedFiles = Array.from(e.target.files); // Keep selected files for submit
+            
             const placeholder = document.getElementById("uploadPlaceholder");
             const previewContainer = document.getElementById("imagePreviewContainer");
-            const countSpan = document.getElementById("imageCount");
+            const previewImg = document.getElementById("imagePreview");
 
             if (selectedFiles.length > 0) {
-                placeholder.style.display = "none";
-                previewContainer.style.display = "block";
-                countSpan.textContent = selectedFiles.length;
+                // Read the first file for preview
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    if(previewImg) previewImg.src = evt.target.result;
+                    if(placeholder) placeholder.style.display = "none";
+                    if(previewContainer) previewContainer.style.display = "block";
+                };
+                reader.readAsDataURL(selectedFiles[0]);
             } else {
-                placeholder.style.display = "flex";
-                previewContainer.style.display = "none";
+                // Reset if cancelled
+                if(placeholder) placeholder.style.display = "flex";
+                if(previewContainer) previewContainer.style.display = "none";
             }
         });
     }
@@ -1431,4 +1467,98 @@ function loadEventsFromFirebase() {
         renderEventCards(events); 
         addEventMarkers(events);
     });
+}
+/* ================================
+   SETTINGS & VERIFICATION LOGIC
+   ================================ */
+
+// 1. OPEN/CLOSE MODALS
+function openSettingsModal(type) {
+    // Close main menu first
+    document.querySelector(".menu").classList.remove("menuShow");
+    document.querySelector(".menuOverlay").classList.remove("show");
+
+    if (type === 'notifications') document.getElementById('notifOverlay').classList.add('show');
+    if (type === 'permissions') {
+        document.getElementById('permOverlay').classList.add('show');
+        checkPermissions(); // Check current status when opening
+    }
+    if (type === 'verification') {
+        // Auto-fill email if logged in
+        if (currentUser) {
+            document.getElementById('hostEmail').value = currentUser.email;
+            document.getElementById('hostName').value = currentUser.displayName || "";
+        }
+        document.getElementById('verifyOverlay').classList.add('show');
+    }
+}
+
+function closeSettingsModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+
+// 2. PERMISSIONS LOGIC
+function checkPermissions() {
+    // Check Notification Permission
+    if (!("Notification" in window)) {
+        updatePermUI('permNotifStatus', 'Not Supported');
+    } else if (Notification.permission === "granted") {
+        updatePermUI('permNotifStatus', 'Allowed ✅');
+    } else if (Notification.permission === "denied") {
+        updatePermUI('permNotifStatus', 'Blocked ❌');
+    } else {
+        updatePermUI('permNotifStatus', 'Not Allowed');
+    }
+
+    // Check Location Permission (Rough check based on previous access)
+    navigator.permissions.query({ name: 'geolocation' }).then(result => {
+        if (result.state === 'granted') updatePermUI('permLocationStatus', 'Allowed ✅');
+        else if (result.state === 'denied') updatePermUI('permLocationStatus', 'Blocked ❌');
+        else updatePermUI('permLocationStatus', 'Ask every time');
+    });
+}
+
+function updatePermUI(elementId, text) {
+    const el = document.getElementById(elementId);
+    if(el) {
+        el.innerText = text;
+        el.style.color = text.includes('Allowed') ? '#1db954' : '#aaa';
+    }
+}
+
+function requestNotifPerm() {
+    Notification.requestPermission().then(permission => {
+        checkPermissions();
+    });
+}
+
+function requestLocationPerm() {
+    navigator.geolocation.getCurrentPosition(
+        () => checkPermissions(),
+        (err) => alert("Location access denied or error.")
+    );
+}
+
+// 3. HOST VERIFICATION SUBMISSION
+function submitHostVerification(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('hostName').value;
+    const email = document.getElementById('hostEmail').value;
+    const phone = document.getElementById('hostPhone').value;
+    const reason = document.getElementById('hostReason').value;
+    
+    // Construct Email Body
+    const subject = `Mapzo Host Verification Request - ${name}`;
+    const body = `Hello Admin,%0D%0A%0D%0AI would like to apply for Host Verification on Mapzo.%0D%0A%0D%0ADETAILS:%0D%0AName: ${name}%0D%0AEmail: ${email}%0D%0APhone: ${phone}%0D%0A%0D%0AREASON:%0D%0A${reason}%0D%0A%0D%0APlease verify my account.%0D%0A%0D%0AThanks, ${name}`;
+
+    // Target Email
+    const targetEmail = "shreyashmishra506@gmail.com";
+
+    // Open Mail Client
+    window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
+
+    // Close Modal & Show Success
+    closeSettingsModal('verifyOverlay');
+    alert("Opening your email client... Please hit send to complete the request! 🚀");
 }
