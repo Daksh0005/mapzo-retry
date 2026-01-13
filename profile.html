@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Mapzo</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="profileBody">
+
+    <div class="profileContainer">
+        <div class="profileNav">
+            <button onclick="window.location.href='index.html'" class="backBtn">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <h2 class="pageTitle">My Profile</h2>
+            <button onclick="handleLogout()" class="logoutBtn">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+        </div>
+
+        <div class="profileHeader">
+            <div class="avatarContainer" onclick="document.getElementById('avatarInput').click()">
+                <img id="profileAvatar" src="https://via.placeholder.com/150" alt="Profile">
+                <div class="avatarOverlay"><i class="fa-solid fa-camera"></i></div>
+                <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+            </div>
+            <h1 class="profileName" id="profileName">Loading...</h1>
+            <p class="profileEmail" id="profileEmail">...</p>
+            <button class="editProfileBtn" onclick="openEditModal()">Edit Profile</button>
+        </div>
+
+        <div class="profileDetails">
+            <div class="detailItem">
+                <i class="fa-solid fa-location-dot"></i>
+                <span id="profileLocation">Add location</span>
+            </div>
+            <div class="detailItem">
+                <i class="fa-brands fa-instagram"></i>
+                <a href="#" id="profileSocial" target="_blank">Add Social</a>
+            </div>
+        </div>
+
+        <div class="profileBioSection">
+            <h3>About Me</h3>
+            <p id="profileBio">No bio yet. Tap edit to add one!</p>
+        </div>
+
+        <div class="myEventsSection">
+            <h3>Events Hosted by Me</h3>
+            <div class="eventsScroll" id="myEventsList" style="flex-wrap: wrap; justify-content: center;">
+                <p style="color:#666; width:100%; text-align:center;">Loading your events...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="authOverlay" id="editProfileOverlay">
+        <div class="authModal">
+            <div class="authHeader">
+                <button class="authBack" onclick="closeEditModal()"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="authTitle">Edit Profile</h3>
+                <div style="width:40px"></div>
+            </div>
+            <div class="authBody">
+                <form class="authForm" id="editProfileForm">
+                    <div class="input-group">
+                        <label class="authLabel">Display Name</label>
+                        <input class="authInput" type="text" id="editName" placeholder="Your Name">
+                    </div>
+                    <div class="input-group">
+                        <label class="authLabel">Location</label>
+                        <input class="authInput" type="text" id="editLocation" placeholder="e.g. Kharagpur">
+                    </div>
+                    <div class="input-group">
+                        <label class="authLabel">Instagram Link</label>
+                        <input class="authInput" type="text" id="editSocial" placeholder="https://instagram.com/...">
+                    </div>
+                    <div class="input-group">
+                        <label class="authLabel">Bio</label>
+                        <textarea class="authInput" id="editBio" rows="3" style="height:auto; padding-top:10px;" placeholder="Tell us about yourself..."></textarea>
+                    </div>
+                    <button type="submit" class="authPrimaryBtn">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="profile.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Settings • Mapzo</title>
+
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="settings.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="settingsPage">
+    <nav class="navBar1" role="navigation" aria-label="Settings navigation">
+        <div class="navLeft">
+            <button class="navMenu" aria-label="Go back" onclick="goBackHome()">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <p class="navBrand">Settings</p>
+        </div>
+    </nav>
+
+    <main class="switchPageWrap">
+        <header class="switchHeader">
+
+            <div class="switchBar settingsSwitchBar" role="tablist" aria-label="Settings sections">
+                <button class="switchBtn" data-tab="notifications" role="tab">Notifications</button>
+                <button class="switchBtn" data-tab="permissions" role="tab">Permissions</button>
+                <button class="switchBtn" data-tab="verification" role="tab">Host Verify</button>
+            </div>
+        </header>
+
+        <section class="switchPanel" data-panel="notifications" role="tabpanel">
+            <h2>Notifications</h2>
+            <div class="settingsCard">
+                <label class="toggleRow">
+                    <span>Event reminders</span>
+                    <input type="checkbox" id="notifReminders">
+                </label>
+                <label class="toggleRow">
+                    <span>New events near me</span>
+                    <input type="checkbox" id="notifNearby">
+                </label>
+            </div>
+        </section>
+
+        <section class="switchPanel" data-panel="permissions" role="tabpanel">
+            <h2>Permissions</h2>
+            <div class="settingsCard">
+                <p class="muted">Halleluiya</p>
+                <button class="settingsBtn" id="openLocationModalBtn">
+                    Open location picker
+                </button>
+            </div>
+        </section>
+
+        <section class="switchPanel" data-panel="verification" role="tabpanel">
+            <h2>Verification as Host</h2>
+            <div class="settingsCard">
+                <p class="muted">Abra ka dabra gili gili chuuu.
+                </p>
+                <form id="verifyForm" class="settingsForm">
+                    <input class="settingsInput" placeholder="Full name" required>
+                    <input class="settingsInput" placeholder="Institute / Organization" required>
+                    <input class="settingsInput" placeholder="Contact email" type="email" required>
+                    <button class="settingsBtn" type="submit">Submit</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="switchPanel" data-panel="contact" role="tabpanel">
+            <h2>Contact</h2>
+            <div class="settingsCard">
+                <p class="muted">Email: support@mapzo.example</p>
+                <p class="muted">Instagram: @mapzo.official</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="settings.js"></script>
+</body>
+
+</html>

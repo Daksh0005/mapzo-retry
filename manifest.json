@@ -1,0 +1,24 @@
+{
+  "name": "Mapzo",
+  "short_name": "Mapzo",
+  "description": "Discover local events...",
+  "categories": ["events", "social"],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "iarc_rating_id": "e.g. 123456",
+  "icons": [ ... ],
+  "screenshots": [
+      {
+          "src": "screenshot1.png",
+          "sizes": "1080x1920",
+          "type": "image/png",
+          "form_factor": "narrow"
+      },
+      {
+          "src": "screenshot2.png",
+          "sizes": "1920x1080",
+          "type": "image/png",
+          "form_factor": "wide"
+      }
+  ]
+}
