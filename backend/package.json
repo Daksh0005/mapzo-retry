@@ -1,0 +1,27 @@
+{
+  "name": "mapzo-retry",
+  "version": "1.0.0",
+  "description": "",
+  "main": "event.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Daksh0005/mapzo-retry.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Daksh0005/mapzo-retry/issues"
+  },
+  "homepage": "https://github.com/Daksh0005/mapzo-retry#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.6.0",
+    "pg": "^8.17.0"
+  }
+}
