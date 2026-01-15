@@ -1,0 +1,23 @@
+# ========================
+# Global
+# ========================
+node_modules/
+.env
+.env.*
+*.log
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Build / cache
+dist/
+build/
+coverage/
+
+# Firebase / Secrets
+serviceAccountKey.json
+
+# Lock files at root (root is NOT a Node project)
+package-lock.json
