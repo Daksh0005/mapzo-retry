@@ -17,7 +17,16 @@ const pool = new Pool({
 });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://www.mapzo.in',
+    'https://mapzo.in',           // Without www
+    'https://*.vercel.app'         // Preview deployments
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Middleware: Verify Firebase token
