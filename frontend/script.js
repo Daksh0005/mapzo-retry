@@ -355,7 +355,7 @@ function handleLogout() {
 function handleGoogleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    auth.signInWithPopup(provider)
+    auth.signInWithRedirect(provider)
         .then((result) => {
             const user = result.user;
             console.log("Google Sign In Success:", user.email);
@@ -1563,3 +1563,16 @@ function submitHostVerification(e) {
     closeSettingsModal('verifyOverlay');
     alert("Opening your email client... Please hit send to complete the request! 🚀");
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const googleLoginBtn = document.getElementById("googleLoginBtn");
+    const googleSignupBtn = document.getElementById("googleSignupBtn");
+
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener("click", handleGoogleLogin);
+    }
+
+    if (googleSignupBtn) {
+        googleSignupBtn.addEventListener("click", handleGoogleLogin);
+    }
+});
