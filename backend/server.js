@@ -26,7 +26,10 @@ app.use(cors({
 app.use(express.json());
 
 // ---------- FIREBASE (ONLY FOR GOOGLE AUTH) ----------
-const serviceAccount = require("./serviceAccountKey.json");
+const serviceAccount =
+  process.env.NODE_ENV === "production"
+    ? require("/etc/secrets/serviceAccountKey.json")
+    : require("./serviceAccountKey.json"); //CHANGE THE SERVICEACCOUNTKEY 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
