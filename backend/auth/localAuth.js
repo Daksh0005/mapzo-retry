@@ -7,8 +7,10 @@ const router = express.Router();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  family: 4   // 👈 FORCE IPv4
 });
+
 
 /**
  * POST /auth/signup
