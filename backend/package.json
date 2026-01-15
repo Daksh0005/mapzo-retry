@@ -2,7 +2,7 @@
   "name": "mapzo-retry",
   "version": "1.0.0",
   "description": "",
-  "main": "event.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/Daksh0005/mapzo-retry#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
