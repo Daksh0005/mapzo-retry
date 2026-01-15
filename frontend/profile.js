@@ -1,3 +1,13 @@
+function requireAuth() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    window.location.href = "index.html";
+  }
+}
+
+requireAuth();
+
+
 // --- FIREBASE CONFIG (Must match index.html) ---
 const firebaseConfig = {
     apiKey: "AIzaSyBqeFuoFfT-z7YhRoWOIH2nKO_oV3hiQkk",

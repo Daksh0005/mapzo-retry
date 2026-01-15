@@ -10,6 +10,7 @@ const jwtMiddleware = require("./auth/jwtMiddleware");
 
 // ---------- INIT APP ----------
 const app = express();
+app.use("/auth", googleAuth);
 
 // ---------- CORS ----------
 app.use(cors({

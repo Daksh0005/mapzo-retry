@@ -278,19 +278,6 @@ function togglePassword(inputId, icon) {
     }
 }
 
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        currentUser = user;
-        updateUIForLogin(user);
-        localStorage.setItem('userEmail', user.email);
-        localStorage.setItem('userId', user.uid);
-    } else {
-        currentUser = null;
-        updateUIForLogout();
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userId');
-    }
-});
 
 function updateUIForLogin(user) {
     const logSignBox = document.querySelector(".logSignBox");
@@ -352,20 +339,43 @@ function handleLogout() {
     });
 }
 
-function handleGoogleLogin() {
+async function handleGoogleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    auth.signInWithRedirect(provider)
-        .then((result) => {
-            const user = result.user;
-            console.log("Google Sign In Success:", user.email);
-            closeAuth();
-            alert(`Welcome, ${user.displayName || 'User'}! 🚀`);
-        })
-        .catch((error) => {
-            console.error("Google Error:", error);
-            alert("Google Sign In Failed: " + error.message);
+    try {
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+
+        // 🔑 Get Google ID token
+        const idToken = await user.getIdToken();
+
+        // 🚀 Send token to backend
+        const res = await fetch("https://backend-jwqn.onrender.com/auth/google", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ idToken })
         });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Google login failed");
+        }
+
+        // ✅ Store backend JWT (SOURCE OF TRUTH)
+        localStorage.setItem("token", data.token);
+
+        closeAuth();
+        alert("Logged in with Google");
+
+        window.location.reload();
+
+    } catch (err) {
+        console.error(err);
+        alert(err.message || "Google login failed");
+    }
 }
 
 // ========================================
@@ -1388,32 +1398,49 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("googleLoginBtn")?.addEventListener("click", handleGoogleLogin);
     document.getElementById("googleSignupBtn")?.addEventListener("click", handleGoogleLogin);
 
-    document.getElementById("loginForm")?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const email = document.getElementById("loginEmail").value.trim();
-        const password = document.getElementById("loginPass").value.trim();
-        const btn = e.target.querySelector('button[type="submit"]');
+    document.getElementById("loginForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-        const oldText = btn.innerText;
-        btn.innerText = "Verifying...";
-        btn.disabled = true;
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPass").value.trim();
+    const btn = e.target.querySelector('button[type="submit"]');
 
-        auth.signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                closeAuth();
-                alert("Login Successful!");
-            })
-            .catch((error) => {
-                let msg = error.message;
-                if (error.code === 'auth/wrong-password') msg = "Incorrect password.";
-                if (error.code === 'auth/user-not-found') msg = "No account found with this email.";
-                alert(msg);
-            })
-            .finally(() => {
-                btn.innerText = oldText;
-                btn.disabled = false;
-            });
-    });
+    const oldText = btn.innerText;
+    btn.innerText = "Verifying...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch("https://backend-jwqn.onrender.com/auth/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Login failed");
+        }
+
+        // ✅ Store JWT
+        localStorage.setItem("token", data.token);
+
+        closeAuth();
+        alert("Login successful");
+
+        // Optional: refresh UI
+        window.location.reload();
+
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
+});
+
 
     const signupForm = document.getElementById("signupForm");
     if (signupForm) {
@@ -1429,20 +1456,6 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.innerText = "Creating...";
             btn.disabled = true;
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    closeAuth();
-                    alert("Account Created Successfully! Welcome.");
-                })
-                .catch((error) => {
-                    let msg = error.message;
-                    if (error.code === 'auth/email-already-in-use') msg = "Email already in use. Please Log In.";
-                    alert(msg);
-                })
-                .finally(() => {
-                    btn.innerText = oldText;
-                    btn.disabled = false;
-                });
         });
     }
 
@@ -1576,3 +1589,89 @@ document.addEventListener("DOMContentLoaded", () => {
         googleSignupBtn.addEventListener("click", handleGoogleLogin);
     }
 });
+const API_BASE = "https://backend-jwqn.onrender.com";
+
+/* ---------------- LOGIN ---------------- */
+document.getElementById("loginForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPass").value;
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || "Login failed", "error");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    showToast("Login successful", "success");
+
+    window.location.href = "event.html";
+  } catch (err) {
+    showToast("Network error", "error");
+  }
+});
+
+/* ---------------- SIGNUP ---------------- */
+document.getElementById("signupForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("signupEmail").value.trim();
+    const password = document.getElementById("signupPass").value.trim();
+    const btn = e.target.querySelector('button[type="submit"]');
+
+    if (password.length < 6) {
+        alert("Password must be at least 6 characters");
+        return;
+    }
+
+    const displayName = email.split("@")[0]; // simple default
+
+    const oldText = btn.innerText;
+    btn.innerText = "Creating...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch("https://backend-jwqn.onrender.com/auth/signup", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email,
+                password,
+                displayName
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Signup failed");
+        }
+
+        // ✅ Store JWT
+        localStorage.setItem("token", data.token);
+
+        closeAuth();
+        alert("Account created successfully");
+
+        window.location.reload();
+
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
+});
+
