@@ -60,8 +60,8 @@ router.post("/google", async (req, res) => {
 
     const result = await pool.query(
       `
-      INSERT INTO users (email, display_name, auth_provider, is_verified)
-      VALUES ($1, $2, 'google', true)
+      INSERT INTO users (email, display_name, auth_provider)
+      VALUES ($1, $2, 'google')
       ON CONFLICT (email)
       DO UPDATE SET display_name = EXCLUDED.display_name
       RETURNING id, email

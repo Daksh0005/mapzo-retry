@@ -5,6 +5,13 @@
 // 1. Event location pins with category-based emojis
 // 2. Real-time chat for live events
 // ========================================
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+}
 
 // ========================================
 // 1. GLOBAL VARIABLES
@@ -264,7 +271,6 @@ function openLocationModal() {
 // ========================================
 // 7. AUTH & SESSION MANAGEMENT
 // ========================================
-
 function togglePassword(inputId, icon) {
     const input = document.getElementById(inputId);
     if (input.type === "password") {
@@ -988,7 +994,6 @@ async function handleEventSubmit() {
 
         closeUploadForm();
         alert('Event posted successfully! 🎉');
-        loadEventsFromFirebase();
 
     } catch (error) {
         console.error('Error:', error);
@@ -1467,21 +1472,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-function loadEventsFromFirebase() {
-    if (!window.db) return;
-    window.db.collection('events').orderBy('createdAt', 'desc').get().then((snapshot) => {
-        let events = [];
-        snapshot.forEach((doc) => {
-            const event = { id: doc.id, ...doc.data() };
-            // Update live status based on current time
-            event.isLive = checkIfEventIsLive(event);
-            events.push(event);
-        });
-        window.allEvents = events;
-        renderEventCards(events);
-        addEventMarkers(events);
-    });
-}
 /* ================================
    SETTINGS & VERIFICATION LOGIC
    ================================ */
@@ -1674,4 +1664,5 @@ document.getElementById("signupForm")?.addEventListener("submit", async (e) => {
         btn.disabled = false;
     }
 });
+
 

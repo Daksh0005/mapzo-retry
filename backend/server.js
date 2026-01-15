@@ -50,7 +50,7 @@ const pool = new Pool({
 });
 
 // ---------- AUTH ROUTES ----------
-app.use("/auth", localAuth);   // /auth/signup , /auth/login
+// /auth/signup , /auth/login
 app.use("/auth", googleAuth);  // /auth/google
 
 // ---------- HEALTH ----------
