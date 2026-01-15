@@ -1,100 +1,89 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg');
-const admin = require('firebase-admin');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const { Pool } = require("pg");
+const admin = require("firebase-admin");
 
-// Initialize Firebase Admin
-const serviceAccount = require('./serviceAccountKey.json');
+const localAuth = require("./auth/localAuth");
+const googleAuth = require("./route/auth");
+const jwtMiddleware = require("./auth/jwtMiddleware");
+
+// ---------- INIT APP ----------
+const app = express();
+
+// ---------- CORS ----------
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://www.mapzo.in",
+    "https://mapzo.in",
+    "https://*.vercel.app"
+  ],
+  credentials: true
+}));
+
+app.use(express.json());
+
+// ---------- FIREBASE (ONLY FOR GOOGLE AUTH) ----------
+const serviceAccount = require("./serviceAccountKey.json");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// Initialize PostgreSQL
+// ---------- DATABASE ----------
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-const app = express();
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://www.mapzo.in',
-    'https://mapzo.in',           // Without www
-    'https://*.vercel.app'         // Preview deployments
-  ],
-  credentials: true
-}));
-app.use(express.json());
+// ---------- AUTH ROUTES ----------
+app.use("/auth", localAuth);   // /auth/signup , /auth/login
+app.use("/auth", googleAuth);  // /auth/google
 
-// Middleware: Verify Firebase token
-async function verifyToken(req, res, next) {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-  
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken;
-    next();
-  } catch (error) {
-    console.error('Token verification failed:', error);
-    res.status(401).json({ error: 'Invalid token' });
-  }
-}
-
-// Health check
-app.get('/', (req, res) => {
-  res.json({ status: 'Backend running', timestamp: new Date() });
+// ---------- HEALTH ----------
+app.get("/", (req, res) => {
+  res.json({ status: "Backend running", timestamp: new Date() });
 });
 
-// POST /api/user/location - Store user location when button clicked
-app.post('/api/user/location', verifyToken, async (req, res) => {
-  const { latitude, longitude } = req.body;
-  const email = req.user.email;
-  const displayName = req.user.name || email.split('@')[0];
+// ---------- PROTECTED ROUTES ----------
 
-  if (!email || latitude == null || longitude == null) {
-    return res.status(400).json({ error: 'Missing email or location' });
+// Store user location
+app.post("/api/user/location", jwtMiddleware, async (req, res) => {
+  const { latitude, longitude } = req.body;
+  const { email } = req.user;
+
+  if (latitude == null || longitude == null) {
+    return res.status(400).json({ error: "Missing location" });
   }
 
   try {
     const result = await pool.query(
-      `INSERT INTO users (email, display_name, latitude, longitude, location_updated_at)
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-       ON CONFLICT (email)
-       DO UPDATE SET 
-         latitude = EXCLUDED.latitude,
-         longitude = EXCLUDED.longitude,
-         location_updated_at = CURRENT_TIMESTAMP
+      `UPDATE users
+       SET latitude = $1,
+           longitude = $2,
+           location_updated_at = CURRENT_TIMESTAMP
+       WHERE email = $3
        RETURNING *`,
-      [email, displayName, latitude, longitude]
+      [latitude, longitude, email]
     );
-    
-    res.json({ 
-      success: true, 
-      user: result.rows[0],
-      message: 'Location saved successfully'
-    });
-  } catch (error) {
-    console.error('Database error:', error);
-    res.status(500).json({ error: 'Failed to save location' });
+
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save location" });
   }
 });
 
-// GET /api/events/nearby - Fetch nearby events
-app.get('/api/events/nearby', verifyToken, async (req, res) => {
+// Nearby events
+app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
   const { latitude, longitude, radius = 50 } = req.query;
 
-  if (latitude == null || longitude == null) {
-    return res.status(400).json({ error: 'Missing location parameters' });
+  if (!latitude || !longitude) {
+    return res.status(400).json({ error: "Missing location" });
   }
 
   try {
-    // Haversine formula to calculate distance in km
     const query = `
       SELECT *,
         (6371 * acos(
@@ -111,106 +100,54 @@ app.get('/api/events/nearby', verifyToken, async (req, res) => {
       ORDER BY distance
       LIMIT 50
     `;
-    
+
     const result = await pool.query(query, [
-      parseFloat(latitude),
-      parseFloat(longitude),
-      parseFloat(radius)
+      latitude,
+      longitude,
+      radius
     ]);
-    
-    res.json({
-      success: true,
-      count: result.rows.length,
-      events: result.rows
-    });
-  } catch (error) {
-    console.error('Query error:', error);
-    res.status(500).json({ error: 'Failed to fetch events' });
+
+    res.json({ success: true, events: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch events" });
   }
 });
 
-// GET /api/events/:eventId/reviews - Get all reviews for an event
-app.get('/api/events/:eventId/reviews', async (req, res) => {
-  const { eventId } = req.params;
-
-  try {
-    const result = await pool.query(
-      `SELECT r.*, u.display_name 
-       FROM reviews r
-       LEFT JOIN users u ON r.user_email = u.email
-       WHERE r.event_id = $1
-       ORDER BY r.created_at DESC`,
-      [eventId]
-    );
-    
-    res.json({
-      success: true,
-      count: result.rows.length,
-      reviews: result.rows
-    });
-  } catch (error) {
-    console.error('Query error:', error);
-    res.status(500).json({ error: 'Failed to fetch reviews' });
-  }
+// Get all events (public)
+app.get("/api/events", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM events ORDER BY event_date ASC"
+  );
+  res.json({ success: true, events: result.rows });
 });
 
-// POST /api/events/:eventId/reviews - Submit a review
-app.post('/api/events/:eventId/reviews', verifyToken, async (req, res) => {
+// Submit review
+app.post("/api/events/:eventId/reviews", jwtMiddleware, async (req, res) => {
   const { eventId } = req.params;
   const { rating, comment } = req.body;
-  const userEmail = req.user.email;
+  const { email } = req.user;
 
   if (!rating || rating < 1 || rating > 5) {
-    return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    return res.status(400).json({ error: "Invalid rating" });
   }
 
   try {
-    // First, ensure user exists in users table
-    await pool.query(
-      `INSERT INTO users (email, display_name)
-       VALUES ($1, $2)
-       ON CONFLICT (email) DO NOTHING`,
-      [userEmail, req.user.name || userEmail.split('@')[0]]
-    );
-
-    // Insert review
     const result = await pool.query(
       `INSERT INTO reviews (event_id, user_email, rating, comment)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [eventId, userEmail, rating, comment]
+      [eventId, email, rating, comment]
     );
-    
-    res.json({
-      success: true,
-      review: result.rows[0],
-      message: 'Review submitted successfully'
-    });
-  } catch (error) {
-    console.error('Database error:', error);
-    res.status(500).json({ error: 'Failed to submit review' });
+
+    res.json({ success: true, review: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to submit review" });
   }
 });
 
-// GET /api/events - Get all events (for initial page load)
-app.get('/api/events', async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT * FROM events ORDER BY event_date ASC'
-    );
-    
-    res.json({
-      success: true,
-      count: result.rows.length,
-      events: result.rows
-    });
-  } catch (error) {
-    console.error('Query error:', error);
-    res.status(500).json({ error: 'Failed to fetch events' });
-  }
-});
-
-// Start server
+// ---------- START ----------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
