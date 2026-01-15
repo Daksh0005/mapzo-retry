@@ -1,17 +1,21 @@
 const jwt = require("jsonwebtoken");
 
-module.exports = function jwtMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: "No token provided" });
+function jwtMiddleware(req, res, next) {
+  const header = req.headers.authorization;
+
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing token" });
   }
 
+  const token = header.split(" ")[1];
+
   try {
-    const token = authHeader.split("Bearer ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { userId, email }
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = payload; // { userId, email }
     next();
   } catch {
-    res.status(401).json({ error: "Invalid token" });
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
-};
+}
+
+module.exports = jwtMiddleware;

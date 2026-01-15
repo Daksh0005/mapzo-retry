@@ -3,15 +3,44 @@ const jwt = require("jsonwebtoken");
 const admin = require("firebase-admin");
 const { Pool } = require("pg");
 
+const { signupUser, loginUser } = require("../auth/localAuth");
+
 const router = express.Router();
 
-// DB pool (same DATABASE_URL as server.js)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  family: 4
 });
 
-// POST /auth/google
+/* =========================
+   LOCAL AUTH
+========================= */
+
+router.post("/signup", async (req, res) => {
+  try {
+    const { email, password, displayName } = req.body;
+    const token = await signupUser(email, password, displayName);
+    res.status(201).json({ token });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const token = await loginUser(email, password);
+    res.json({ token });
+  } catch (err) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+/* =========================
+   GOOGLE AUTH
+========================= */
+
 router.post("/google", async (req, res) => {
   const { idToken } = req.body;
 
@@ -20,7 +49,6 @@ router.post("/google", async (req, res) => {
   }
 
   try {
-    // 1️⃣ Verify Google ID token
     const decoded = await admin.auth().verifyIdToken(idToken);
 
     const email = decoded.email;
@@ -30,7 +58,6 @@ router.post("/google", async (req, res) => {
       return res.status(400).json({ error: "Google account has no email" });
     }
 
-    // 2️⃣ Insert or fetch user
     const result = await pool.query(
       `
       INSERT INTO users (email, display_name, auth_provider, is_verified)
@@ -44,12 +71,8 @@ router.post("/google", async (req, res) => {
 
     const user = result.rows[0];
 
-    // 3️⃣ Issue JWT (same format as local auth)
     const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email
-      },
+      { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );

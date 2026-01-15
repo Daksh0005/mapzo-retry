@@ -10,21 +10,7 @@ const jwtMiddleware = require("./auth/jwtMiddleware");
 
 // ---------- INIT APP ----------
 const app = express();
-app.use("/auth", googleAuth);
 
-// ---------- CORS ----------
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://www.mapzo.in",
-    "https://mapzo.in",
-    "https://*.vercel.app"
-  ],
-  credentials: true
-}));
-
-app.use(express.json());
 
 // ---------- FIREBASE (ONLY FOR GOOGLE AUTH) ----------
 const serviceAccount =
@@ -34,6 +20,28 @@ const serviceAccount =
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
+
+// ---------- CORS ----------
+app.use(cors({
+  origin: (origin, cb) => {
+  const allowed = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://www.mapzo.in",
+    "https://mapzo.in"
+  ];
+
+  if (!origin || allowed.includes(origin) || origin.endsWith(".vercel.app")) {
+    cb(null, true);
+  } else {
+    cb(new Error("CORS blocked"));
+  }
+},
+  credentials: true
+}));
+
+app.use(express.json());
+
 
 // ---------- DATABASE ----------
 const pool = new Pool({
