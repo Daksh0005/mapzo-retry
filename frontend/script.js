@@ -78,40 +78,81 @@ async function checkAuthStatus() {
     }
 }
 
+// Robust Google login (replace existing handleGoogleLogin)
 async function handleGoogleLogin() {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    // start sign-in
+    const result = await firebase.auth().signInWithPopup(provider);
+    console.log("Google sign-in result:", result);
+
+    // Attempt to obtain ID token from multiple possible places
+    const user = result && result.user ? result.user : null;
+    let idToken = null;
+
     try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        const result = await firebase.auth().signInWithPopup(provider);
-        const user = result.user;
-
-        const idToken = await user.getIdToken();
-
-        const res = await fetch(`${API_BASE}/auth/google`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ idToken })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            throw new Error(data.error || "Google login failed");
-        }
-
-        localStorage.setItem("token", data.token);
-
-        closeAuth();
-        showToast("Logged in with Google! 🎉", "success");
-
-        setTimeout(() => window.location.reload(), 500);
-
+      if (user && typeof user.getIdToken === "function") {
+        idToken = await user.getIdToken();
+        console.log("idToken acquired from user.getIdToken()");
+      }
     } catch (err) {
-        console.error("Google login error:", err);
-        showToast(err.message || "Google login failed", "error");
+      console.warn("user.getIdToken() failed:", err);
     }
+
+    // fallback to firebase.auth().currentUser
+    if (!idToken && firebase.auth().currentUser) {
+      try {
+        idToken = await firebase.auth().currentUser.getIdToken();
+        console.log("idToken acquired from firebase.auth().currentUser.getIdToken()");
+      } catch (err) {
+        console.warn("currentUser.getIdToken() failed:", err);
+      }
+    }
+
+    // fallback to OAuth credential idToken (rare)
+    if (!idToken && result && result.credential && result.credential.idToken) {
+      idToken = result.credential.idToken;
+      console.log("idToken acquired from result.credential.idToken");
+    }
+
+    if (!idToken) {
+      // extra diagnostic: show user and auth state
+      console.error("Failed to obtain Firebase ID token. Result and currentUser:", {
+        result,
+        currentUser: firebase.auth().currentUser
+      });
+      throw new Error(
+        "Failed to obtain ID token. Check Firebase Google sign-in is enabled, popups aren't blocked, and your SDK is configured correctly."
+      );
+    }
+
+    // send to backend
+    const res = await fetch(`${API_BASE}/auth/google`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("Backend /auth/google response:", res.status, data);
+      throw new Error(data.error || "Google login failed on server");
+    }
+
+    localStorage.setItem("token", data.token);
+    closeAuth();
+    showToast("Logged in with Google!", "success");
+
+    // minimal delay to let UI update
+    setTimeout(() => window.location.reload(), 400);
+
+  } catch (err) {
+    console.error("Google login error:", err);
+    showToast(err.message || "Google login failed", "error");
+  }
 }
+
 
 function updateUIForLogin(user) {
     const logSignBox = document.querySelector(".logSignBox");
@@ -532,6 +573,124 @@ document.body.addEventListener("click", (e) => {
         yearSpan.textContent = new Date().getFullYear();
     }
 });
+
+// ---------- Filter UI helpers ----------
+(function initFilterUI() {
+  // Tabs
+  document.querySelectorAll('.filterTab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filterTab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.filterTabContent').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      const tabName = btn.dataset.tab;
+      document.getElementById(tabName + 'Tab').classList.add('active');
+    });
+  });
+
+  // Quick filter buttons
+  document.querySelectorAll('.quickFilterBtn').forEach(q => {
+    q.addEventListener('click', (e) => {
+      // if button is a date quick filter (data-quick)
+      const quick = e.currentTarget.dataset.quick;
+      const distance = e.currentTarget.dataset.distance;
+
+      if (quick) {
+        // set calendar / chosen date filter - simple behavior
+        document.querySelectorAll('.quickFilterBtn[data-quick]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+
+        // for UI feedback: show chosen range in a hidden filter state
+        console.log("Date quick filter selected:", quick);
+        // you can map 'today' => set date query etc
+      }
+
+      if (distance) {
+        document.querySelectorAll('.quickFilterBtn[data-distance]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const km = parseInt(distance, 10);
+        document.getElementById('distanceInput').value = km;
+        document.getElementById('distanceRange').value = Math.min(km, 500);
+      }
+    });
+  });
+
+  // Distance slider sync
+  const distanceRange = document.getElementById('distanceRange');
+  const distanceInput = document.getElementById('distanceInput');
+  if (distanceRange && distanceInput) {
+    distanceRange.addEventListener('input', () => {
+      distanceInput.value = distanceRange.value;
+    });
+    distanceInput.addEventListener('input', () => {
+      let v = parseInt(distanceInput.value || 0, 10);
+      if (isNaN(v)) v = 0;
+      if (v < parseInt(distanceRange.min)) v = distanceRange.min;
+      if (v > parseInt(distanceRange.max)) v = distanceRange.max;
+      distanceRange.value = v;
+    });
+  }
+
+  // Category grid selection
+  document.querySelectorAll('.categoryCard').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.categoryCard').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      console.log('Category selected:', card.dataset.category);
+    });
+  });
+
+  // Calendar: minimal generator for the element #calendarDays
+  const calendarDays = document.getElementById('calendarDays');
+  const currentMonthSpan = document.getElementById('currentMonth');
+  const prevBtn = document.getElementById('prevMonth');
+  const nextBtn = document.getElementById('nextMonth');
+
+  let today = new Date();
+  let calYear = today.getFullYear(), calMonth = today.getMonth();
+
+  function renderCalendar(year, month) {
+    if (!calendarDays || !currentMonthSpan) return;
+    calendarDays.innerHTML = '';
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startWeekday = firstDay.getDay(); // 0..6
+    // fill leading blanks
+    for (let i = 0; i < startWeekday; i++) {
+      const blank = document.createElement('div');
+      blank.className = 'calendarDay empty';
+      calendarDays.appendChild(blank);
+    }
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const el = document.createElement('button');
+      el.className = 'calendarDay';
+      el.type = 'button';
+      el.innerText = d;
+      el.addEventListener('click', () => {
+        // when user selects a date, mark and set quick filter state
+        document.querySelectorAll('.calendarDay.selected').forEach(x => x.classList.remove('selected'));
+        el.classList.add('selected');
+        console.log('Calendar date picked:', `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+        // optionally map this to filters or set the upload form date
+        const dateInput = document.getElementById('eventDate');
+        if (dateInput) dateInput.value = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      });
+      calendarDays.appendChild(el);
+    }
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    currentMonthSpan.textContent = `${monthNames[month]} ${year}`;
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', () => {
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+    renderCalendar(calYear, calMonth);
+  });
+  if (nextBtn) nextBtn.addEventListener('click', () => {
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+    renderCalendar(calYear, calMonth);
+  });
+
+  renderCalendar(calYear, calMonth);
+})();
 
 // ========================================
 // 10. EXPORT TO WINDOW

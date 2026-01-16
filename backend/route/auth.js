@@ -1,3 +1,6 @@
+// DEV: log incoming body for debug
+console.log('/auth/google called - body:', req.body);
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const admin = require("firebase-admin");
