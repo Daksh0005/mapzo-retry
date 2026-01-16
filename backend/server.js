@@ -7,6 +7,13 @@ const googleAuth = require("./route/auth");
 const jwtMiddleware = require("./auth/jwtMiddleware");
 const pool = require("./db");
 
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 // ---------- INIT APP ----------
 const app = express();
 
@@ -67,7 +74,7 @@ app.get("/", (req, res) => {
     endpoints: {
       auth: "/auth/login, /auth/signup, /auth/google",
       events: "/api/events, /api/events/nearby",
-      user: "/api/user/location"
+      user: "/api/user/me, /api/user/profile, /api/user/avatar, /api/user/location"
     }
   });
 });
@@ -83,6 +90,52 @@ app.get("/auth/verify", jwtMiddleware, (req, res) => {
     }
   });
 });
+app.get("/api/user/me", jwtMiddleware, async (req, res) => {
+  const { id } = req.user;
+
+  try {
+    const result = await pool.query(
+      `SELECT id, email, display_name, photo_url
+       FROM users
+       WHERE id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    console.error("Get profile error:", err);
+    res.status(500).json({ error: "Failed to load profile" });
+  }
+});
+app.put("/api/user/profile", jwtMiddleware, async (req, res) => {
+  const { id } = req.user;
+  const { display_name } = req.body;
+
+  if (display_name && display_name.length > 50) {
+    return res.status(400).json({ error: "Display name too long" });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE users
+       SET display_name = COALESCE($1, display_name),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING id, email, display_name, photo_url`,
+      [display_name || null, id]
+    );
+
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    console.error("Profile update error:", err);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
 
 // ---------- PROTECTED ROUTES ----------
 
@@ -116,6 +169,47 @@ app.post("/api/user/location", jwtMiddleware, async (req, res) => {
     res.status(500).json({ error: "Failed to save location" });
   }
 });
+app.post("/api/user/avatar", jwtMiddleware, async (req, res) => {
+  const { imageBase64 } = req.body;
+  const { id: userId } = req.user;
+
+  if (!imageBase64) {
+    return res.status(400).json({ error: "Image required" });
+  }
+
+  try {
+    const buffer = Buffer.from(
+      imageBase64.replace(/^data:image\/\w+;base64,/, ""),
+      "base64"
+    );
+
+    const filePath = `avatars/${userId}.jpg`;
+
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, buffer, {
+        contentType: "image/jpeg",
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    const { data } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    await pool.query(
+      `UPDATE users SET photo_url = $1 WHERE id = $2`,
+      [data.publicUrl, userId]
+    );
+
+    res.json({ success: true, photo_url: data.publicUrl });
+  } catch (err) {
+    console.error("Avatar upload error:", err);
+    res.status(500).json({ error: "Failed to upload avatar" });
+  }
+});
+
 
 // Nearby events
 app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
@@ -206,7 +300,7 @@ app.post("/api/events/:eventId/reviews", jwtMiddleware, async (req, res) => {
       `INSERT INTO reviews (event_id, user_id, rating, comment)
        VALUES ($1, $2, $3, $4)
        RETURNING id, event_id, user_id, rating, comment, created_at`,
-      [eventId, userId, rating, comment || null]
+      [eventId, userId, rating, comment]
     );
 
     res.json({ success: true, review: result.rows[0] });
