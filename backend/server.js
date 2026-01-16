@@ -7,7 +7,6 @@ const googleAuth = require("./route/auth");
 const jwtMiddleware = require("./auth/jwtMiddleware");
 const pool = require("./db");
 
-
 // ---------- INIT APP ----------
 const app = express();
 

@@ -3,14 +3,6 @@ const jwt = require("jsonwebtoken");
 const admin = require("firebase-admin");
 const pool = require("../db");
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-  });
-}
-
-
-
 const { signupUser, loginUser } = require("../auth/localAuth");
 
 const router = express.Router();
@@ -59,15 +51,22 @@ router.post("/google", async (req, res) => {
   }
 
   try {
-      const decoded = await admin.auth().verifyIdToken(idToken);
+  const decoded = await admin.auth().verifyIdToken(idToken);
 
-      const email = decoded.email;
+  console.log("✅ Decoded Google token:", {
+    uid: decoded.uid,
+    email: decoded.email,
+    iss: decoded.iss,
+    aud: decoded.aud,
+  });
 
-    if (!email) {
-      return res.status(400).json({ error: "Google account has no email" });
-    }
+  const email = decoded.email;
 
-    const displayName = decoded.name?.slice(0, 50) || email.split("@")[0];
+  if (!email) {
+    return res.status(400).json({ error: "Google account has no email" });
+  }
+
+  const displayName = decoded.name?.slice(0, 50) || email.split("@")[0];
 
 
     if (!email) {
