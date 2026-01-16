@@ -79,6 +79,42 @@ app.get("/", (req, res) => {
   });
 });
 
+app.post("/api/events/upload-image", jwtMiddleware, async (req, res) => {
+  const { imageBase64 } = req.body;
+  const { id: userId } = req.user;
+
+  if (!imageBase64) {
+    return res.status(400).json({ error: "Image required" });
+  }
+
+  try {
+    const buffer = Buffer.from(
+      imageBase64.replace(/^data:image\/\w+;base64,/, ""),
+      "base64"
+    );
+
+    const filePath = `event-images/${userId}-${Date.now()}.jpg`;
+
+    const { error } = await supabase.storage
+      .from("event-images")
+      .upload(filePath, buffer, {
+        contentType: "image/jpeg"
+      });
+
+    if (error) throw error;
+
+    const { data } = supabase.storage
+      .from("event-images")
+      .getPublicUrl(filePath);
+
+    res.json({ success: true, image_url: data.publicUrl });
+  } catch (err) {
+    console.error("Event image upload error:", err);
+    res.status(500).json({ error: "Failed to upload event image" });
+  }
+});
+
+
 // ---------- TOKEN VERIFICATION ENDPOINT ----------
 app.get("/auth/verify", jwtMiddleware, (req, res) => {
   // jwtMiddleware must set: req.user = { id, email, provider }
@@ -183,7 +219,7 @@ app.post("/api/user/avatar", jwtMiddleware, async (req, res) => {
       "base64"
     );
 
-    const filePath = `avatars/${userId}.jpg`;
+    const filePath = `avatars/${userId}-${Date.now()}.jpg`;
 
     const { error } = await supabase.storage
       .from("avatars")
@@ -272,7 +308,7 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
 
     const query = `
       SELECT id, title, description, category, venue_name, address,
-             latitude, longitude, event_date, created_at,
+             latitude, longitude, event_date, created_at, image_url,
         (6371 * acos(
           cos(radians($1)) * cos(radians(latitude)) *
           cos(radians(longitude) - radians($2)) +
@@ -299,21 +335,87 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
 
 
 // Get all events (public)
+// Get all events (public)
 app.get("/api/events", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, title, description, category, venue_name, address,
-              latitude, longitude, event_date, created_at
-       FROM events 
+              latitude, longitude, event_date, created_at, image_url
+       FROM events
        WHERE event_date >= CURRENT_DATE
-       ORDER BY event_date ASC 
+       ORDER BY event_date ASC
        LIMIT 100`
     );
 
-    res.json({ success: true, events: result.rows, count: result.rows.length });
+    res.json({
+      success: true,
+      events: result.rows,
+      count: result.rows.length
+    });
   } catch (err) {
     console.error("Get events error:", err);
     res.status(500).json({ error: "Failed to fetch events" });
+  }
+});
+
+
+// Create event (with image_url)
+app.post("/api/events", jwtMiddleware, async (req, res) => {
+  const {
+    title,
+    description,
+    category,
+    venue_name,
+    address,
+    latitude,
+    longitude,
+    event_date,
+    image_url
+  } = req.body;
+
+  const { id: userId } = req.user;
+
+  if (!title || !category || !latitude || !longitude || !event_date) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO events (
+        title,
+        description,
+        category,
+        venue_name,
+        address,
+        latitude,
+        longitude,
+        event_date,
+        image_url,
+        host_id
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      RETURNING id`,
+      [
+        title,
+        description || null,
+        category,
+        venue_name || null,
+        address || null,
+        latitude,
+        longitude,
+        event_date,
+        image_url || null,
+        userId
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      event_id: result.rows[0].id
+    });
+  } catch (err) {
+    console.error("Create event error:", err);
+    res.status(500).json({ error: "Failed to create event" });
   }
 });
 
