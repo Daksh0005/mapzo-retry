@@ -326,15 +326,24 @@ window.initMap = function () {
         }
 
         map = new google.maps.Map(mapElement, {
-            center: currentLocation || defaultCenter,
-            zoom: 14,
-            disableDefaultUI: true,
-            gestureHandling: 'greedy',
-            //styles: [
-            //    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-            //    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
-            //]   
-        });
+    center: currentLocation || defaultCenter,
+    zoom: 14,
+    disableDefaultUI: true,
+    gestureHandling: "greedy",
+    styles: [
+        { elementType: "geometry", stylers: [{ color: "#1d1f21" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#8a8a8a" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#1d1f21" }] },
+
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
+        { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#1f1f1f" }] },
+
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f252e" }] },
+
+        { featureType: "poi", elementType: "geometry", stylers: [{ color: "#242424" }] },
+        { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#1b2b1f" }] }
+    ]
+});
 
         mapInitialized = true;
         console.log('✅ Map initialized');
