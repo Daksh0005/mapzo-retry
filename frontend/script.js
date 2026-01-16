@@ -223,12 +223,15 @@ function toggleMenu() {
 // ========================================
 
 function openLocationModal() {
+    document.querySelector(".manualLocationOverlay")?.classList.remove("show");
     document.querySelector(".locationOverlay")?.classList.add("show");
 }
 
+
 function closeLocationModal() {
-    // Not needed since we auto-detect now
+    document.querySelector(".locationOverlay")?.classList.remove("show");
 }
+
 
 function enableGPS() {
     if (!navigator.geolocation) {
@@ -327,10 +330,10 @@ window.initMap = function () {
             zoom: 14,
             disableDefaultUI: true,
             gestureHandling: 'greedy',
-            styles: [
-                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
-            ]
+            //styles: [
+            //    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            //    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+            //]   
         });
 
         mapInitialized = true;
