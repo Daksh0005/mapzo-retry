@@ -4268,3 +4268,54 @@ input:checked + .slider:before { transform: translateX(24px); }
         font-size: 1.5rem;
     }
 }
+/* ========================================
+   TOAST NOTIFICATIONS
+   ======================================== */
+
+.toast-notification {
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(26, 35, 50, 0.95);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    transition: bottom 0.3s ease;
+    min-width: 250px;
+    text-align: center;
+    font-size: 0.9rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast-notification.show {
+    bottom: 30px;
+}
+
+.toast-notification.success {
+    background: rgba(29, 185, 84, 0.95);
+    border-color: rgba(29, 185, 84, 0.3);
+}
+
+.toast-notification.error {
+    background: rgba(255, 68, 68, 0.95);
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+.toast-notification.info {
+    background: rgba(41, 128, 185, 0.95);
+    border-color: rgba(41, 128, 185, 0.3);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .toast-notification {
+        min-width: 90%;
+        max-width: 90%;
+        font-size: 0.85rem;
+        padding: 12px 20px;
+    }
+}
