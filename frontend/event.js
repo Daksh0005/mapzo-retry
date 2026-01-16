@@ -1,12 +1,4 @@
-function requireAuth() {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    window.location.href = "index.html";
-  }
-}
-
-requireAuth();
-
+/*
 const qs = new URLSearchParams(window.location.search);
 const eventId = qs.get("id");
 
@@ -108,3 +100,4 @@ els.form?.addEventListener("submit", async (ev) => {
     alert("Failed to post comment. Please try again.");
   }
 });
+*/

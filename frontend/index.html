@@ -321,7 +321,7 @@ font-src
                 <h2 class="uploadTitle">Host an Event</h2>
                 <button class="uploadSubmit" onclick="handleEventSubmit()">Post</button>
             </div>
-            <form class="uploadForm" id="eventUploadForm">
+            <form class="uploadForm" id="eventUploadForm" onsubmit="event.preventDefault()">
                 <div class="formGroup">
                     <label class="formLabel">Title</label>
                     <input type="text" class="formInput" placeholder="e.g., DJ Night at Spring Fest" id="eventName"
@@ -330,12 +330,30 @@ font-src
                 <div class="formGroup">
                     <label class="formLabel">Upload Image</label>
                     <div class="imageUpload">
-                        <input type="file" class="imageInput" id="uploadEventImage" accept="image/*">
-                        <div class="imagePlaceholder">
+                        <input type="file" id="eventImageInput" accept="image/*" hidden>
+
+                        <div class="imagePlaceholder" onclick="document.getElementById('eventImageInput').click()">
                             <i class="fa-solid fa-image"></i>
                             <p>Tap to upload event image</p>
-                        </div>
-                        <img class="imagePreview" id="imagePreview" style="display: none;">
+                    </div>
+                    <script>
+document.getElementById("eventImageInput")?.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = document.getElementById("eventImagePreview");
+    img.src = reader.result;
+    img.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+</script>
+
+
+<img id="eventImagePreview" class="imagePreview" style="display:none;">
+
                     </div>
                 </div>
                 <div class="formGroup">

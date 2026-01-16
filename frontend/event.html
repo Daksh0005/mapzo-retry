@@ -281,9 +281,6 @@
       margin-top: 5px;
     }
   </style>
-
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
 
 <body>
@@ -331,7 +328,7 @@
 
       <div class="commentsSection">
         <div class="commentsHeader">
-          <span class="commentsTitle">Reviews & Chat</span>
+          <span class="commentsTitle">Reviews </span>
           <span class="avgRating"><i class="fa-solid fa-star"></i> <span id="avgRatingVal">--</span></span>
         </div>
 
@@ -367,15 +364,18 @@
     let currentUser = null;
 
     // --- 3. CHECK AUTH ---
-    const token = localStorage.getItem("token");
+document.addEventListener("DOMContentLoaded", () => {
+  const token = localStorage.getItem("token");
 
-if (token) {
-  document.getElementById("addCommentBox").style.display = "block";
-  document.getElementById("loginToComment").style.display = "none";
-} else {
-  document.getElementById("addCommentBox").style.display = "none";
-  document.getElementById("loginToComment").style.display = "block";
-}
+  if (token) {
+    document.getElementById("addCommentBox").style.display = "block";
+    document.getElementById("loginToComment").style.display = "none";
+  } else {
+    document.getElementById("addCommentBox").style.display = "none";
+    document.getElementById("loginToComment").style.display = "block";
+  }
+});
+
 
 
     // --- 4. LOAD DATA ---
@@ -405,6 +405,15 @@ if (token) {
 
     document.getElementById('displayImage').src =
       event.image_url || "https://via.placeholder.com/600x350?text=No+Image";
+      injectActionButtons({
+      title: event.title,
+      date: event.event_date,
+      time: event.event_time || "18:00",
+      description: event.description,
+      location: event.address || event.venue_name,
+      lat: event.latitude,
+      lng: event.longitude
+    });
 
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('eventContent').style.display = 'block';
@@ -418,6 +427,8 @@ if (token) {
 
     function injectActionButtons(data) {
       const infoCard = document.querySelector('.infoCard');
+      if (infoCard.querySelector('.eventActions')) return;
+
 
       // Map Link
       const mapUrl = (data.lat && data.lng)
@@ -425,11 +436,21 @@ if (token) {
         : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.location)}`;
 
       // Calendar Link
-      const startTime = new Date(`${data.date} ${data.time}`).toISOString().replace(/-|:|\.\d\d\d/g, "");
-      const endTime = new Date(new Date(`${data.date} ${data.time}`).getTime() + 7200000).toISOString().replace(/-|:|\.\d\d\d/g, "");
-      const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${startTime}/${endTime}&details=${encodeURIComponent(data.description)}&location=${encodeURIComponent(data.location)}`;
+      const baseDate = new Date(data.date);
+baseDate.setHours(18, 0, 0); // default 6:00 PM
+
+const startTime = baseDate
+  .toISOString()
+  .replace(/-|:|\.\d\d\d/g, "");
+
+const endTime = new Date(baseDate.getTime() + 2 * 60 * 60 * 1000)
+  .toISOString()
+  .replace(/-|:|\.\d\d\d/g, "");
+  const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${startTime}/${endTime}&details=${encodeURIComponent(data.description)}&location=${encodeURIComponent(data.location)}`;
 
       const actionsDiv = document.createElement('div');
+      actionsDiv.className = "eventActions";
+
       actionsDiv.style.cssText = "display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;";
 
       actionsDiv.innerHTML = `
@@ -439,12 +460,17 @@ if (token) {
                 <a href="${calUrl}" target="_blank" style="flex:1; background:#333; color:white; padding:10px; border-radius:8px; text-align:center; text-decoration:none; font-weight:600; font-family:'Inter',sans-serif;">
                     <i class="fa-regular fa-calendar-plus"></i> Add to Cal
                 </a>
-                <button onclick="shareEvent('${data.title}')" style="flex:1; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
+                <button id="shareBtn" style="flex:1; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
                     <i class="fa-solid fa-share-nodes"></i> Share
                 </button>
             `;
 
       infoCard.appendChild(actionsDiv);
+      const shareBtn = document.getElementById("shareBtn");
+if (shareBtn) {
+  shareBtn.addEventListener("click", () => shareEvent(data.title));
+}
+
     }
 
     window.shareEvent = async (title) => {
@@ -527,7 +553,8 @@ if (token) {
     });
 
     document.getElementById('avgRatingVal').textContent =
-      (total / reviews.length).toFixed(1);
+    reviews.length ? (total / reviews.length).toFixed(1) : "--";
+
 
   } catch (err) {
     console.error("Failed to load comments");

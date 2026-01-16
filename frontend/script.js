@@ -456,6 +456,40 @@ window.initMap = function () {
         console.error('❌ Map init failed:', error);
     }
 };
+function initUploadMap() {
+  const mapEl = document.getElementById("uploadMap");
+  if (!mapEl) return;
+
+  const center = currentLocation || { lat: 22.3200, lng: 87.3150 };
+
+  uploadMap = new google.maps.Map(mapEl, {
+    center,
+    zoom: 15,
+    disableDefaultUI: true
+  });
+
+  uploadMap.addListener("click", (e) => {
+    const pos = {
+      lat: e.latLng.lat(),
+      lng: e.latLng.lng()
+    };
+
+    selectedEventLocation = pos;
+
+    if (uploadMarker) uploadMarker.setMap(null);
+
+    uploadMarker = new google.maps.Marker({
+      position: pos,
+      map: uploadMap
+    });
+
+    document.getElementById("selectedLocationText").innerText =
+      `📍 ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+
+    showToast("Event location pinned", "success");
+  });
+}
+
 
 // ========================================
 // 7A. LOAD & DISPLAY EVENTS (PostgreSQL)
@@ -571,21 +605,47 @@ function displayEventsInList(events) {
 // ========================================
 // 8. UPLOAD FORM
 // ========================================
+// ---------- IMAGE UPLOAD HANDLER ----------
+const imageInput = document.getElementById("eventImageInput");
+const imagePreview = document.getElementById("eventImagePreview");
+
+if (imageInput) {
+  imageInput.addEventListener("change", () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+
+    selectedFiles = [file]; // store for submit
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      imagePreview.src = reader.result;
+      imagePreview.style.display = "block";
+      showToast("Image selected", "success");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 
 function openUploadForm() {
-    if (!currentUser) {
-        alert("Please log in first.");
-        return;
-    }
-    
-    const userEmail = currentUser.email ? currentUser.email.toLowerCase() : "";
-    if (!ALLOWED_HOST_EMAILS.includes(userEmail)) {
-        alert("You are not authorized to host events.");
-        return;
-    }
-    
-    document.querySelector(".uploadOverlay").classList.add("show");
+  if (!currentUser) {
+    alert("Please log in first.");
+    return;
+  }
+
+  const userEmail = currentUser.email ? currentUser.email.toLowerCase() : "";
+  if (!ALLOWED_HOST_EMAILS.includes(userEmail)) {
+    alert("You are not authorized to host events.");
+    return;
+  }
+
+  document.querySelector(".uploadOverlay").classList.add("show");
+
+  setTimeout(() => {
+    initUploadMap();
+  }, 300);
 }
+
 
 function closeUploadForm() {
     document.querySelector(".uploadOverlay").classList.remove("show");
@@ -637,8 +697,39 @@ async function handleEventSubmit() {
 
 
 function useHostGPS() {
-    alert("Host GPS feature coming soon!");
+  if (!navigator.geolocation) {
+    showToast("Geolocation not supported", "error");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const loc = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude
+      };
+
+      selectedEventLocation = loc;
+
+      if (uploadMarker) uploadMarker.setMap(null);
+
+      uploadMarker = new google.maps.Marker({
+        position: loc,
+        map: uploadMap
+      });
+
+      uploadMap.setCenter(loc);
+      uploadMap.setZoom(16);
+
+      document.getElementById("selectedLocationText").innerText =
+        `📍 ${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
+
+      showToast("Using your current location", "success");
+    },
+    () => showToast("Location permission denied", "error")
+  );
 }
+
 
 function searchHostLocation() {
     alert("Search location feature coming soon!");
