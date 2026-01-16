@@ -213,21 +213,63 @@ app.post("/api/user/avatar", jwtMiddleware, async (req, res) => {
 
 // Nearby events
 app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
-  const { latitude, longitude } = req.query;
-  const radius = parseFloat(req.query.radius ?? 50);
+  const {
+    latitude,
+    longitude,
+    radius = 50,
+    category,
+    dateFrom,
+    dateTo
+  } = req.query;
 
   if (!latitude || !longitude) {
     return res.status(400).json({ error: "Missing location" });
   }
 
-  const latNum = parseFloat(latitude);
-  const lonNum = parseFloat(longitude);
+  const lat = parseFloat(latitude);
+  const lng = parseFloat(longitude);
+  const rad = parseFloat(radius);
 
-  if (!Number.isFinite(latNum) || !Number.isFinite(lonNum) || !Number.isFinite(radius)) {
-    return res.status(400).json({ error: "Invalid numeric location or radius" });
+  if (![lat, lng, rad].every(Number.isFinite)) {
+    return res.status(400).json({ error: "Invalid numeric parameters" });
   }
 
   try {
+    const params = [];
+    let idx = 1;
+
+    // distance filter (mandatory)
+    let where = [
+      `(6371 * acos(
+        cos(radians($${idx})) * cos(radians(latitude)) *
+        cos(radians(longitude) - radians($${idx + 1})) +
+        sin(radians($${idx})) * sin(radians(latitude))
+      )) < $${idx + 2}`
+    ];
+
+    params.push(lat, lng, rad);
+    idx += 3;
+
+    // category filter
+    if (category && category !== "all") {
+      where.push(`category = $${idx}`);
+      params.push(category);
+      idx++;
+    }
+
+    // date filters
+    if (dateFrom) {
+      where.push(`event_date >= $${idx}`);
+      params.push(dateFrom);
+      idx++;
+    }
+
+    if (dateTo) {
+      where.push(`event_date <= $${idx}`);
+      params.push(dateTo);
+      idx++;
+    }
+
     const query = `
       SELECT id, title, description, category, venue_name, address,
              latitude, longitude, event_date, created_at,
@@ -237,28 +279,24 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
           sin(radians($1)) * sin(radians(latitude))
         )) AS distance
       FROM events
-      WHERE (6371 * acos(
-        cos(radians($1)) * cos(radians(latitude)) *
-        cos(radians(longitude) - radians($2)) +
-        sin(radians($1)) * sin(radians(latitude))
-      )) < $3
-      AND event_date >= CURRENT_DATE
+      WHERE ${where.join(" AND ")}
       ORDER BY distance
       LIMIT 50
     `;
 
-    const result = await pool.query(query, [
-      latNum,
-      lonNum,
-      radius
-    ]);
+    const result = await pool.query(query, params);
 
-    res.json({ success: true, events: result.rows, count: result.rows.length });
+    res.json({
+      success: true,
+      count: result.rows.length,
+      events: result.rows
+    });
   } catch (err) {
     console.error("Nearby events error:", err);
     res.status(500).json({ error: "Failed to fetch events" });
   }
 });
+
 
 // Get all events (public)
 app.get("/api/events", async (req, res) => {

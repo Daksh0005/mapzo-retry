@@ -46,6 +46,16 @@ const EVENT_EMOJIS = {
     'cultural': '🎭',
     'default': '📍'
 };
+// ========================================
+// FILTER STATE
+// ========================================
+const filterState = {
+  distanceKm: 50,        // default
+  category: "all",       // "Music", "Tech", etc
+  dateFrom: null,        // YYYY-MM-DD
+  dateTo: null           // YYYY-MM-DD
+};
+
 
 // ========================================
 // 3. AUTHENTICATION
@@ -376,14 +386,31 @@ function closeFilterModal() {
 }
 
 function resetFilters() {
-    console.log("Filters reset");
+    filterState.distanceKm = 50;
+    filterState.category = "all";
+    filterState.dateFrom = null;
+    filterState.dateTo = null;
+
+    // UI reset
+    document.getElementById("distanceInput").value = 50;
+    document.getElementById("distanceRange").value = 50;
+
+    document.querySelectorAll(".categoryCard").forEach(c => c.classList.remove("active"));
+    document.querySelector('.categoryCard[data-category="all"]')?.classList.add("active");
+
+    document.querySelectorAll(".quickFilterBtn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".calendarDay.selected").forEach(d => d.classList.remove("selected"));
+
     closeFilterModal();
+    loadNearbyEvents();
 }
 
+
 function applyFilters() {
-    console.log("Filters applied");
     closeFilterModal();
+    loadNearbyEvents();
 }
+
 
 // ========================================
 // 7. MAP INITIALIZATION
@@ -441,11 +468,29 @@ async function loadNearbyEvents() {
     }
 
     try {
-        const radius = 50; // km
-        const res = await fetch(
-            `${API_BASE}/api/events/nearby?latitude=${currentLocation.lat}&longitude=${currentLocation.lng}&radius=${radius}`,
-            { headers: authHeaders() }
-        );
+        const params = new URLSearchParams({
+  latitude: currentLocation.lat,
+  longitude: currentLocation.lng,
+  radius: filterState.distanceKm
+});
+
+if (filterState.category !== "all") {
+  params.append("category", filterState.category);
+}
+
+if (filterState.dateFrom) {
+  params.append("dateFrom", filterState.dateFrom);
+}
+
+if (filterState.dateTo) {
+  params.append("dateTo", filterState.dateTo);
+}
+
+const res = await fetch(
+  `${API_BASE}/api/events/nearby?${params.toString()}`,
+  { headers: authHeaders() }
+);
+
 
         if (!res.ok) throw new Error("Failed to fetch events");
 
@@ -766,11 +811,34 @@ document.body.addEventListener("click", (e) => {
 
       if (quick) {
         // set calendar / chosen date filter - simple behavior
+        document.querySelectorAll('.calendarDay.selected')
+  .forEach(d => d.classList.remove('selected'));
+
         document.querySelectorAll('.quickFilterBtn[data-quick]').forEach(b => b.classList.remove('active'));
         e.currentTarget.classList.add('active');
 
         // for UI feedback: show chosen range in a hidden filter state
-        console.log("Date quick filter selected:", quick);
+       const today = new Date();
+let from, to;
+
+if (quick === "today") {
+  from = to = today;
+}
+if (quick === "tomorrow") {
+  from = to = new Date(today.getTime() + 86400000);
+}
+if (quick === "week") {
+  from = today;
+  to = new Date(today.getTime() + 7 * 86400000);
+}
+if (quick === "month") {
+  from = today;
+  to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+}
+
+filterState.dateFrom = from.toISOString().slice(0, 10);
+filterState.dateTo = to.toISOString().slice(0, 10);
+
         // you can map 'today' => set date query etc
       }
 
@@ -780,6 +848,7 @@ document.body.addEventListener("click", (e) => {
         const km = parseInt(distance, 10);
         document.getElementById('distanceInput').value = km;
         document.getElementById('distanceRange').value = Math.min(km, 500);
+        filterState.distanceKm = km;
       }
     });
   });
@@ -789,22 +858,26 @@ document.body.addEventListener("click", (e) => {
   const distanceInput = document.getElementById('distanceInput');
   if (distanceRange && distanceInput) {
     distanceRange.addEventListener('input', () => {
-      distanceInput.value = distanceRange.value;
-    });
-    distanceInput.addEventListener('input', () => {
-      let v = parseInt(distanceInput.value || 0, 10);
-      if (isNaN(v)) v = 0;
-      if (v < parseInt(distanceRange.min)) v = distanceRange.min;
-      if (v > parseInt(distanceRange.max)) v = distanceRange.max;
-      distanceRange.value = v;
-    });
-  }
+  distanceInput.value = distanceRange.value;
+  filterState.distanceKm = parseInt(distanceRange.value, 10);
+});
+
+   distanceInput.addEventListener('input', () => {
+  let v = parseInt(distanceInput.value || 0, 10);
+  if (isNaN(v)) v = 0;
+  if (v < parseInt(distanceRange.min)) v = distanceRange.min;
+  if (v > parseInt(distanceRange.max)) v = distanceRange.max;
+
+  distanceRange.value = v;
+  filterState.distanceKm = v;
+});
+}
 
   //autodetect location checkbox
   // Auto-detect location on load
 if (navigator.geolocation) {
     setTimeout(() => {
-        if (!currentLocation) enableGPS();
+        if (!currentLocation && mapInitialized) enableGPS();
     }, 800);
 }
 
@@ -814,7 +887,7 @@ if (navigator.geolocation) {
     card.addEventListener('click', () => {
       document.querySelectorAll('.categoryCard').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
-      console.log('Category selected:', card.dataset.category);
+      filterState.category = card.dataset.category;
     });
   });
 
@@ -845,14 +918,21 @@ if (navigator.geolocation) {
       el.type = 'button';
       el.innerText = d;
       el.addEventListener('click', () => {
-        // when user selects a date, mark and set quick filter state
-        document.querySelectorAll('.calendarDay.selected').forEach(x => x.classList.remove('selected'));
-        el.classList.add('selected');
-        console.log('Calendar date picked:', `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
-        // optionally map this to filters or set the upload form date
-        const dateInput = document.getElementById('eventDate');
-        if (dateInput) dateInput.value = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      });
+  document.querySelectorAll('.calendarDay.selected').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+
+  const selectedDate =
+    `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+  filterState.dateFrom = selectedDate;
+  filterState.dateTo = selectedDate;
+
+  const dateInput = document.getElementById('eventDate');
+  if (dateInput) dateInput.value = selectedDate;
+});
+calendarDays.appendChild(el);
+
+
       calendarDays.appendChild(el);
     }
     const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
