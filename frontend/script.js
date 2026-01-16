@@ -292,6 +292,22 @@ function enableGPS() {
             if (map) {
                 map.setCenter(userPos);
                 map.setZoom(15);
+                if (userLocationMarker) userLocationMarker.setMap(null);
+
+userLocationMarker = new google.maps.Marker({
+    position: userPos,
+    map,
+    title: "Your Location",
+    icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 7,
+        fillColor: "#4285F4",
+        fillOpacity: 1,
+        strokeColor: "#fff",
+        strokeWeight: 2
+    }
+});
+
             }
 
             document.querySelector(".locationOverlay")?.classList.remove("show");
@@ -302,9 +318,28 @@ function enableGPS() {
             }
 
             showToast("Location found!", "success");
+loadNearbyEvents();
+saveUserLocation(userPos);
         },
         () => alert("Location permission denied")
     );
+}
+async function saveUserLocation(pos) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+        await fetch(`${API_BASE}/api/user/location`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({
+                latitude: pos.lat,
+                longitude: pos.lng
+            })
+        });
+    } catch (err) {
+        console.warn("Failed to save user location");
+    }
 }
 
 
@@ -395,6 +430,99 @@ window.initMap = function () {
 };
 
 // ========================================
+// 7A. LOAD & DISPLAY EVENTS (PostgreSQL)
+// ========================================
+
+async function loadNearbyEvents() {
+    if (!currentLocation) {
+        console.log("No location available yet");
+        return;
+    }
+
+    try {
+        const radius = 50; // km
+        const res = await fetch(
+            `${API_BASE}/api/events/nearby?latitude=${currentLocation.lat}&longitude=${currentLocation.lng}&radius=${radius}`,
+            { headers: authHeaders() }
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch events");
+
+        const data = await res.json();
+        displayEventsOnMap(data.events || []);
+        displayEventsInList(data.events || []);
+
+    } catch (err) {
+        console.error("Error loading events:", err);
+        showToast("Failed to load nearby events", "error");
+    }
+}
+
+function displayEventsOnMap(events) {
+    eventMarkers.forEach(m => m.setMap(null));
+    eventMarkers = [];
+
+    events.forEach(event => {
+        if (!event.latitude || !event.longitude) return;
+
+        const emoji = EVENT_EMOJIS[event.category?.toLowerCase()] || EVENT_EMOJIS.default;
+
+        const marker = new google.maps.Marker({
+            position: {
+                lat: parseFloat(event.latitude),
+                lng: parseFloat(event.longitude)
+            },
+            map,
+            title: event.title,
+            label: { text: emoji, fontSize: "22px" }
+        });
+
+        marker.addListener("click", () => {
+            window.location.href = `event.html?id=${event.id}`;
+        });
+
+        eventMarkers.push(marker);
+    });
+}
+
+function displayEventsInList(events) {
+    const container = document.querySelector(".eventsScroll");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (events.length === 0) {
+        container.innerHTML = `<p style="padding:20px;text-align:center;color:#666;">
+            No events found nearby
+        </p>`;
+        return;
+    }
+
+    events.forEach(event => {
+        const card = document.createElement("div");
+        card.className = "eventCard";
+
+        const emoji = EVENT_EMOJIS[event.category?.toLowerCase()] || EVENT_EMOJIS.default;
+
+        card.innerHTML = `
+            <div class="eventImage">${emoji}</div>
+            <div class="eventInfo">
+                <h4>${event.title}</h4>
+                <p>${event.venue_name || event.address || ""}</p>
+                <p>${new Date(event.event_date).toLocaleDateString()}</p>
+            </div>
+        `;
+
+        card.onclick = () => {
+            window.location.href = `event.html?id=${event.id}`;
+        };
+
+        container.appendChild(card);
+    });
+}
+
+
+// ========================================
 // 8. UPLOAD FORM
 // ========================================
 
@@ -417,9 +545,50 @@ function closeUploadForm() {
     document.querySelector(".uploadOverlay").classList.remove("show");
 }
 
-function handleEventSubmit() {
-    alert("Event submission feature coming soon!");
+async function handleEventSubmit() {
+    const token = localStorage.getItem("token");
+    if (!token) return alert("Please log in first");
+
+    if (!selectedEventLocation) {
+        alert("Select event location on map");
+        return;
+    }
+
+    const data = {
+        title: document.getElementById("eventName").value.trim(),
+        category: document.getElementById("uploadEventCategory").value,
+        venue_name: document.getElementById("eventLocation").value.trim(),
+        address: document.getElementById("eventLocation").value.trim(),
+        latitude: selectedEventLocation.lat,
+        longitude: selectedEventLocation.lng,
+        event_date: document.getElementById("eventDate").value,
+        description: document.getElementById("eventDescription").value.trim()
+    };
+
+    if (!data.title || !data.category || !data.event_date) {
+        alert("Missing required fields");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/api/events`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify(data)
+        });
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error);
+
+        showToast("Event created successfully", "success");
+        closeUploadForm();
+        loadNearbyEvents();
+
+    } catch (err) {
+        alert(err.message || "Failed to create event");
+    }
 }
+
 
 function useHostGPS() {
     alert("Host GPS feature coming soon!");
@@ -629,6 +798,15 @@ document.body.addEventListener("click", (e) => {
       distanceRange.value = v;
     });
   }
+
+  //autodetect location checkbox
+  // Auto-detect location on load
+if (navigator.geolocation) {
+    setTimeout(() => {
+        if (!currentLocation) enableGPS();
+    }, 800);
+}
+
 
   // Category grid selection
   document.querySelectorAll('.categoryCard').forEach(card => {

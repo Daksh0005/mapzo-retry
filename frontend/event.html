@@ -284,7 +284,6 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
@@ -361,18 +360,6 @@
 
   <script>
     // --- 1. FIREBASE CONFIG ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyBqeFuoFfT-z7YhRoWOIH2nKO_oV3hiQkk",
-      authDomain: "mapzo-368c2.firebaseapp.com",
-      projectId: "mapzo-368c2",
-      storageBucket: "mapzo-368c2.firebasestorage.app",
-      messagingSenderId: "803894616922",
-      appId: "1:803894616922:web:ec5d59b466b90c75538963",
-      measurementId: "G-97HKCXB2L9"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
 
     // --- 2. GET ID FROM URL ---
     const urlParams = new URLSearchParams(window.location.search);
@@ -380,17 +367,16 @@
     let currentUser = null;
 
     // --- 3. CHECK AUTH ---
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        currentUser = user;
-        document.getElementById('addCommentBox').style.display = 'block';
-        document.getElementById('loginToComment').style.display = 'none';
-      } else {
-        currentUser = null;
-        document.getElementById('addCommentBox').style.display = 'none';
-        document.getElementById('loginToComment').style.display = 'block';
-      }
-    });
+    const token = localStorage.getItem("token");
+
+if (token) {
+  document.getElementById("addCommentBox").style.display = "block";
+  document.getElementById("loginToComment").style.display = "none";
+} else {
+  document.getElementById("addCommentBox").style.display = "none";
+  document.getElementById("loginToComment").style.display = "block";
+}
+
 
     // --- 4. LOAD DATA ---
     if (eventId) {
@@ -401,71 +387,34 @@
       document.getElementById('loadingState').innerHTML = '<p>No event ID provided. <br><a href="index.html" style="color:#1db954;">Go back to Home</a></p>';
     }
 
-    function loadEventDetails() {
-      const eventRef = db.collection('events').doc(eventId);
+    async function loadEventDetails() {
+  try {
+    const res = await fetch(`${API_BASE}/api/events/${eventId}`);
+    if (!res.ok) throw new Error("Event not found");
 
-      // Increment View Counter (Quietly fail if permissions issues)
-      eventRef.update({
-        views: firebase.firestore.FieldValue.increment(1)
-      }).catch(err => console.log("View count skipped:", err));
+    const { event } = await res.json();
 
-      eventRef.get().then((doc) => {
-        if (doc.exists) {
-          const data = doc.data();
+    document.getElementById('displayTitle').textContent = event.title;
+    document.getElementById('displayCategory').textContent = event.category;
+    document.getElementById('displayDate').textContent =
+      new Date(event.event_date).toLocaleDateString();
+    document.getElementById('displayTime').textContent = event.event_time || "";
+    document.getElementById('displayLocation').textContent =
+      event.venue_name || event.address;
+    document.getElementById('displayDesc').textContent = event.description;
 
-          document.getElementById('displayTitle').textContent = data.title;
-          document.getElementById('displayCategory').textContent = data.category;
-          document.getElementById('displayDate').textContent = data.date;
-          document.getElementById('displayTime').textContent = data.time;
-          document.getElementById('displayLocation').textContent = data.location;
-          document.getElementById('displayDesc').textContent = data.description;
+    document.getElementById('displayImage').src =
+      event.image_url || "https://via.placeholder.com/600x350?text=No+Image";
 
-          // Image Handling
-          let imgUrl = 'https://via.placeholder.com/600x350?text=No+Image';
-          if (data.images && data.images.length > 0) imgUrl = data.images[0];
-          else if (data.image) imgUrl = data.image;
-          document.getElementById('displayImage').src = imgUrl;
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('eventContent').style.display = 'block';
 
-          if (data.tags) document.getElementById('displayTags').textContent = data.tags.join(' ');
-
-          // --- HOST ANNOUNCEMENT CHECK ---
-          if (data.announcement) {
-            const announcementDiv = document.createElement('div');
-            announcementDiv.style.cssText = `
-        background: rgba(255, 68, 68, 0.2); 
-        border: 1px solid #ff4444; 
-        color: #ffcccc; 
-        padding: 15px; 
-        border-radius: 12px; 
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    `;
-            announcementDiv.innerHTML = `
-        <i class="fa-solid fa-bullhorn" style="font-size: 1.2rem; color: #ff4444;"></i>
-        <div>
-            <h4 style="margin:0; font-size:0.95rem; color:#fff;">Host Announcement</h4>
-            <p style="margin:4px 0 0; font-size:0.9rem;">${data.announcement}</p>
-        </div>
-    `;
-
-            // Insert after title
-            const titleEl = document.getElementById('displayTitle');
-            titleEl.parentNode.insertBefore(announcementDiv, titleEl.nextSibling);
-          }
-          injectActionButtons(data);
-
-          document.getElementById('loadingState').style.display = 'none';
-          document.getElementById('eventContent').style.display = 'block';
-        } else {
-          document.getElementById('loadingState').innerHTML = '<p>Event not found.</p>';
-        }
-      }).catch(err => {
-        console.error(err);
-        document.getElementById('loadingState').innerHTML = '<p>Error loading data. Check console.</p>';
-      });
-    }
+  } catch (err) {
+    document.getElementById('loadingState').innerHTML =
+      `<p>Event not found.<br>
+      <a href="index.html" style="color:#1db954;">Go back</a></p>`;
+  }
+}
 
     function injectActionButtons(data) {
       const infoCard = document.querySelector('.infoCard');
@@ -508,68 +457,82 @@
       }
     };
 
-    function submitComment() {
-      if (!currentUser) return alert("Please log in first.");
-      const text = document.getElementById('commentText').value.trim();
-      const ratingInput = document.querySelector('input[name="rating"]:checked');
-      const rating = ratingInput ? parseInt(ratingInput.value) : 0;
+    async function submitComment() {
+  const token = localStorage.getItem("token");
+  if (!token) return alert("Please log in first");
 
-      if (rating === 0) return alert("Please select a star rating.");
-      if (text === "") return alert("Please write a comment.");
+  const rating = document.querySelector('input[name="rating"]:checked')?.value;
+  const text = document.getElementById('commentText').value.trim();
 
-      db.collection('events').doc(eventId).collection('comments').add({
-        userId: currentUser.uid,
-        userEmail: currentUser.email,
-        userName: currentUser.displayName || currentUser.email.split('@')[0],
-        rating: rating,
-        text: text,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        alert("Review posted!");
-        document.getElementById('commentText').value = "";
-        document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-      }).catch(err => alert("Error: " + err.message));
+  if (!rating) return alert("Select a rating");
+  if (!text) return alert("Write a comment");
+
+  try {
+    const res = await fetch(`${API_BASE}/api/events/${eventId}/reviews`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        rating: parseInt(rating),
+        comment: text
+      })
+    });
+
+    if (!res.ok) throw new Error("Failed to post review");
+
+    document.getElementById('commentText').value = "";
+    document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+    loadComments();
+
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+    async function loadComments() {
+  try {
+    const res = await fetch(`${API_BASE}/api/events/${eventId}/reviews`);
+    const { reviews } = await res.json();
+
+    const list = document.getElementById('commentsList');
+    list.innerHTML = "";
+
+    if (!reviews.length) {
+      list.innerHTML = '<p style="text-align:center;color:#666;">No reviews yet</p>';
+      document.getElementById('avgRatingVal').textContent = "--";
+      return;
     }
 
-    function loadComments() {
-      db.collection('events').doc(eventId).collection('comments')
-        .orderBy('timestamp', 'desc')
-        .onSnapshot((snapshot) => {
-          const list = document.getElementById('commentsList');
-          list.innerHTML = "";
+    let total = 0;
 
-          if (snapshot.empty) {
-            list.innerHTML = '<p style="text-align:center; color:#666;">No reviews yet. Be the first!</p>';
-            document.getElementById('avgRatingVal').textContent = "--";
-            return;
-          }
+    reviews.forEach(r => {
+      total += r.rating;
+      const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
 
-          let totalRating = 0;
-          let count = 0;
+      const item = document.createElement("div");
+      item.className = "commentItem";
+      item.innerHTML = `
+        <div class="commentUser">
+          <span>${r.user_name || "User"}</span>
+          <span class="commentStars">${stars}</span>
+        </div>
+        <div class="commentText">${r.comment}</div>
+        <div class="commentDate">
+          ${new Date(r.created_at).toLocaleDateString()}
+        </div>
+      `;
+      list.appendChild(item);
+    });
 
-          snapshot.forEach(doc => {
-            const c = doc.data();
-            totalRating += c.rating;
-            count++;
+    document.getElementById('avgRatingVal').textContent =
+      (total / reviews.length).toFixed(1);
 
-            const dateObj = c.timestamp ? c.timestamp.toDate() : new Date();
-            const dateStr = dateObj.toLocaleDateString();
-
-            let starsHtml = "";
-            for (let i = 0; i < 5; i++) starsHtml += i < c.rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
-
-            const item = document.createElement('div');
-            item.className = 'commentItem';
-            item.innerHTML = `
-                            <div class="commentUser"><span>${c.userName}</span><span class="commentStars">${starsHtml}</span></div>
-                            <div class="commentText">${c.text}</div>
-                            <div class="commentDate">${dateStr}</div>
-                        `;
-            list.appendChild(item);
-          });
-          document.getElementById('avgRatingVal').textContent = (totalRating / count).toFixed(1);
-        });
-    }
+  } catch (err) {
+    console.error("Failed to load comments");
+  }
+}
   </script>
 </body>
 
