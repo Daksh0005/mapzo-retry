@@ -100,7 +100,7 @@ font-src
 <body>
     <nav class="navBar1" role="navigation" aria-label="Main navigation">
         <div class="navLeft">
-            <img src="images\Untitled.png" alt="Mapzo Logo" class="navLogo">
+            <img src="images/Untitled.png" alt="Mapzo Logo" class="navLogo">
             <p class="navBrand">Mapzo</p>
         </div>
         <button class="navMenu" aria-label="Open menu" onclick="toggleMenu()">
@@ -114,14 +114,28 @@ font-src
             <p class="locDes" id="locationDisplay">Enable<br>Location</p>
         </div>
         <div class="navLoc" onclick="openFilterModal()">
-            <i class="fa-solid fa-sliders"></i>
-            <p class="locDes">Filters</p>
+        <i class="fa-solid fa-sliders"></i>
+        <p class="locDes">
+            Filters
+            <span id="activeFilterBadge" class="filterBadge" style="display:none;">●</span>
+         </p>
         </div>
-        <form class="navSearch" role="search">
-            <input placeholder="#Hashtags" type="search" class="navSrchBar" aria-label="Search events by hashtag">
-            <button class="navButton" type="submit" aria-label="Search">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
+        <form class="navSearch" role="search" onsubmit="event.preventDefault()">
+  <input
+    id="searchInput"
+    placeholder="#Hashtags, event name, category"
+    type="search"
+    class="navSrchBar"
+    autocomplete="off"
+    aria-label="Search events"
+  >
+  <button class="navButton" type="submit">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+
+  <!-- Smart search dropdown -->
+  <div class="searchDropdown" id="searchDropdown"></div>
+</form>
         </form>
     </header>
 
@@ -169,7 +183,9 @@ font-src
                     <input type="text" class="locationSearchInput" id="manualLocationInput"
                         placeholder="Type city, district, or village..." oninput="handleLocationSearch(this.value)">
                 </div>
-                <div class="locationSuggestions" id="locationSuggestions"></div>
+                <div class="locationSuggestions" id="locationSuggestions">
+                    <p class="locationHint">Start typing to search locations</p>
+                </div>
             </div>
         </div>
     </div>
@@ -276,11 +292,13 @@ font-src
             <h2 class="sectionTitle">Relevant Events</h2>
             <a href="#" class="seeAll">See all</a>
         </div>
-        <div class="eventsScroll">
-        </div>
+        <p class="eventsHint">
+  Events near your location will appear here
+</p>
+
     </section>
 
-    <div class="hostBar">
+    <div class="hostBar floating">
         <button class="hostBox" aria-label="Add Event" onclick="openUploadForm()">
             <i class="fa-solid fa-plus"></i>
         </button>

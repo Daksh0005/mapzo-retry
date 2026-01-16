@@ -584,14 +584,34 @@ function displayEventsInList(events) {
 
         const emoji = EVENT_EMOJIS[event.category?.toLowerCase()] || EVENT_EMOJIS.default;
 
-        card.innerHTML = `
-            <div class="eventImage">${emoji}</div>
-            <div class="eventInfo">
-                <h4>${event.title}</h4>
-                <p>${event.venue_name || event.address || ""}</p>
-                <p>${new Date(event.event_date).toLocaleDateString()}</p>
-            </div>
-        `;
+        const imageUrl = event.image_url || null;
+
+card.innerHTML = `
+  <div class="eventCardMedia">
+    ${
+      imageUrl
+        ? `<img src="${imageUrl}" alt="${event.title}">`
+        : `<div class="eventEmojiFallback">${emoji}</div>`
+    }
+    <span class="eventCategoryBadge">${event.category || "Event"}</span>
+  </div>
+
+  <div class="eventCardBody">
+    <h4 class="eventTitle">${event.title}</h4>
+
+    <div class="eventMeta">
+      <span>
+        <i class="fa-solid fa-location-dot"></i>
+        ${event.venue_name || event.address || "Location"}
+      </span>
+      <span>
+        <i class="fa-regular fa-calendar"></i>
+        ${new Date(event.event_date).toLocaleDateString()}
+      </span>
+    </div>
+  </div>
+`;
+
 
         card.onclick = () => {
             window.location.href = `event.html?id=${event.id}`;
@@ -601,6 +621,97 @@ function displayEventsInList(events) {
     });
 }
 
+// ========================================
+// SMART SEARCH DROPDOWN
+// ========================================
+
+let searchDebounceTimer = null;
+
+function initSmartSearch() {
+  const input = document.getElementById("searchInput");
+  const dropdown = document.getElementById("searchDropdown");
+
+  if (!input || !dropdown) return;
+
+  input.addEventListener("input", () => {
+    const query = input.value.trim();
+
+    clearTimeout(searchDebounceTimer);
+
+    if (query.length < 2) {
+      dropdown.innerHTML = "";
+      dropdown.style.display = "none";
+      return;
+    }
+
+    searchDebounceTimer = setTimeout(() => {
+      fetchSearchResults(query, dropdown);
+    }, 300);
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".navSearch")) {
+      dropdown.style.display = "none";
+    }
+  });
+}
+
+async function fetchSearchResults(query, dropdown) {
+  try {
+    dropdown.innerHTML = `<div class="searchItem"><span>Searching…</span></div>`;
+    dropdown.style.display = "block";
+
+    const res = await fetch(
+      `${API_BASE}/api/events/search?q=${encodeURIComponent(query)}`,
+      { headers: authHeaders() }
+    );
+
+    if (!res.ok) throw new Error("Search failed");
+
+    const data = await res.json();
+    renderSearchResults(data.events || [], dropdown);
+
+  } catch (err) {
+    console.error("Search error:", err);
+    dropdown.innerHTML = `
+      <div class="searchItem">
+        <span>Failed to load results</span>
+      </div>`;
+  }
+}
+
+function renderSearchResults(events, dropdown) {
+  dropdown.innerHTML = "";
+
+  if (!events.length) {
+    dropdown.innerHTML = `
+      <div class="searchItem">
+        <span>No matching events found</span>
+      </div>`;
+    return;
+  }
+
+  events.forEach(event => {
+    const item = document.createElement("div");
+    item.className = "searchItem";
+
+    item.innerHTML = `
+      <strong>${event.title}</strong>
+      <span>${event.category || "Event"} • ${
+        event.venue_name || event.address || "Location"
+      }</span>
+    `;
+
+    item.addEventListener("click", () => {
+      window.location.href = `event.html?id=${event.id}`;
+    });
+
+    dropdown.appendChild(item);
+  });
+
+  dropdown.style.display = "block";
+}
 
 // ========================================
 // 8. UPLOAD FORM
@@ -742,11 +853,13 @@ function searchHostLocation() {
 document.addEventListener("DOMContentLoaded", () => {
     console.log("🚀 Mapzo initializing...");
 
+
     // Initialize map if Google Maps loaded
     if (typeof google !== 'undefined' && google.maps && !mapInitialized) {
         window.initMap();
     }
     
+    initSmartSearch();
 
     // Login Form Handler
     const loginForm = document.getElementById("loginForm");
