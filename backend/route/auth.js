@@ -1,20 +1,20 @@
-// DEV: log incoming body for debug
-console.log('/auth/google called - body:', req.body);
-
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const admin = require("firebase-admin");
-const { Pool } = require("pg");
+const pool = require("../db");
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+  });
+}
+
+
 
 const { signupUser, loginUser } = require("../auth/localAuth");
 
 const router = express.Router();
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  family: 4
-});
 
 /* =========================
    LOCAL AUTH
@@ -23,6 +23,10 @@ const pool = new Pool({
 router.post("/signup", async (req, res) => {
   try {
     const { email, password, displayName } = req.body;
+    if (!email || !password) {
+  return res.status(400).json({ error: "Email and password required" });
+}
+
     const token = await signupUser(email, password, displayName);
     res.status(201).json({ token });
   } catch (err) {
@@ -33,6 +37,9 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) {
+  return res.status(400).json({ error: "Email and password required" });
+}
     const token = await loginUser(email, password);
     res.json({ token });
   } catch (err) {
@@ -52,10 +59,16 @@ router.post("/google", async (req, res) => {
   }
 
   try {
-    const decoded = await admin.auth().verifyIdToken(idToken);
+      const decoded = await admin.auth().verifyIdToken(idToken, true);
 
-    const email = decoded.email;
-    const displayName = decoded.name || email.split("@")[0];
+      const email = decoded.email;
+
+    if (!email) {
+      return res.status(400).json({ error: "Google account has no email" });
+    }
+
+    const displayName = decoded.name?.slice(0, 50) || email.split("@")[0];
+
 
     if (!email) {
       return res.status(400).json({ error: "Google account has no email" });
@@ -75,10 +88,19 @@ router.post("/google", async (req, res) => {
     const user = result.rows[0];
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+  {
+    sub: user.id,
+    email: user.email,
+    provider: "google",
+  },
+  process.env.JWT_SECRET,
+  {
+    expiresIn: "7d",
+    issuer: "your-app",
+    audience: "frontend",
+  }
+);
+
 
     res.json({ token });
 

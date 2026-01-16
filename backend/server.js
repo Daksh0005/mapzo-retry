@@ -1,11 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { Pool } = require("pg");
 const admin = require("firebase-admin");
 
 const googleAuth = require("./route/auth");
 const jwtMiddleware = require("./auth/jwtMiddleware");
+const pool = require("./db");
+
 
 // ---------- INIT APP ----------
 const app = express();
@@ -16,9 +17,12 @@ const serviceAccount =
     ? require("/etc/secrets/serviceAccountKey.json")
     : require("./serviceAccountKey.json");
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+// Guard against double initialization
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
 // ---------- CORS - FIXED ----------
 const allowedOrigins = [
@@ -34,7 +38,7 @@ app.use(cors({
   origin: (origin, cb) => {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return cb(null, true);
-    
+
     if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
       cb(null, true);
     } else {
@@ -48,27 +52,18 @@ app.use(cors({
 app.use(express.json());
 
 // ---------- DATABASE ----------
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+
 
 // Test database connection
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('❌ Database connection failed:', err);
-  } else {
-    console.log('✅ Database connected at:', res.rows[0].now);
-  }
-});
+
 
 // ---------- AUTH ROUTES ----------
 app.use("/auth", googleAuth);
 
 // ---------- HEALTH CHECK ----------
 app.get("/", (req, res) => {
-  res.json({ 
-    status: "Backend running", 
+  res.json({
+    status: "Backend running",
     timestamp: new Date(),
     endpoints: {
       auth: "/auth/login, /auth/signup, /auth/google",
@@ -80,12 +75,12 @@ app.get("/", (req, res) => {
 
 // ---------- TOKEN VERIFICATION ENDPOINT ----------
 app.get("/auth/verify", jwtMiddleware, (req, res) => {
-  res.json({ 
-    success: true, 
+  // jwtMiddleware must set: req.user = { id, email, provider }
+  res.json({
+    success: true,
     user: {
-      email: req.user.email,
-      userId: req.user.userId,
-      displayName: req.user.displayName || req.user.email.split('@')[0]
+      id: req.user.id,
+      email: req.user.email
     }
   });
 });
@@ -95,7 +90,7 @@ app.get("/auth/verify", jwtMiddleware, (req, res) => {
 // Store user location
 app.post("/api/user/location", jwtMiddleware, async (req, res) => {
   const { latitude, longitude } = req.body;
-  const { email } = req.user;
+  const { id } = req.user; // use id (UUID) per updated schema
 
   if (latitude == null || longitude == null) {
     return res.status(400).json({ error: "Missing location" });
@@ -107,9 +102,9 @@ app.post("/api/user/location", jwtMiddleware, async (req, res) => {
        SET latitude = $1,
            longitude = $2,
            location_updated_at = CURRENT_TIMESTAMP
-       WHERE email = $3
+       WHERE id = $3
        RETURNING id, email, latitude, longitude`,
-      [latitude, longitude, email]
+      [latitude, longitude, id]
     );
 
     if (result.rows.length === 0) {
@@ -125,15 +120,23 @@ app.post("/api/user/location", jwtMiddleware, async (req, res) => {
 
 // Nearby events
 app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
-  const { latitude, longitude, radius = 50 } = req.query;
+  const { latitude, longitude } = req.query;
+  const radius = parseFloat(req.query.radius ?? 50);
 
   if (!latitude || !longitude) {
     return res.status(400).json({ error: "Missing location" });
   }
 
+  const latNum = parseFloat(latitude);
+  const lonNum = parseFloat(longitude);
+
+  if (!Number.isFinite(latNum) || !Number.isFinite(lonNum) || !Number.isFinite(radius)) {
+    return res.status(400).json({ error: "Invalid numeric location or radius" });
+  }
+
   try {
     const query = `
-      SELECT id, title, description, category, location, 
+      SELECT id, title, description, category, venue_name, address,
              latitude, longitude, event_date, created_at,
         (6371 * acos(
           cos(radians($1)) * cos(radians(latitude)) *
@@ -152,9 +155,9 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
     `;
 
     const result = await pool.query(query, [
-      parseFloat(latitude),
-      parseFloat(longitude),
-      parseFloat(radius)
+      latNum,
+      lonNum,
+      radius
     ]);
 
     res.json({ success: true, events: result.rows, count: result.rows.length });
@@ -168,14 +171,14 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
 app.get("/api/events", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, title, description, category, location,
+      `SELECT id, title, description, category, venue_name, address,
               latitude, longitude, event_date, created_at
        FROM events 
        WHERE event_date >= CURRENT_DATE
        ORDER BY event_date ASC 
        LIMIT 100`
     );
-    
+
     res.json({ success: true, events: result.rows, count: result.rows.length });
   } catch (err) {
     console.error("Get events error:", err);
@@ -187,18 +190,24 @@ app.get("/api/events", async (req, res) => {
 app.post("/api/events/:eventId/reviews", jwtMiddleware, async (req, res) => {
   const { eventId } = req.params;
   const { rating, comment } = req.body;
-  const { email } = req.user;
+  const { id: userId } = req.user; // user's UUID
 
   if (!rating || rating < 1 || rating > 5) {
     return res.status(400).json({ error: "Invalid rating (1-5)" });
   }
 
+  // Validate eventId is a UUID (basic check)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!eventId || !uuidRegex.test(eventId)) {
+    return res.status(400).json({ error: "Invalid event ID" });
+  }
+
   try {
     const result = await pool.query(
-      `INSERT INTO reviews (event_id, user_email, rating, comment)
+      `INSERT INTO reviews (event_id, user_id, rating, comment)
        VALUES ($1, $2, $3, $4)
-       RETURNING id, event_id, user_email, rating, comment, created_at`,
-      [eventId, email, rating, comment || null]
+       RETURNING id, event_id, user_id, rating, comment, created_at`,
+      [eventId, userId, rating, comment || null]
     );
 
     res.json({ success: true, review: result.rows[0] });
@@ -211,7 +220,7 @@ app.post("/api/events/:eventId/reviews", jwtMiddleware, async (req, res) => {
 // ---------- ERROR HANDLER ----------
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: "Internal server error",
     message: process.env.NODE_ENV === "development" ? err.message : undefined
   });
