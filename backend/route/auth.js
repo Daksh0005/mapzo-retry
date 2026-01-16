@@ -59,7 +59,7 @@ router.post("/google", async (req, res) => {
   }
 
   try {
-      const decoded = await admin.auth().verifyIdToken(idToken, true);
+      const decoded = await admin.auth().verifyIdToken(idToken);
 
       const email = decoded.email;
 
