@@ -21,35 +21,13 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="Mapzo" />
     <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preconnect" href="https://backend-jwqn.onrender.com">
+    <link rel="preconnect" href="https://maps.googleapis.com">
+    <link rel="preconnect" href="https://www.gstatic.com">
 
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00",
-            authDomain: "mapzo-26259.firebaseapp.com",
-            projectId: "mapzo-26259",
-            storageBucket: "mapzo-26259.firebasestorage.app",
-            messagingSenderId: "701273875886",
-            appId: "1:701273875886:web:00d1d079ba6875139dd43f",
-            measurementId: "G-2PJ0TMZVJT"
-        };
-
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        // Window globals
-        window.auth = auth;
-        window.db = db;
-    </script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
@@ -423,14 +401,14 @@
         <div class="footerInner">
             <div class="footerBrand">
                 <div class="footerBrandRow">
-                    <img class="footerLogo" src="images/Untitled.png" alt="Mapzo Logo">
+                    <img class="footerLogo" src="images/Untitled.png" alt="Mapzo Logo" loading="lazy">
                     <span class="footerName">Mapzo</span>
                 </div>
                 <p class="footerTagline">Never miss out anything!</p>
             </div>
             <div class="footerCard">
                 <div class="footerFounder">
-                    <img class="founderAvatar" src="images/founder.jpeg" alt="Daksh Arora">
+                    <img class="founderAvatar" src="images/founder.jpeg" alt="Daksh Arora" loading="lazy">
                     <div class="founderMeta">
                         <p class="founderName">Daksh Arora</p>
                         <p class="founderRole">Founder, Mapzo</p>
@@ -439,7 +417,7 @@
             </div>
             <div class="footerCard">
                 <div class="footerInstitute">
-                    <img class="instituteThumb" src="images/college.jpg" alt="IIT Kharagpur">
+                    <img class="instituteThumb" src="images/college.jpg" alt="IIT Kharagpur" loading="lazy">
                     <div class="instituteMeta">
                         <p class="instituteName">IIT Kharagpur</p>
                         <p class="instituteNote"> Based, Student-founded project</p>
@@ -478,7 +456,8 @@
                     </div>
 
                     <button class="authGoogleBtn" id="googleLoginBtn">
-                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
+                            loading="lazy">
                         Continue with Google
                     </button>
 
@@ -510,7 +489,8 @@
                     </div>
 
                     <button class="authGoogleBtn" id="googleSignupBtn">
-                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
+                            loading="lazy">
                         Continue with Google
                     </button>
 
@@ -653,9 +633,9 @@
         </div>
     </div>
 
-    <script src="utils.js"></script>
-    <script src="script.js"></script>
-    <script async defer
+    <script defer src="utils.js"></script>
+    <script defer src="script.js"></script>
+    <script defer
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAh0cLcA59_-Epn5rPyZNn-sigHeps4vyA&callback=initMap&loading=async&libraries=places">
         </script>
     <script>

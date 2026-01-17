@@ -626,7 +626,16 @@ function openUploadForm() {
     if (hostBar.style.display === "none") return showToast("Not authorized. Please verify as host.", "warning");
     document.querySelector(".uploadOverlay").classList.add("show");
     toggleBodyScroll(true);
-    setTimeout(() => { if (!uploadMap) initUploadMap(); }, 300);
+    setTimeout(() => {
+        if (!uploadMap) {
+            initUploadMap();
+        } else {
+            google.maps.event.trigger(uploadMap, 'resize');
+            if (selectedEventLocation) {
+                uploadMap.setCenter(selectedEventLocation);
+            }
+        }
+    }, 300);
 }
 
 function closeUploadForm() {
