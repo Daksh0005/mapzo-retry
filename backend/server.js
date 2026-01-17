@@ -246,8 +246,27 @@ app.post("/api/user/avatar", jwtMiddleware, async (req, res) => {
 
     res.json({ success: true, photo_url: data.publicUrl });
   } catch (err) {
-    console.error("Avatar upload error:", err);
     res.status(500).json({ error: "Failed to upload avatar" });
+  }
+});
+
+// Get events hosted by the current user
+app.get("/api/user/events", jwtMiddleware, async (req, res) => {
+  const { id } = req.user;
+
+  try {
+    const result = await pool.query(
+      `SELECT id, title, event_date, category, image_url, views 
+       FROM events 
+       WHERE host_id = $1 
+       ORDER BY event_date DESC`,
+      [id]
+    );
+
+    res.json({ success: true, events: result.rows });
+  } catch (err) {
+    console.error("Get user events error:", err);
+    res.status(500).json({ error: "Failed to fetch user events" });
   }
 });
 
