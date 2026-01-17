@@ -23,6 +23,7 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
 let map = null;
 let uploadMap = null;
 let eventMarkers = [];
+let eventMarkersMap = new Map(); // Stores {eventId: marker}
 let uploadMarker = null;
 let selectedEventLocation = null;
 let currentLocation = null;
@@ -651,6 +652,26 @@ function renderEventCards(events) {
                 </div>
             </div>
         `;
+
+        // INTERACTIVE MAP HOVER EFFECT
+        card.addEventListener('mouseenter', () => {
+            const marker = eventMarkersMap.get(event.id);
+            if (marker) {
+                marker.setAnimation(google.maps.Animation.BOUNCE);
+                marker.setZIndex(9999);
+                // Optional: Pan to event
+                // map.panTo(marker.getPosition());
+            }
+        });
+
+        card.addEventListener('mouseleave', () => {
+            const marker = eventMarkersMap.get(event.id);
+            if (marker) {
+                marker.setAnimation(null);
+                marker.setZIndex(null);
+            }
+        });
+
         card.addEventListener('click', (e) => {
             // Don't navigate if clicking chat button
             if (e.target.classList.contains('chatBtn')) return;
@@ -668,7 +689,9 @@ function addEventMarkers(events) {
     // Clear existing markers
     eventMarkers.forEach(marker => marker.setMap(null));
     eventMarkers = [];
+    eventMarkersMap.clear();
 
+    console.log("Adding markers for", events.length, "events. Map exists?", !!map); // Debug Log
     if (!map) return;
 
     events.forEach(event => {
@@ -677,33 +700,59 @@ function addEventMarkers(events) {
         // Get emoji for event category
         const emoji = EVENT_EMOJIS[event.category.toLowerCase()] || EVENT_EMOJIS['default'];
 
-        // Create custom emoji marker
+        // Create custom badge-like marker
         const marker = new google.maps.Marker({
             position: { lat: event.lat, lng: event.lng },
             map: map,
             icon: createEmojiIcon(emoji),
-            title: event.title
+            title: event.title,
+            animation: google.maps.Animation.DROP
         });
 
-        // Add click listener
+        // Add to storage
+        eventMarkers.push(marker);
+        eventMarkersMap.set(event.id, marker);
+
+        // Add click listener -> Redirect
         marker.addListener('click', () => {
             window.location.href = `event.html?id=${event.id}`;
         });
 
-        eventMarkers.push(marker);
+        // Hover listener -> Highlight on Map (Scale Up)
+        marker.addListener('mouseover', () => {
+            marker.setZIndex(9999);
+            // Could add custom scaling if icon supports it, or just Z-index
+        });
     });
 }
 
 function createEmojiIcon(emoji) {
-    // Create a custom icon with emoji
+    // Premium Badge-like Pin with Emoji
+    const svg = `
+    <svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
+        <!-- Drop Shadow Filter -->
+        <defs>
+            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.5)"/>
+            </filter>
+        </defs>
+        
+        <!-- Pin Shape -->
+        <path d="M25 0 C11.2 0 0 11.2 0 25 C0 42 25 60 25 60 C25 60 50 42 50 25 C50 11.2 38.8 0 25 0 Z" 
+              fill="#1db954" filter="url(#shadow)" stroke="#ffffff" stroke-width="2"/>
+              
+        <!-- Inner White Circle -->
+        <circle cx="25" cy="25" r="20" fill="#121212" />
+        
+        <!-- Emoji Centered -->
+        <text x="25" y="33" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">${emoji}</text>
+    </svg>`;
+
     return {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
-                <text x="20" y="25" text-anchor="middle" font-size="24">${emoji}</text>
-            </svg>
-        `),
-        scaledSize: new google.maps.Size(40, 40),
-        anchor: new google.maps.Point(20, 20)
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+        scaledSize: new google.maps.Size(50, 60),
+        anchor: new google.maps.Point(25, 60), // Tip of the pin
+        labelOrigin: new google.maps.Point(25, 25)
     };
 }
 
@@ -1787,21 +1836,26 @@ function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
     // Use nearby endpoint if we have location and no explicit override
     // Or if search is present, we might want to use nearby to filter by distance too?
     // Actually, nearby endpoint handles filters better in our backend logic
-    if (useNearby) {
-        const params = new URLSearchParams({
-            latitude: map.getCenter().lat(),
-            longitude: map.getCenter().lng(),
-            radius: 50
-        });
+    // MODIFIED: Fetch ALL events by default to ensure visibility, then sort by distance client-side
+    // if (useNearby) {
+    //     const params = new URLSearchParams({
+    //         latitude: map.getCenter().lat(),
+    //         longitude: map.getCenter().lng(),
+    //         radius: 50
+    //     });
+    //     if (filters.search) params.append("search", filters.search);
+    //     url = `${API_URL}/api/events/nearby?${params.toString()}`;
+    // }
 
-        if (filters.search) params.append("search", filters.search);
-
-        url = `${API_URL}/api/events/nearby?${params.toString()}`;
+    // Always use search param if present on base URL
+    if (filters.search) {
+        url = `${API_URL}/api/events?search=${encodeURIComponent(filters.search)}`;
     }
 
     fetch(url)
         .then(res => res.json())
         .then(data => {
+            console.log("EVENTS API RESPONSE:", data); // Debug Log
             if (!data.success) return;
 
             let events = data.events.map(e => ({

@@ -136,7 +136,7 @@ app.get("/api/user/me", jwtMiddleware, async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, email, display_name, photo_url, is_host
+      `SELECT id, email, display_name, photo_url, is_host, bio, organization, phone, social_links
        FROM users
        WHERE id = $1`,
       [id]

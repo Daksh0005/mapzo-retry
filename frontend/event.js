@@ -49,16 +49,21 @@ if (!eventId) {
 }
 
 async function loadEventDetails() {
+  console.log("Loading details for ID:", eventId); // Debug
   try {
     const res = await fetch(`${API_URL}/api/events/${eventId}`);
+    console.log("Response status:", res.status); // Debug
     const data = await res.json();
+    console.log("Event Data:", data); // Debug
+
     if (data.success) {
       renderEvent(data.event);
     } else {
+      console.error("Event fetch failed:", data.error); // Debug
       els.loading.innerHTML = '<p>Event not found.</p>';
     }
   } catch (err) {
-    console.error(err);
+    console.error("Fetch error:", err);
     els.loading.innerHTML = '<p>Error loading data.</p>';
   }
 }
