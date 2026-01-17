@@ -638,6 +638,47 @@ function closeUploadForm() {
 // 9. EVENT DISPLAY (ENHANCED WITH CHAT)
 // ========================================
 
+async function loadEventsFromAPI(filters = {}) {
+    // Determine the API endpoint
+    // If we have specific coordinates filter, might want to use a different endpoint or params
+    // For now, fetch all or search query
+
+    let url = `${API_URL}/api/events`;
+    const params = new URLSearchParams();
+
+    // Add search query if present
+    if (filters.search) {
+        params.append('search', filters.search);
+    }
+
+    try {
+        const res = await fetch(`${url}?${params.toString()}`);
+        if (!res.ok) throw new Error('Failed to fetch events');
+
+        const data = await res.json();
+
+        if (data.success) {
+            window.allEvents = data.events; // Store globally
+            renderEventCards(data.events);
+            addEventMarkers(data.events);
+
+            // If location is available, we could sort by distance (optional)
+            if (currentLocation) {
+                // Trigger sort logic here if needed
+                // applyFilters(); 
+            }
+        } else {
+            console.error("API returned error:", data.error);
+            showToast("Failed to load events", "error");
+        }
+    } catch (err) {
+        console.error("Error loading events:", err);
+        // Don't show toast on initial load to avoid spam if offline/cached
+        if (filters.search) showToast("Network error searching events", "error");
+    }
+}
+
+
 function renderEventCards(events) {
     const eventsScroll = document.querySelector('.eventsScroll');
     if (!eventsScroll) return;

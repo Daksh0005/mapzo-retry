@@ -159,9 +159,10 @@ function renderEventList(events, container, isTicket = false) {
 
 // --- 4. LOGOUT ---
 function handleLogout() {
+    console.log("Signing out...");
     auth.signOut().then(() => {
         window.location.href = 'index.html';
-    });
+    }).catch(e => console.error("SignOut Error", e));
 }
 
 // --- 5. EDIT MODAL FUNCTIONS ---
