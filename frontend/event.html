@@ -281,6 +281,10 @@
       margin-top: 5px;
     }
   </style>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
@@ -328,7 +332,7 @@
 
       <div class="commentsSection">
         <div class="commentsHeader">
-          <span class="commentsTitle">Reviews </span>
+          <span class="commentsTitle">Reviews & Chat</span>
           <span class="avgRating"><i class="fa-solid fa-star"></i> <span id="avgRatingVal">--</span></span>
         </div>
 
@@ -357,6 +361,18 @@
 
   <script>
     // --- 1. FIREBASE CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBqeFuoFfT-z7YhRoWOIH2nKO_oV3hiQkk",
+      authDomain: "mapzo-368c2.firebaseapp.com",
+      projectId: "mapzo-368c2",
+      storageBucket: "mapzo-368c2.firebasestorage.app",
+      messagingSenderId: "803894616922",
+      appId: "1:803894616922:web:ec5d59b466b90c75538963",
+      measurementId: "G-97HKCXB2L9"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
 
     // --- 2. GET ID FROM URL ---
     const urlParams = new URLSearchParams(window.location.search);
@@ -364,19 +380,17 @@
     let currentUser = null;
 
     // --- 3. CHECK AUTH ---
-document.addEventListener("DOMContentLoaded", () => {
-  const token = localStorage.getItem("token");
-
-  if (token) {
-    document.getElementById("addCommentBox").style.display = "block";
-    document.getElementById("loginToComment").style.display = "none";
-  } else {
-    document.getElementById("addCommentBox").style.display = "none";
-    document.getElementById("loginToComment").style.display = "block";
-  }
-});
-
-
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('addCommentBox').style.display = 'block';
+        document.getElementById('loginToComment').style.display = 'none';
+      } else {
+        currentUser = null;
+        document.getElementById('addCommentBox').style.display = 'none';
+        document.getElementById('loginToComment').style.display = 'block';
+      }
+    });
 
     // --- 4. LOAD DATA ---
     if (eventId) {
@@ -387,48 +401,74 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById('loadingState').innerHTML = '<p>No event ID provided. <br><a href="index.html" style="color:#1db954;">Go back to Home</a></p>';
     }
 
-    async function loadEventDetails() {
-  try {
-    const res = await fetch(`${API_BASE}/api/events/${eventId}`);
-    if (!res.ok) throw new Error("Event not found");
+    function loadEventDetails() {
+      const eventRef = db.collection('events').doc(eventId);
 
-    const { event } = await res.json();
+      // Increment View Counter (Quietly fail if permissions issues)
+      eventRef.update({
+        views: firebase.firestore.FieldValue.increment(1)
+      }).catch(err => console.log("View count skipped:", err));
 
-    document.getElementById('displayTitle').textContent = event.title;
-    document.getElementById('displayCategory').textContent = event.category;
-    document.getElementById('displayDate').textContent =
-      new Date(event.event_date).toLocaleDateString();
-    document.getElementById('displayTime').textContent = event.event_time || "";
-    document.getElementById('displayLocation').textContent =
-      event.venue_name || event.address;
-    document.getElementById('displayDesc').textContent = event.description;
+      eventRef.get().then((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
 
-    document.getElementById('displayImage').src =
-      event.image_url || "https://via.placeholder.com/600x350?text=No+Image";
-      injectActionButtons({
-      title: event.title,
-      date: event.event_date,
-      time: event.event_time || "18:00",
-      description: event.description,
-      location: event.address || event.venue_name,
-      lat: event.latitude,
-      lng: event.longitude
-    });
+          document.getElementById('displayTitle').textContent = data.title;
+          document.getElementById('displayCategory').textContent = data.category;
+          document.getElementById('displayDate').textContent = data.date;
+          document.getElementById('displayTime').textContent = data.time;
+          document.getElementById('displayLocation').textContent = data.location;
+          document.getElementById('displayDesc').textContent = data.description;
 
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('eventContent').style.display = 'block';
+          // Image Handling
+          let imgUrl = 'https://via.placeholder.com/600x350?text=No+Image';
+          if (data.images && data.images.length > 0) imgUrl = data.images[0];
+          else if (data.image) imgUrl = data.image;
+          document.getElementById('displayImage').src = imgUrl;
 
-  } catch (err) {
-    document.getElementById('loadingState').innerHTML =
-      `<p>Event not found.<br>
-      <a href="index.html" style="color:#1db954;">Go back</a></p>`;
-  }
-}
+          if (data.tags) document.getElementById('displayTags').textContent = data.tags.join(' ');
+
+          // --- HOST ANNOUNCEMENT CHECK ---
+          if (data.announcement) {
+            const announcementDiv = document.createElement('div');
+            announcementDiv.style.cssText = `
+        background: rgba(255, 68, 68, 0.2); 
+        border: 1px solid #ff4444; 
+        color: #ffcccc; 
+        padding: 15px; 
+        border-radius: 12px; 
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    `;
+            announcementDiv.innerHTML = `
+        <i class="fa-solid fa-bullhorn" style="font-size: 1.2rem; color: #ff4444;"></i>
+        <div>
+            <h4 style="margin:0; font-size:0.95rem; color:#fff;">Host Announcement</h4>
+            <p style="margin:4px 0 0; font-size:0.9rem;">${data.announcement}</p>
+        </div>
+    `;
+
+            // Insert after title
+            const titleEl = document.getElementById('displayTitle');
+            titleEl.parentNode.insertBefore(announcementDiv, titleEl.nextSibling);
+          }
+          injectActionButtons(data);
+
+          document.getElementById('loadingState').style.display = 'none';
+          document.getElementById('eventContent').style.display = 'block';
+        } else {
+          document.getElementById('loadingState').innerHTML = '<p>Event not found.</p>';
+        }
+      }).catch(err => {
+        console.error(err);
+        document.getElementById('loadingState').innerHTML = '<p>Error loading data. Check console.</p>';
+      });
+    }
 
     function injectActionButtons(data) {
       const infoCard = document.querySelector('.infoCard');
-      if (infoCard.querySelector('.eventActions')) return;
-
 
       // Map Link
       const mapUrl = (data.lat && data.lng)
@@ -436,21 +476,11 @@ document.addEventListener("DOMContentLoaded", () => {
         : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.location)}`;
 
       // Calendar Link
-      const baseDate = new Date(data.date);
-baseDate.setHours(18, 0, 0); // default 6:00 PM
-
-const startTime = baseDate
-  .toISOString()
-  .replace(/-|:|\.\d\d\d/g, "");
-
-const endTime = new Date(baseDate.getTime() + 2 * 60 * 60 * 1000)
-  .toISOString()
-  .replace(/-|:|\.\d\d\d/g, "");
-  const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${startTime}/${endTime}&details=${encodeURIComponent(data.description)}&location=${encodeURIComponent(data.location)}`;
+      const startTime = new Date(`${data.date} ${data.time}`).toISOString().replace(/-|:|\.\d\d\d/g, "");
+      const endTime = new Date(new Date(`${data.date} ${data.time}`).getTime() + 7200000).toISOString().replace(/-|:|\.\d\d\d/g, "");
+      const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${startTime}/${endTime}&details=${encodeURIComponent(data.description)}&location=${encodeURIComponent(data.location)}`;
 
       const actionsDiv = document.createElement('div');
-      actionsDiv.className = "eventActions";
-
       actionsDiv.style.cssText = "display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;";
 
       actionsDiv.innerHTML = `
@@ -460,17 +490,12 @@ const endTime = new Date(baseDate.getTime() + 2 * 60 * 60 * 1000)
                 <a href="${calUrl}" target="_blank" style="flex:1; background:#333; color:white; padding:10px; border-radius:8px; text-align:center; text-decoration:none; font-weight:600; font-family:'Inter',sans-serif;">
                     <i class="fa-regular fa-calendar-plus"></i> Add to Cal
                 </a>
-                <button id="shareBtn" style="flex:1; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
+                <button onclick="shareEvent('${data.title}')" style="flex:1; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
                     <i class="fa-solid fa-share-nodes"></i> Share
                 </button>
             `;
 
       infoCard.appendChild(actionsDiv);
-      const shareBtn = document.getElementById("shareBtn");
-if (shareBtn) {
-  shareBtn.addEventListener("click", () => shareEvent(data.title));
-}
-
     }
 
     window.shareEvent = async (title) => {
@@ -483,83 +508,68 @@ if (shareBtn) {
       }
     };
 
-    async function submitComment() {
-  const token = localStorage.getItem("token");
-  if (!token) return alert("Please log in first");
+    function submitComment() {
+      if (!currentUser) return alert("Please log in first.");
+      const text = document.getElementById('commentText').value.trim();
+      const ratingInput = document.querySelector('input[name="rating"]:checked');
+      const rating = ratingInput ? parseInt(ratingInput.value) : 0;
 
-  const rating = document.querySelector('input[name="rating"]:checked')?.value;
-  const text = document.getElementById('commentText').value.trim();
+      if (rating === 0) return alert("Please select a star rating.");
+      if (text === "") return alert("Please write a comment.");
 
-  if (!rating) return alert("Select a rating");
-  if (!text) return alert("Write a comment");
-
-  try {
-    const res = await fetch(`${API_BASE}/api/events/${eventId}/reviews`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        rating: parseInt(rating),
-        comment: text
-      })
-    });
-
-    if (!res.ok) throw new Error("Failed to post review");
-
-    document.getElementById('commentText').value = "";
-    document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-    loadComments();
-
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-    async function loadComments() {
-  try {
-    const res = await fetch(`${API_BASE}/api/events/${eventId}/reviews`);
-    const { reviews } = await res.json();
-
-    const list = document.getElementById('commentsList');
-    list.innerHTML = "";
-
-    if (!reviews.length) {
-      list.innerHTML = '<p style="text-align:center;color:#666;">No reviews yet</p>';
-      document.getElementById('avgRatingVal').textContent = "--";
-      return;
+      db.collection('events').doc(eventId).collection('comments').add({
+        userId: currentUser.uid,
+        userEmail: currentUser.email,
+        userName: currentUser.displayName || currentUser.email.split('@')[0],
+        rating: rating,
+        text: text,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        alert("Review posted!");
+        document.getElementById('commentText').value = "";
+        document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+      }).catch(err => alert("Error: " + err.message));
     }
 
-    let total = 0;
+    function loadComments() {
+      db.collection('events').doc(eventId).collection('comments')
+        .orderBy('timestamp', 'desc')
+        .onSnapshot((snapshot) => {
+          const list = document.getElementById('commentsList');
+          list.innerHTML = "";
 
-    reviews.forEach(r => {
-      total += r.rating;
-      const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
+          if (snapshot.empty) {
+            list.innerHTML = '<p style="text-align:center; color:#666;">No reviews yet. Be the first!</p>';
+            document.getElementById('avgRatingVal').textContent = "--";
+            return;
+          }
 
-      const item = document.createElement("div");
-      item.className = "commentItem";
-      item.innerHTML = `
-        <div class="commentUser">
-          <span>${r.user_name || "User"}</span>
-          <span class="commentStars">${stars}</span>
-        </div>
-        <div class="commentText">${r.comment}</div>
-        <div class="commentDate">
-          ${new Date(r.created_at).toLocaleDateString()}
-        </div>
-      `;
-      list.appendChild(item);
-    });
+          let totalRating = 0;
+          let count = 0;
 
-    document.getElementById('avgRatingVal').textContent =
-    reviews.length ? (total / reviews.length).toFixed(1) : "--";
+          snapshot.forEach(doc => {
+            const c = doc.data();
+            totalRating += c.rating;
+            count++;
 
+            const dateObj = c.timestamp ? c.timestamp.toDate() : new Date();
+            const dateStr = dateObj.toLocaleDateString();
 
-  } catch (err) {
-    console.error("Failed to load comments");
-  }
-}
+            let starsHtml = "";
+            for (let i = 0; i < 5; i++) starsHtml += i < c.rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
+
+            const item = document.createElement('div');
+            item.className = 'commentItem';
+            item.innerHTML = `
+                            <div class="commentUser"><span>${c.userName}</span><span class="commentStars">${starsHtml}</span></div>
+                            <div class="commentText">${c.text}</div>
+                            <div class="commentDate">${dateStr}</div>
+                        `;
+            list.appendChild(item);
+          });
+          document.getElementById('avgRatingVal').textContent = (totalRating / count).toFixed(1);
+        });
+    }
   </script>
 </body>
 

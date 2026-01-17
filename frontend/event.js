@@ -1,4 +1,3 @@
-/*
 const qs = new URLSearchParams(window.location.search);
 const eventId = qs.get("id");
 
@@ -100,4 +99,3 @@ els.form?.addEventListener("submit", async (ev) => {
     alert("Failed to post comment. Please try again.");
   }
 });
-*/

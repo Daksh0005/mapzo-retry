@@ -1,11 +1,3 @@
-function requireAuth() {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    window.location.href = "index.html";
-  }
-}
-
-requireAuth();
 const DEFAULT_TAB = "notifications";
 
 function setActive(tab) {
