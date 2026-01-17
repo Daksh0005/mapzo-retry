@@ -9,10 +9,15 @@ const pool = require("./db");
 
 const { createClient } = require("@supabase/supabase-js");
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+let supabase;
+if (supabaseUrl && supabaseKey && !supabaseUrl.startsWith("TODO")) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+} else {
+  console.warn("⚠️ Supabase credentials missing or invalid. Storage features will not work.");
+}
 
 // ---------- INIT APP ----------
 const app = express();
@@ -131,7 +136,7 @@ app.get("/api/user/me", jwtMiddleware, async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, email, display_name, photo_url
+      `SELECT id, email, display_name, photo_url, is_host
        FROM users
        WHERE id = $1`,
       [id]
@@ -358,6 +363,41 @@ app.get("/api/events", async (req, res) => {
   }
 });
 
+
+// Get single event
+app.get("/api/events/:id", async (req, res) => {
+  const { id } = req.params;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) return res.status(400).json({ error: "Invalid ID" });
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM events WHERE id = $1`, [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: "Event not found" });
+    res.json({ success: true, event: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch event" });
+  }
+});
+
+// Get reviews
+app.get("/api/events/:eventId/reviews", async (req, res) => {
+  const { eventId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT r.*, u.display_name as user_name 
+             FROM reviews r 
+             JOIN users u ON r.user_id = u.id 
+             WHERE r.event_id = $1 
+             ORDER BY r.created_at DESC`,
+      [eventId]
+    );
+    res.json({ success: true, reviews: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch reviews" });
+  }
+});
 
 // Create event (with image_url)
 app.post("/api/events", jwtMiddleware, async (req, res) => {
