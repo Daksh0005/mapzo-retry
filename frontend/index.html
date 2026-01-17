@@ -242,11 +242,16 @@
         <div class="sectionHeader">
             <div class="headerRow" style="display:flex; justify-content:space-between; align-items:center;">
                 <h2 class="sectionTitle">Nearby Events</h2>
-                <select id="sortEvents" class="sortDropdown" onchange="changeSort(this.value)"
-                    style="background:transparent; color:#fff; border:1px solid #444; border-radius:15px; padding:5px; font-size:0.8rem;">
-                    <option value="distance" style="background:#222;">📍 Distance</option>
-                    <option value="date" style="background:#222;">🕒 Time Left</option>
-                </select>
+                <!-- Custom Sort Toggle -->
+                <div class="sortToggleWrapper" onclick="toggleSortMode()">
+                    <span class="toggleLabel">Sort by:</span>
+                    <div class="customToggle" id="sortToggleBtn">
+                        <div class="toggleTrack"></div>
+                        <div class="toggleKnob"></div>
+                        <span class="toggleText left active">📍 Dist</span>
+                        <span class="toggleText right">🕒 Time</span>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="eventsScroll">
@@ -295,9 +300,8 @@
         <div class="uploadModal">
 
             <div class="uploadHeader">
-                <button class="uploadBack" onclick="closeUploadForm()">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <!-- Spacer for layout balance -->
+                <div style="width:40px"></div>
                 <h2 class="uploadTitle">Host Experience</h2>
                 <button class="uploadSubmit" onclick="handleEventSubmit()">
                     Publish <i class="fa-solid fa-rocket"></i>
@@ -402,6 +406,11 @@
 
             </form>
         </div>
+
+        <!-- Floating Close Button (Moved) -->
+        <button class="uploadCloseFixed" onclick="closeUploadForm()">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
     </div>
 
     <footer class="siteFooter">

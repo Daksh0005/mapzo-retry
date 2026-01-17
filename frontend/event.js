@@ -150,6 +150,27 @@ async function joinEvent() {
       showToast("Joined successfully! 🎟️", "success");
       els.joinBtn.style.display = 'none';
       els.joinedMsg.style.display = 'block';
+
+      // --- NOTIFICATION LOGIC ---
+      if ('Notification' in window) {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted' && window.currentEventData) {
+            const subs = JSON.parse(localStorage.getItem('mapzo_notifications') || '[]');
+            const exists = subs.find(s => s.id === eventId);
+
+            if (!exists) {
+              subs.push({
+                id: eventId,
+                title: window.currentEventData.title,
+                date: window.currentEventData.event_date, // Ensuring we have the date
+                notified: { day: false, hour: false, start: false }
+              });
+              localStorage.setItem('mapzo_notifications', JSON.stringify(subs));
+              showToast("🔔 Reminders set for Day-of & 1hr before!", "success");
+            }
+          }
+        });
+      }
     } else {
       showToast(data.error || "Failed to join", "error");
       els.joinBtn.disabled = false;

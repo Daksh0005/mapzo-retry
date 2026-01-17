@@ -1,26 +1,11 @@
 // --- CONFIG ---
 // --- CONFIG ---
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? "http://localhost:3000"
-    : "https://backend-jwqn.onrender.com";
+// API_URL is now loaded from utils.js
 
-// --- FIREBASE CONFIG (Must verify if needed or use window.auth from index if loaded) ---
-// Since this script is loaded after Firebase SDKs in profile.html, we can use global firebase object.
-const firebaseConfig = {
-    apiKey: "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00",
-    authDomain: "mapzo-26259.firebaseapp.com",
-    projectId: "mapzo-26259",
-    storageBucket: "mapzo-26259.firebasestorage.app",
-    messagingSenderId: "701273875886",
-    appId: "1:701273875886:web:00d1d079ba6875139dd43f",
-    measurementId: "G-2PJ0TMZVJT"
-};
+// --- 1. AUTH & DATA LOAD ---
+// Wait for global auth to be ready (from utils.js) or listen to onAuthStateChanged
+const auth = window.auth || firebase.auth();
 
-// Initialize Firebase if needed
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
 
 let currentUser = null;
 let currentToken = null;

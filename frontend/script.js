@@ -16,9 +16,10 @@ const API_KEY = "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00";
 let currentUser = null;
 
 // ✅ ADMIN ACCESS LIST
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? "http://localhost:3000"
-    : "https://backend-jwqn.onrender.com"; // Or your production URL
+// ✅ ADMIN ACCESS LIST
+// API_URL is now loaded from utils.js
+
+let map = null;
 
 let map = null;
 let uploadMap = null;
@@ -91,7 +92,7 @@ window.initMap = function () {
                 { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
                 { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
                 { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-                { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] }
+                { featureType: "poi", stylers: [{ visibility: "off" }] } // Hide all POIs (hospitals, schools, etc)
             ]
         });
 
@@ -186,7 +187,7 @@ function initUploadMap() {
             { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
             { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
             { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-            { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] }
+            { featureType: "poi", stylers: [{ visibility: "off" }] }
         ]
     });
 
@@ -727,13 +728,10 @@ function addEventMarkers(events) {
         if (!event.lat || !event.lng) return;
 
         // Create icon: Image if available, else Emoji
+        // Create icon: Always use Emoji as per new aesthetic request
         let icon;
-        if (event.image) {
-            icon = createImagePin(event.image);
-        } else {
-            const emoji = EVENT_EMOJIS[event.category.toLowerCase()] || EVENT_EMOJIS['default'];
-            icon = createEmojiIcon(emoji);
-        }
+        const emoji = EVENT_EMOJIS[event.category.toLowerCase()] || EVENT_EMOJIS['default'];
+        icon = createEmojiIcon(emoji);
 
         // Create custom badge-like marker
         const marker = new google.maps.Marker({
@@ -770,10 +768,10 @@ function createEmojiIcon(emoji) {
                 <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.5)"/>
             </filter>
         </defs>
+        <!-- Black Body, Green Border -->
         <path d="M25 0 C11.2 0 0 11.2 0 25 C0 42 25 60 25 60 C25 60 50 42 50 25 C50 11.2 38.8 0 25 0 Z" 
-              fill="#1db954" filter="url(#shadow)" stroke="#ffffff" stroke-width="2"/>
-        <circle cx="25" cy="25" r="20" fill="#121212" />
-        <text x="25" y="33" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">${emoji}</text>
+              fill="#121212" filter="url(#shadow)" stroke="#1db954" stroke-width="3"/>
+        <text x="25" y="32" text-anchor="middle" font-family="Segoe UI, Emoji, sans-serif" font-size="24">${emoji}</text>
     </svg>`;
 
     return {
@@ -2168,3 +2166,78 @@ function closeLocationModal() {
     document.querySelector('.locationOverlay')?.classList.remove('show');
     toggleBodyScroll(false);
 }
+
+// 4. CUSTOM SORT TOGGLE LOGIC
+let currentSortMode = 'distance'; // Default
+
+function toggleSortMode() {
+    const toggleBtn = document.getElementById('sortToggleBtn');
+    if (!toggleBtn) return;
+
+    if (currentSortMode === 'distance') {
+        currentSortMode = 'date';
+        toggleBtn.classList.add('time-mode');
+        changeSort('date');
+    } else {
+        currentSortMode = 'distance';
+        toggleBtn.classList.remove('time-mode');
+        changeSort('distance');
+    }
+}
+
+
+// ========================================
+// 12. BACKGROUND NOTIFICATION CHECKER
+// ========================================
+function checkNotifications() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const subs = JSON.parse(localStorage.getItem('mapzo_notifications') || '[]');
+    let updated = false;
+    const now = new Date();
+
+    subs.forEach(sub => {
+        const eventDate = new Date(sub.date);
+        const timeDiff = eventDate - now;
+
+        // 1. Day Of Event (Reminder at 9 AM if event is today)
+        const isSameDay = eventDate.toDateString() === now.toDateString();
+        if (isSameDay && !sub.notified.day && now.getHours() >= 9) {
+            new Notification('📅 Event Today!', {
+                body: `Don't forget: "${sub.title}" is happening today!`,
+                icon: 'images/Untitled.png'
+            });
+            sub.notified.day = true;
+            updated = true;
+        }
+
+        // 2. One Hour Before (3600000 ms)
+        if (timeDiff > 0 && timeDiff <= 3600000 && !sub.notified.hour) {
+            new Notification('⏳ Starting Soon!', {
+                body: `"${sub.title}" starts in less than an hour!`,
+                icon: 'images/Untitled.png'
+            });
+            sub.notified.hour = true;
+            updated = true;
+        }
+
+        // 3. Start Time (Within 5 mins buffer)
+        if (timeDiff <= 0 && timeDiff > -300000 && !sub.notified.start) {
+            new Notification('🚀 Event Started!', {
+                body: `"${sub.title}" has started! Go check it out.`,
+                icon: 'images/Untitled.png'
+            });
+            sub.notified.start = true;
+            updated = true;
+        }
+    });
+
+    if (updated) {
+        localStorage.setItem('mapzo_notifications', JSON.stringify(subs));
+    }
+}
+
+// Start Poller (Every 60 seconds)
+setInterval(checkNotifications, 60000);
+// Check once on load
+setTimeout(checkNotifications, 5000);

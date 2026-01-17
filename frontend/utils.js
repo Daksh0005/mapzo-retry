@@ -1,5 +1,10 @@
 // Shared Frontend Utilities
 
+// 0. GLOBAL CONFIG
+window.API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? "http://localhost:3000"
+    : "https://backend-jwqn.onrender.com";
+
 // 1. Toast Notification System
 function showToast(message, type = 'info') {
     let container = document.getElementById('toast-container');
