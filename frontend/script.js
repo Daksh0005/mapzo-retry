@@ -128,7 +128,7 @@ window.initMap = function () {
                                 icon: {
                                     path: google.maps.SymbolPath.CIRCLE,
                                     scale: 10,
-                                    fillColor: "#4285F4",
+                                    fillColor: "#1db954", // Green
                                     fillOpacity: 1,
                                     strokeColor: "white",
                                     strokeWeight: 3,
@@ -363,7 +363,7 @@ function openLocationModal() {
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         scale: 8,
-                        fillColor: "#4285F4",
+                        fillColor: "#1db954", // Green
                         fillOpacity: 1,
                         strokeColor: "white",
                         strokeWeight: 2,
@@ -697,14 +697,20 @@ function addEventMarkers(events) {
     events.forEach(event => {
         if (!event.lat || !event.lng) return;
 
-        // Get emoji for event category
-        const emoji = EVENT_EMOJIS[event.category.toLowerCase()] || EVENT_EMOJIS['default'];
+        // Create icon: Image if available, else Emoji
+        let icon;
+        if (event.image) {
+            icon = createImagePin(event.image);
+        } else {
+            const emoji = EVENT_EMOJIS[event.category.toLowerCase()] || EVENT_EMOJIS['default'];
+            icon = createEmojiIcon(emoji);
+        }
 
         // Create custom badge-like marker
         const marker = new google.maps.Marker({
             position: { lat: event.lat, lng: event.lng },
             map: map,
-            icon: createEmojiIcon(emoji),
+            icon: icon,
             title: event.title,
             animation: google.maps.Animation.DROP
         });
@@ -729,32 +735,54 @@ function addEventMarkers(events) {
 function createEmojiIcon(emoji) {
     // Premium Badge-like Pin with Emoji
     const svg = `
-    <svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
-        <!-- Drop Shadow Filter -->
+    <svg width="60" height="70" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
         <defs>
             <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
                 <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.5)"/>
             </filter>
         </defs>
-        
-        <!-- Pin Shape -->
         <path d="M25 0 C11.2 0 0 11.2 0 25 C0 42 25 60 25 60 C25 60 50 42 50 25 C50 11.2 38.8 0 25 0 Z" 
               fill="#1db954" filter="url(#shadow)" stroke="#ffffff" stroke-width="2"/>
-              
-        <!-- Inner White Circle -->
         <circle cx="25" cy="25" r="20" fill="#121212" />
-        
-        <!-- Emoji Centered -->
         <text x="25" y="33" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">${emoji}</text>
     </svg>`;
 
     return {
         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-        scaledSize: new google.maps.Size(50, 60),
-        anchor: new google.maps.Point(25, 60), // Tip of the pin
-        labelOrigin: new google.maps.Point(25, 25)
+        scaledSize: new google.maps.Size(60, 70),
+        anchor: new google.maps.Point(30, 70),
+        labelOrigin: new google.maps.Point(30, 30)
     };
 }
+
+function createImagePin(imageUrl) {
+    // Pin with Embedded Image
+    // Note: External images in data URIs might be blocked by some CSPs or Map renderers.
+    // If it fails, it will show the green pin.
+    const svg = `
+    <svg width="60" height="70" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.5)"/>
+            </filter>
+            <clipPath id="circleView">
+                <circle cx="25" cy="25" r="20" fill="#fff" />
+            </clipPath>
+        </defs>
+        <path d="M25 0 C11.2 0 0 11.2 0 25 C0 42 25 60 25 60 C25 60 50 42 50 25 C50 11.2 38.8 0 25 0 Z" 
+              fill="#1db954" filter="url(#shadow)" stroke="#ffffff" stroke-width="2"/>
+        <circle cx="25" cy="25" r="20" fill="#121212" />
+        <image x="5" y="5" width="40" height="40" href="${imageUrl}" clip-path="url(#circleView)" preserveAspectRatio="xMidYMid slice" />
+    </svg>`;
+
+    return {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+        scaledSize: new google.maps.Size(60, 70),
+        anchor: new google.maps.Point(30, 70)
+    };
+}
+
+
 
 // ========================================
 // 11. CHAT FUNCTIONALITY
@@ -1694,6 +1722,23 @@ function applyFilters() {
         return matchDate && matchDist && matchCat;
     });
 
+    // DETERMINISTIC SORTING based on Active Tab
+    const activeDateTab = document.querySelector('.filterTab[data-tab="date"]').classList.contains('active');
+    const activeDistTab = document.querySelector('.filterTab[data-tab="distance"]').classList.contains('active');
+
+    if (activeDistTab) {
+        // Sort by Distance ASC
+        filtered.sort((a, b) => (parseFloat(a.distance) || 99999) - (parseFloat(b.distance) || 99999));
+        console.log("Sort: Distance");
+    } else if (activeDateTab) {
+        // Sort by Date ASC
+        filtered.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+        console.log("Sort: Date");
+    } else {
+        // Default Sort: Date
+        filtered.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+    }
+
     renderEventCards(filtered);
     addEventMarkers(filtered);
 
@@ -1858,24 +1903,31 @@ function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
             console.log("EVENTS API RESPONSE:", data); // Debug Log
             if (!data.success) return;
 
-            let events = data.events.map(e => ({
-                id: e.id,
-                title: e.title,
-                category: e.category,
-                date: new Date(e.event_date).toLocaleDateString(),
-                fullDate: e.event_date,
-                location: e.venue_name || e.address,
-                description: e.description,
-                image: e.image_url,
-                lat: e.latitude,
-                lng: e.longitude,
-                distance: e.distance || 99999,
-                isLive: false // simplistic
-            }));
+            let events = data.events.map(e => {
+                let dist = 99999;
+                if (currentLocation && e.latitude && e.longitude) {
+                    dist = getDistanceFromLatLonInKm(currentLocation.lat, currentLocation.lng, parseFloat(e.latitude), parseFloat(e.longitude));
+                }
 
-            // SORTING LOGIC: Defaults to Distance
-            if (filters.sortBy === 'distance' && useNearby) {
-                events.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+                return {
+                    id: e.id,
+                    title: e.title,
+                    category: e.category,
+                    date: new Date(e.event_date).toLocaleDateString(),
+                    fullDate: e.event_date,
+                    location: e.venue_name || e.address,
+                    description: e.description,
+                    image: e.image_url,
+                    lat: e.latitude,
+                    lng: e.longitude,
+                    distance: dist, // Calculated client-side
+                    isLive: false
+                };
+            });
+
+            // SORTING LOGIC
+            if (filters.sortBy === 'distance') {
+                events.sort((a, b) => a.distance - b.distance);
             } else if (filters.sortBy === 'date') {
                 events.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
             }

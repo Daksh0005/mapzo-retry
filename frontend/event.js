@@ -172,8 +172,26 @@ function loadComments() {
         return;
       }
 
+      // CLIENT-SIDE DEDUP: Keep only latest review per user
+      const uniqueReviews = {};
+      data.reviews.forEach(r => {
+        // Since list usually comes sorted by time (or we can sort it), 
+        // we'll overwrite to keep the latest if we process chrono.
+        // Backend returns created_at ASC usually, but let's be safe.
+        // Better: Check if user_id exists, prefer the one with later timestamp?
+        if (!uniqueReviews[r.user_id]) {
+          uniqueReviews[r.user_id] = r;
+        } else {
+          // If duplicate found, keep the newer one
+          if (new Date(r.created_at) > new Date(uniqueReviews[r.user_id].created_at)) {
+            uniqueReviews[r.user_id] = r;
+          }
+        }
+      });
+      const finalReviews = Object.values(uniqueReviews).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
       let total = 0;
-      data.reviews.forEach(c => {
+      finalReviews.forEach(c => {
         total += c.rating;
         const div = document.createElement('div');
         div.className = 'commentItem';
@@ -190,7 +208,7 @@ function loadComments() {
         `;
         els.reviewList.appendChild(div);
       });
-      els.avgRating.textContent = (total / data.reviews.length).toFixed(1);
+      els.avgRating.textContent = (total / finalReviews.length).toFixed(1);
     });
 }
 
@@ -199,9 +217,16 @@ async function submitComment() {
   const text = els.commentText.value.trim();
   const ratingInput = document.querySelector('input[name="rating"]:checked');
   const rating = ratingInput ? parseInt(ratingInput.value) : 0;
+  const submitBtn = document.querySelector('.submitCommentBtn');
 
   if (rating === 0) return showToast("Select rating", "warning");
   if (!text) return showToast("Write a comment", "warning");
+
+  // Prevent Double Submission
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Posting...";
+  }
 
   const token = await currentUser.getIdToken();
   try {
@@ -223,7 +248,14 @@ async function submitComment() {
     } else {
       showToast(data.error, "error");
     }
-  } catch (e) { showToast("Error posting", "error"); }
+  } catch (e) {
+    showToast("Error posting", "error");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Post Review";
+    }
+  }
 }
 
 function injectActionButtons(data) {
@@ -238,12 +270,39 @@ function injectActionButtons(data) {
     <a href="${mapUrl}" target="_blank" style="flex:1; min-width:120px; background:#1db954; color:black; padding:10px; border-radius:8px; text-align:center; text-decoration:none; font-weight:700;">
       <i class="fa-solid fa-location-arrow"></i> Directions
     </a>
+    <button onclick="addToCalendar()" style="flex:1; min-width:120px; background:#4285F4; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">
+      <i class="fa-regular fa-calendar-plus"></i> Add to Cal
+    </button>
     <button onclick="shareEvent('${data.title.replace(/'/g, "\\'")}')" style="flex:1; min-width:120px; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">
       <i class="fa-solid fa-share-nodes"></i> Share
     </button>
   `;
   infoCard.appendChild(actionsDiv);
+
+  // Store data for calendar function
+  window.currentEventData = data;
 }
+
+window.addToCalendar = () => {
+  const e = window.currentEventData;
+  if (!e) return;
+
+  const startTime = new Date(e.event_date);
+  const endTime = new Date(startTime.getTime() + (2 * 60 * 60 * 1000)); // Default 2 hours
+
+  const formatTime = (date) => date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+
+  const url = new URL("https://www.google.com/calendar/render");
+  url.searchParams.append("action", "TEMPLATE");
+  url.searchParams.append("text", e.title);
+  url.searchParams.append("dates", `${formatTime(startTime)}/${formatTime(endTime)}`);
+  url.searchParams.append("details", e.description || "Join this event on Mapzo!");
+  url.searchParams.append("location", e.venue_name || e.address || "Unknown Location");
+  url.searchParams.append("sf", "true");
+  url.searchParams.append("output", "xml");
+
+  window.open(url.toString(), "_blank");
+};
 
 window.shareEvent = (title) => {
   if (navigator.share) {
