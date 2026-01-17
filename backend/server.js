@@ -504,7 +504,7 @@ app.post("/api/events", jwtMiddleware, async (req, res) => {
   }
 });
 
-// Submit review
+// Submit review (Upsert: Insert or Update)
 app.post("/api/events/:eventId/reviews", jwtMiddleware, async (req, res) => {
   const { eventId } = req.params;
   const { rating, comment } = req.body;
@@ -514,21 +514,45 @@ app.post("/api/events/:eventId/reviews", jwtMiddleware, async (req, res) => {
     return res.status(400).json({ error: "Invalid rating (1-5)" });
   }
 
-  // Validate eventId is a UUID (basic check)
+  // Validate eventId is a UUID
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!eventId || !uuidRegex.test(eventId)) {
     return res.status(400).json({ error: "Invalid event ID" });
   }
 
   try {
-    const result = await pool.query(
-      `INSERT INTO reviews (event_id, user_id, rating, comment)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, event_id, user_id, rating, comment, created_at`,
-      [eventId, userId, rating, comment]
+    // 1. Check if review exists
+    const check = await pool.query(
+      `SELECT id FROM reviews WHERE event_id = $1 AND user_id = $2`,
+      [eventId, userId]
     );
 
-    res.json({ success: true, review: result.rows[0] });
+    let result;
+    let action;
+
+    if (check.rows.length > 0) {
+      // 2. UPDATE existing review
+      const reviewId = check.rows[0].id;
+      result = await pool.query(
+        `UPDATE reviews 
+         SET rating = $1, comment = $2, created_at = CURRENT_TIMESTAMP 
+         WHERE id = $3
+         RETURNING id, event_id, user_id, rating, comment, created_at`,
+        [rating, comment, reviewId]
+      );
+      action = 'updated';
+    } else {
+      // 3. INSERT new review
+      result = await pool.query(
+        `INSERT INTO reviews (event_id, user_id, rating, comment)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, event_id, user_id, rating, comment, created_at`,
+        [eventId, userId, rating, comment]
+      );
+      action = 'created';
+    }
+
+    res.json({ success: true, review: result.rows[0], action });
   } catch (err) {
     console.error("Review submission error:", err);
     res.status(500).json({ error: "Failed to submit review" });

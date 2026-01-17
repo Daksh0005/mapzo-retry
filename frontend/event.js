@@ -212,7 +212,11 @@ async function submitComment() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast("Review posted! ✨", "success");
+      if (data.action === 'updated') {
+        showToast("Review updated! 📝", "success");
+      } else {
+        showToast("Review posted! ✨", "success");
+      }
       els.commentText.value = "";
       document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
       loadComments();
