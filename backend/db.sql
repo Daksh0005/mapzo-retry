@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE NOT NULL,
   display_name VARCHAR(100),
   photo_url TEXT,
+  password_hash TEXT,
+  auth_provider VARCHAR(50) DEFAULT 'google',
   is_host BOOLEAN DEFAULT FALSE,
   latitude DOUBLE PRECISION,
   longitude DOUBLE PRECISION,
@@ -41,6 +43,13 @@ CREATE TABLE IF NOT EXISTS reviews (
   comment TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);
+CREATE INDEX IF NOT EXISTS idx_events_date ON events(event_date);
+CREATE INDEX IF NOT EXISTS idx_events_host ON events(host_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_event ON reviews(event_id);
+
 
 -- Chat Messages Table (for real-time chat replacement if needed later, 
 -- though we might keep using Supabase Realtime for this or implement polling/sockets)
