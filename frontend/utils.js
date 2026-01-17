@@ -1,9 +1,10 @@
 // Shared Frontend Utilities
 
 // 0. GLOBAL CONFIG
-window.API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? "http://localhost:3000"
-    : "https://backend-jwqn.onrender.com";
+window.API_URL = "https://backend-jwqn.onrender.com";
+// window.API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+//     ? "http://localhost:3000"
+//     : "https://backend-jwqn.onrender.com";
 
 // 1. Toast Notification System
 function showToast(message, type = 'info') {
@@ -84,7 +85,8 @@ if (typeof document !== 'undefined' && !document.getElementById('toast-styles'))
     document.head.appendChild(style);
 }
 // 2. GLOBAL FIREBASE INIT
-const firebaseConfig = {
+// 2. GLOBAL FIREBASE INIT
+const appFirebaseConfig = {
     apiKey: "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00",
     authDomain: "mapzo-26259.firebaseapp.com",
     projectId: "mapzo-26259",
@@ -95,7 +97,7 @@ const firebaseConfig = {
 };
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(appFirebaseConfig);
     console.log("🔥 Firebase Initialized in Utils");
 }
 

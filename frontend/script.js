@@ -441,7 +441,7 @@ async function updateUIForLogin(user) {
     try {
         // ALWAYS Sync on load to ensure Admin status is up-to-date
         // This replaces the lazy /api/user/me check
-        const syncRes = await fetch(`${API_URL}/auth/google`, {
+        const syncRes = await fetch(`${window.API_URL}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken: token })
@@ -1991,7 +1991,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
-    let url = `${API_URL}/api/events`;
+    let url = `${window.API_URL}/api/events`;
     const useNearby = (map && map.getCenter());
 
     // Use nearby endpoint if we have location and no explicit override

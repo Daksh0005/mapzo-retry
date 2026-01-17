@@ -3,33 +3,46 @@
 
 // --- 1. AUTH & DATA LOAD ---
 // Wait for global auth to be ready (from utils.js) or listen to onAuthStateChanged
-const auth = window.auth || firebase.auth();
+console.log("Profile.js loaded");
+// utils.js already declares 'auth' globally via let auth. 
+// We use a different name here to avoid "Identifier 'auth' has already been declared" error.
+const userAuth = window.auth || (typeof firebase !== 'undefined' ? firebase.auth() : null);
 
 let currentUser = null;
 let currentToken = null;
 
-// Auth State Listener
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        currentUser = user;
-        try {
-            currentToken = await user.getIdToken();
-            loadUserProfile();
-            loadUserEvents();
-            loadUserTickets();
-        } catch (e) {
-            console.error("Error getting token:", e);
+if (!userAuth) {
+    console.error("Auth not initialized!");
+    showToast("System Error: Auth failed", "error");
+} else {
+    // Auth State Listener
+    userAuth.onAuthStateChanged(async (user) => {
+        console.log("Auth State Changed:", user ? "User Logged In" : "No User");
+        if (user) {
+            currentUser = user;
+            try {
+                currentToken = await user.getIdToken();
+                loadUserProfile();
+                loadUserEvents();
+                loadUserTickets();
+            } catch (e) {
+                console.error("Error getting token:", e);
+            }
+        } else {
+            // Redirect if not logged in
+            window.location.href = 'index.html';
         }
-    } else {
-        // Redirect if not logged in
-        window.location.href = 'index.html';
-    }
-});
+    });
+}
 
 // --- 2. LOAD USER PROFILE ---
 async function loadUserProfile() {
+    console.log("Loading Profile...");
     try {
-        const res = await fetch(`${API_URL}/api/user/me`, {
+        const apiUrl = window.API_URL; // Explicit usage
+        if (!apiUrl) throw new Error("API_URL is undefined");
+
+        const res = await fetch(`${apiUrl}/api/user/me`, {
             headers: {
                 'Authorization': `Bearer ${currentToken}`
             }
@@ -38,6 +51,8 @@ async function loadUserProfile() {
         const data = await res.json();
         if (data.success) {
             updateUI(data.user);
+        } else {
+            console.error("Profile load failed:", data.error);
         }
     } catch (err) {
         console.error("Error loading profile:", err);
@@ -160,9 +175,17 @@ function renderEventList(events, container, isTicket = false) {
 // --- 4. LOGOUT ---
 function handleLogout() {
     console.log("Signing out...");
-    auth.signOut().then(() => {
-        window.location.href = 'index.html';
-    }).catch(e => console.error("SignOut Error", e));
+    if (typeof userAuth !== 'undefined' && userAuth) {
+        userAuth.signOut().then(() => {
+            window.location.href = 'index.html';
+        }).catch(e => console.error("SignOut Error", e));
+    } else {
+        // Fallback to global auth if userAuth is blocked scope
+        const localAuth = window.auth || firebase.auth();
+        localAuth.signOut().then(() => {
+            window.location.href = 'index.html';
+        });
+    }
 }
 
 // --- 5. EDIT MODAL FUNCTIONS ---
@@ -196,7 +219,7 @@ document.getElementById('editProfileForm').addEventListener('submit', async (e) 
     };
 
     try {
-        const res = await fetch(`${API_URL}/api/user/profile`, {
+        const res = await fetch(`${window.API_URL}/api/user/profile`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -233,7 +256,7 @@ document.getElementById('avatarInput').addEventListener('change', async function
     try {
         const base64 = await compressImage(file);
 
-        const res = await fetch(`${API_URL}/api/user/avatar`, {
+        const res = await fetch(`${window.API_URL}/api/user/avatar`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

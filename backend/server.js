@@ -40,6 +40,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
   "http://localhost:5500",
+  "http://127.0.0.1:5500",
+  "http://127.0.0.1:3000",
   "https://www.mapzo.in",
   "https://mapzo.in",
   "https://mapzo-frontend.vercel.app" // Add your Vercel URL
