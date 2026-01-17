@@ -2,9 +2,7 @@ const qs = new URLSearchParams(window.location.search);
 const eventId = qs.get("id");
 let currentUser = null;
 
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? "http://localhost:3000"
-  : "https://backend-jwqn.onrender.com";
+const API_URL = window.API_URL || "https://backend-jwqn.onrender.com";
 
 const els = {
   loading: document.getElementById("loadingState"),

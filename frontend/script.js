@@ -473,7 +473,7 @@ async function updateUIForLogin(user) {
     }
 
     if (hostBar) {
-        hostBar.style.display = isHost ? "block" : "none";
+        hostBar.style.display = isHost ? "flex" : "none";
     }
 
     // Auto-Trigger Location Check-in
