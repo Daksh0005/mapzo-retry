@@ -391,11 +391,25 @@ app.get("/api/events/:id", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT * FROM events WHERE id = $1`, [id]
+      `SELECT e.*, 
+              COALESCE(AVG(r.rating), 0) as avg_rating,
+              COUNT(r.id) as review_count
+       FROM events e
+       LEFT JOIN reviews r ON e.id = r.event_id
+       WHERE e.id = $1
+       GROUP BY e.id`,
+      [id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: "Event not found" });
-    res.json({ success: true, event: result.rows[0] });
+
+    // Convert string decimals to numbers
+    const event = result.rows[0];
+    event.avg_rating = parseFloat(parseFloat(event.avg_rating).toFixed(1));
+    event.review_count = parseInt(event.review_count);
+
+    res.json({ success: true, event });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to fetch event" });
   }
 });

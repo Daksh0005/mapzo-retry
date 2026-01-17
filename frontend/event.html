@@ -374,7 +374,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const API_URL = "http://localhost:3000"; // Or production URL
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? "http://localhost:3000"
+      : "https://backend-jwqn.onrender.com";
 
     // --- 2. GET ID FROM URL ---
     const urlParams = new URLSearchParams(window.location.search);
