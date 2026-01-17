@@ -99,6 +99,63 @@ window.initMap = function () {
             else setTimeout(loadEventsFromAPI, 1500);
         });
 
+        // --- Custom Map Controls Support ---
+        const recenterBtn = document.getElementById("recenterBtn");
+        const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+        if (recenterBtn) {
+            recenterBtn.addEventListener("click", () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const pos = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude,
+                            };
+                            map.setCenter(pos);
+                            map.setZoom(15);
+                            currentLocation = pos; // Update global
+
+                            // Update/Create 'You are here' marker
+                            if (window.userLocationMarker) window.userLocationMarker.setMap(null);
+                            window.userLocationMarker = new google.maps.Marker({
+                                position: pos,
+                                map: map,
+                                title: "You are here",
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: 10,
+                                    fillColor: "#4285F4",
+                                    fillOpacity: 1,
+                                    strokeColor: "white",
+                                    strokeWeight: 3,
+                                }
+                            });
+                        },
+                        () => {
+                            alert("Location access denied. Centering to default.");
+                            map.setCenter(defaultCenter);
+                        }
+                    );
+                }
+            });
+        }
+
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener("click", () => {
+                const mapContainer = document.querySelector(".map-container");
+                if (mapContainer) {
+                    if (!document.fullscreenElement) {
+                        mapContainer.requestFullscreen().catch(err => {
+                            console.error(`Error enabling fullscreen: ${err.message}`);
+                        });
+                    } else {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+        }
+
     } catch (error) {
         console.error('❌ Map init failed:', error);
     }
