@@ -11,7 +11,7 @@
 // ========================================
 
 // ✅ API KEY
-const API_KEY = "AIzaSyBqeFuoFFt-z7YhRoWOIH2nKO_oV3hiQkk";
+const API_KEY = "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00";
 
 let currentUser = null;
 

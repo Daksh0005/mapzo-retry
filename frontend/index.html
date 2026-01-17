@@ -29,13 +29,13 @@
     <script>
         // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyBqeFuoFfT-z7YhRoWOIH2nKO_oV3hiQkk",
-            authDomain: "mapzo-368c2.firebaseapp.com",
-            projectId: "mapzo-368c2",
-            storageBucket: "mapzo-368c2.firebasestorage.app",
-            messagingSenderId: "803894616922",
-            appId: "1:803894616922:web:ec5d59b466b90c75538963",
-            measurementId: "G-97HKCXB2L9"
+            apiKey: "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00",
+            authDomain: "mapzo-26259.firebaseapp.com",
+            projectId: "mapzo-26259",
+            storageBucket: "mapzo-26259.firebasestorage.app",
+            messagingSenderId: "701273875886",
+            appId: "1:701273875886:web:00d1d079ba6875139dd43f",
+            measurementId: "G-2PJ0TMZVJT"
         };
 
         // Initialize Firebase
@@ -113,7 +113,8 @@
     <div class="manualLocationOverlay">
         <div class="manualLocationModal">
             <div class="locationHeader">
-                <button class="locationBack" onclick="backToLocationOptions()"><i class="fa-solid fa-arrow-left"></i></button>
+                <button class="locationBack" onclick="backToLocationOptions()"><i
+                        class="fa-solid fa-arrow-left"></i></button>
                 <h2 class="locationTitle">Search Location</h2>
                 <button class="locationDone" onclick="confirmManualLocation()">Done</button>
             </div>
@@ -152,7 +153,8 @@
                         <div class="calendarHeader">
                             <button class="calendarNav" id="prevMonth"><i class="fa-solid fa-chevron-left"></i></button>
                             <span class="calendarMonth" id="currentMonth">December 2025</span>
-                            <button class="calendarNav" id="nextMonth"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button class="calendarNav" id="nextMonth"><i
+                                    class="fa-solid fa-chevron-right"></i></button>
                         </div>
                         <div class="calendarWeekdays">
                             <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
@@ -164,11 +166,13 @@
                     <div class="distanceInput">
                         <label class="distanceLabel">Enter distance in kilometers</label>
                         <div class="distanceField">
-                            <input type="number" class="distanceValue" id="distanceInput" placeholder="0" min="0" max="5000">
+                            <input type="number" class="distanceValue" id="distanceInput" placeholder="0" min="0"
+                                max="5000">
                             <span class="distanceUnit">km</span>
                         </div>
                         <div class="distanceSlider">
-                            <input type="range" class="distanceRange" id="distanceRange" min="0" max="500" value="50" step="5">
+                            <input type="range" class="distanceRange" id="distanceRange" min="0" max="500" value="50"
+                                step="5">
                             <div class="distanceMarkers"><span>0</span><span>250</span><span>500+</span></div>
                         </div>
                     </div>
@@ -184,15 +188,22 @@
                 <div class="filterTabContent" id="categoryTab">
                     <div class="categorySearch">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" class="categorySearchInput" id="categorySearch" placeholder="Search categories...">
+                        <input type="text" class="categorySearchInput" id="categorySearch"
+                            placeholder="Search categories...">
                     </div>
                     <div class="categoryGrid" id="categoryGrid">
-                        <button class="categoryCard active" data-category="all"><i class="fa-solid fa-grid-2"></i><span>All</span></button>
-                        <button class="categoryCard" data-category="Music"><i class="fa-solid fa-music"></i><span>Music</span></button>
-                        <button class="categoryCard" data-category="Tech"><i class="fa-solid fa-laptop-code"></i><span>Tech</span></button>
-                        <button class="categoryCard" data-category="Sports"><i class="fa-solid fa-basketball"></i><span>Sports</span></button>
-                        <button class="categoryCard" data-category="Cultural"><i class="fa-solid fa-masks-theater"></i><span>Cultural</span></button>
-                        <button class="categoryCard" data-category="Food"><i class="fa-solid fa-utensils"></i><span>Food</span></button>
+                        <button class="categoryCard active" data-category="all"><i
+                                class="fa-solid fa-grid-2"></i><span>All</span></button>
+                        <button class="categoryCard" data-category="Music"><i
+                                class="fa-solid fa-music"></i><span>Music</span></button>
+                        <button class="categoryCard" data-category="Tech"><i
+                                class="fa-solid fa-laptop-code"></i><span>Tech</span></button>
+                        <button class="categoryCard" data-category="Sports"><i
+                                class="fa-solid fa-basketball"></i><span>Sports</span></button>
+                        <button class="categoryCard" data-category="Cultural"><i
+                                class="fa-solid fa-masks-theater"></i><span>Cultural</span></button>
+                        <button class="categoryCard" data-category="Food"><i
+                                class="fa-solid fa-utensils"></i><span>Food</span></button>
                     </div>
                 </div>
             </div>
@@ -221,7 +232,7 @@
             <a href="#" class="seeAll">See all</a>
         </div>
         <div class="eventsScroll">
-            </div>
+        </div>
     </section>
 
     <div class="hostBar">
@@ -233,8 +244,9 @@
     <div class="menuOverlay" onclick="toggleMenu()"></div>
 
     <div class="menu">
-        <button class="menuClose" onclick="toggleMenu()" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
-        
+        <button class="menuClose" onclick="toggleMenu()" aria-label="Close menu"><i
+                class="fa-solid fa-xmark"></i></button>
+
         <div class="menuSection">
             <p class="menuTitle">Account</p>
             <div class="logSignBox">
@@ -242,9 +254,9 @@
                 <button class="logSign" data-open-auth="signup">Sign up</button>
             </div>
         </div>
-        
+
         <div class="menuDivider"></div>
-        
+
         <div class="menuSection">
             <p class="menuTitle">Settings</p>
             <div class="otherMenu" onclick="openSettingsModal('notifications')">Notifications</div>
@@ -253,7 +265,7 @@
         </div>
 
         <div class="menuDivider"></div>
-        
+
         <div class="menuSection">
             <p class="menuTitle">Support</p>
             <a class="otherMenu" href="legal.html#terms">Terms & Conditions</a>
@@ -263,7 +275,7 @@
 
     <div class="uploadOverlay">
         <div class="uploadModal">
-            
+
             <div class="uploadHeader">
                 <button class="uploadBack" onclick="closeUploadForm()">
                     <i class="fa-solid fa-xmark"></i>
@@ -275,11 +287,11 @@
             </div>
 
             <form class="uploadForm" id="eventUploadForm">
-                
+
                 <div class="coverUploadSection">
                     <div class="imageUpload heroUpload">
                         <input type="file" class="imageInput" id="uploadEventImage" accept="image/*">
-                        
+
                         <div class="imagePlaceholder" id="uploadPlaceholder">
                             <div class="iconPulse">
                                 <i class="fa-solid fa-camera"></i>
@@ -298,7 +310,8 @@
                 </div>
 
                 <div class="formSection">
-                    <input type="text" class="formInput heroInput" placeholder="Give your event a catchy title..." id="eventName" required>
+                    <input type="text" class="formInput heroInput" placeholder="Give your event a catchy title..."
+                        id="eventName" required>
                 </div>
 
                 <div class="formRow grid-3">
@@ -328,9 +341,10 @@
                     <label class="sectionHeader">
                         <i class="fa-solid fa-map-location-dot"></i> Set Location
                     </label>
-                    
+
                     <div class="locationInputGroup">
-                        <input type="text" class="formInput locationField" placeholder="Search venue or address..." id="eventLocation" required>
+                        <input type="text" class="formInput locationField" placeholder="Search venue or address..."
+                            id="eventLocation" required>
                         <button type="button" class="gpsBtn" onclick="useHostGPS()" title="Use Current Location">
                             <i class="fa-solid fa-crosshairs"></i>
                         </button>
@@ -348,11 +362,13 @@
                 <div class="formSection">
                     <div class="formGroup">
                         <label class="sectionHeader">Description</label>
-                        <textarea class="formTextarea glassInput" placeholder="Tell people why they should come..." id="eventDescription" rows="4"></textarea>
+                        <textarea class="formTextarea glassInput" placeholder="Tell people why they should come..."
+                            id="eventDescription" rows="4"></textarea>
                     </div>
                     <div class="formGroup">
                         <label class="sectionHeader">Hashtags</label>
-                        <input type="text" class="formInput glassInput" placeholder="#fun #music #weekend" id="eventHashtags">
+                        <input type="text" class="formInput glassInput" placeholder="#fun #music #weekend"
+                            id="eventHashtags">
                     </div>
                 </div>
 
@@ -410,7 +426,8 @@
     <div class="authOverlay" id="authOverlay">
         <div class="authModal" role="dialog" aria-modal="true" aria-label="Account">
             <div class="authHeader">
-                <button class="authBack" id="authCloseBtn" type="button" aria-label="Close"><i class="fa-solid fa-arrow-left"></i></button>
+                <button class="authBack" id="authCloseBtn" type="button" aria-label="Close"><i
+                        class="fa-solid fa-arrow-left"></i></button>
                 <h3 class="authTitle" id="authTitle">Log in</h3>
                 <div style="width:40px"></div>
             </div>
@@ -422,7 +439,7 @@
                             <div class="rabbit">🐇</div>
                         </div>
                     </div>
-                    
+
                     <button class="authGoogleBtn" id="googleLoginBtn">
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
                         Continue with Google
@@ -433,7 +450,8 @@
                     <form class="authForm" id="loginForm">
                         <div class="input-group">
                             <label class="authLabel">Email</label>
-                            <input class="authInput" type="email" id="loginEmail" placeholder="name@example.com" required>
+                            <input class="authInput" type="email" id="loginEmail" placeholder="name@example.com"
+                                required>
                         </div>
                         <div class="input-group">
                             <label class="authLabel">Password</label>
@@ -464,13 +482,16 @@
                     <form class="authForm" id="signupForm">
                         <div class="input-group">
                             <label class="authLabel">Email</label>
-                            <input class="authInput" type="email" id="signupEmail" placeholder="name@example.com" required>
+                            <input class="authInput" type="email" id="signupEmail" placeholder="name@example.com"
+                                required>
                         </div>
                         <div class="input-group">
                             <label class="authLabel">Password</label>
                             <div class="passwordWrapper">
-                                <input class="authInput" type="password" id="signupPass" placeholder="Create password" required>
-                                <i class="fa-regular fa-eye togglePass" onclick="togglePassword('signupPass', this)"></i>
+                                <input class="authInput" type="password" id="signupPass" placeholder="Create password"
+                                    required>
+                                <i class="fa-regular fa-eye togglePass"
+                                    onclick="togglePassword('signupPass', this)"></i>
                             </div>
                         </div>
                         <button class="authPrimaryBtn" type="submit">Create account</button>
@@ -486,7 +507,8 @@
     <div class="authOverlay" id="notifOverlay">
         <div class="authModal">
             <div class="authHeader">
-                <button class="authBack" onclick="closeSettingsModal('notifOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="authBack" onclick="closeSettingsModal('notifOverlay')"><i
+                        class="fa-solid fa-xmark"></i></button>
                 <h3 class="authTitle">Notifications</h3>
                 <div style="width:40px"></div>
             </div>
@@ -528,7 +550,8 @@
     <div class="authOverlay" id="permOverlay">
         <div class="authModal">
             <div class="authHeader">
-                <button class="authBack" onclick="closeSettingsModal('permOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="authBack" onclick="closeSettingsModal('permOverlay')"><i
+                        class="fa-solid fa-xmark"></i></button>
                 <h3 class="authTitle">Permissions</h3>
                 <div style="width:40px"></div>
             </div>
@@ -556,7 +579,8 @@
     <div class="authOverlay" id="verifyOverlay">
         <div class="authModal">
             <div class="authHeader">
-                <button class="authBack" onclick="closeSettingsModal('verifyOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="authBack" onclick="closeSettingsModal('verifyOverlay')"><i
+                        class="fa-solid fa-xmark"></i></button>
                 <h3 class="authTitle">Host Verification</h3>
                 <div style="width:40px"></div>
             </div>
@@ -579,7 +603,8 @@
                     </div>
                     <div class="input-group">
                         <label class="authLabel">Why do you want to be a host?</label>
-                        <textarea class="authInput" id="hostReason" rows="4" style="height:auto; padding-top:12px;" placeholder="I organize college fests and local gigs..." required></textarea>
+                        <textarea class="authInput" id="hostReason" rows="4" style="height:auto; padding-top:12px;"
+                            placeholder="I organize college fests and local gigs..." required></textarea>
                     </div>
                     <button type="submit" class="authPrimaryBtn">Submit Request</button>
                 </form>
