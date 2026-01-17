@@ -284,7 +284,8 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
 
 <body>
@@ -371,8 +372,8 @@
       measurementId: "G-97HKCXB2L9"
     };
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
     const auth = firebase.auth();
+    const API_URL = "http://localhost:3000"; // Or production URL
 
     // --- 2. GET ID FROM URL ---
     const urlParams = new URLSearchParams(window.location.search);
@@ -402,69 +403,47 @@
     }
 
     function loadEventDetails() {
-      const eventRef = db.collection('events').doc(eventId);
+      fetch(`${API_URL}/api/events/${eventId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const e = data.event;
+            // Map API fields to UI fields
+            const formattedDate = new Date(e.event_date).toLocaleDateString();
+            const formattedTime = new Date(e.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Increment View Counter (Quietly fail if permissions issues)
-      eventRef.update({
-        views: firebase.firestore.FieldValue.increment(1)
-      }).catch(err => console.log("View count skipped:", err));
+            document.getElementById('displayTitle').textContent = e.title;
+            document.getElementById('displayCategory').textContent = e.category;
+            document.getElementById('displayDate').textContent = formattedDate;
+            document.getElementById('displayTime').textContent = formattedTime;
+            document.getElementById('displayLocation').textContent = e.venue_name || e.address;
+            document.getElementById('displayDesc').textContent = e.description;
 
-      eventRef.get().then((doc) => {
-        if (doc.exists) {
-          const data = doc.data();
+            // Image Handling
+            let imgUrl = e.image_url || 'https://via.placeholder.com/600x350?text=No+Image';
+            document.getElementById('displayImage').src = imgUrl;
 
-          document.getElementById('displayTitle').textContent = data.title;
-          document.getElementById('displayCategory').textContent = data.category;
-          document.getElementById('displayDate').textContent = data.date;
-          document.getElementById('displayTime').textContent = data.time;
-          document.getElementById('displayLocation').textContent = data.location;
-          document.getElementById('displayDesc').textContent = data.description;
+            // Tags not in schema yet
+            document.getElementById('displayTags').textContent = "";
 
-          // Image Handling
-          let imgUrl = 'https://via.placeholder.com/600x350?text=No+Image';
-          if (data.images && data.images.length > 0) imgUrl = data.images[0];
-          else if (data.image) imgUrl = data.image;
-          document.getElementById('displayImage').src = imgUrl;
+            // Inject actions
+            e.date = formattedDate; // Compat for helper
+            e.time = formattedTime;
+            e.location = e.venue_name || e.address;
+            e.lat = e.latitude;
+            e.lng = e.longitude;
+            injectActionButtons(e);
 
-          if (data.tags) document.getElementById('displayTags').textContent = data.tags.join(' ');
-
-          // --- HOST ANNOUNCEMENT CHECK ---
-          if (data.announcement) {
-            const announcementDiv = document.createElement('div');
-            announcementDiv.style.cssText = `
-        background: rgba(255, 68, 68, 0.2); 
-        border: 1px solid #ff4444; 
-        color: #ffcccc; 
-        padding: 15px; 
-        border-radius: 12px; 
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    `;
-            announcementDiv.innerHTML = `
-        <i class="fa-solid fa-bullhorn" style="font-size: 1.2rem; color: #ff4444;"></i>
-        <div>
-            <h4 style="margin:0; font-size:0.95rem; color:#fff;">Host Announcement</h4>
-            <p style="margin:4px 0 0; font-size:0.9rem;">${data.announcement}</p>
-        </div>
-    `;
-
-            // Insert after title
-            const titleEl = document.getElementById('displayTitle');
-            titleEl.parentNode.insertBefore(announcementDiv, titleEl.nextSibling);
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('eventContent').style.display = 'block';
+          } else {
+            document.getElementById('loadingState').innerHTML = '<p>Event not found.</p>';
           }
-          injectActionButtons(data);
-
-          document.getElementById('loadingState').style.display = 'none';
-          document.getElementById('eventContent').style.display = 'block';
-        } else {
-          document.getElementById('loadingState').innerHTML = '<p>Event not found.</p>';
-        }
-      }).catch(err => {
-        console.error(err);
-        document.getElementById('loadingState').innerHTML = '<p>Error loading data. Check console.</p>';
-      });
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('loadingState').innerHTML = '<p>Error loading data.</p>';
+        });
     }
 
     function injectActionButtons(data) {
@@ -508,7 +487,7 @@
       }
     };
 
-    function submitComment() {
+    async function submitComment() {
       if (!currentUser) return alert("Please log in first.");
       const text = document.getElementById('commentText').value.trim();
       const ratingInput = document.querySelector('input[name="rating"]:checked');
@@ -517,28 +496,40 @@
       if (rating === 0) return alert("Please select a star rating.");
       if (text === "") return alert("Please write a comment.");
 
-      db.collection('events').doc(eventId).collection('comments').add({
-        userId: currentUser.uid,
-        userEmail: currentUser.email,
-        userName: currentUser.displayName || currentUser.email.split('@')[0],
-        rating: rating,
-        text: text,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        alert("Review posted!");
-        document.getElementById('commentText').value = "";
-        document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-      }).catch(err => alert("Error: " + err.message));
+      const token = await currentUser.getIdToken();
+
+      try {
+        const res = await fetch(`${API_URL}/api/events/${eventId}/reviews`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ rating, comment: text })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert("Review posted!");
+          document.getElementById('commentText').value = "";
+          document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+          loadComments();
+        } else {
+          alert("Error: " + data.error);
+        }
+      } catch (err) {
+        alert("Error posting review");
+      }
     }
 
     function loadComments() {
-      db.collection('events').doc(eventId).collection('comments')
-        .orderBy('timestamp', 'desc')
-        .onSnapshot((snapshot) => {
+      fetch(`${API_URL}/api/events/${eventId}/reviews`)
+        .then(res => res.json())
+        .then(data => {
           const list = document.getElementById('commentsList');
           list.innerHTML = "";
 
-          if (snapshot.empty) {
+          if (!data.success || data.reviews.length === 0) {
             list.innerHTML = '<p style="text-align:center; color:#666;">No reviews yet. Be the first!</p>';
             document.getElementById('avgRatingVal').textContent = "--";
             return;
@@ -547,28 +538,26 @@
           let totalRating = 0;
           let count = 0;
 
-          snapshot.forEach(doc => {
-            const c = doc.data();
+          data.reviews.forEach(c => {
             totalRating += c.rating;
             count++;
 
-            const dateObj = c.timestamp ? c.timestamp.toDate() : new Date();
-            const dateStr = dateObj.toLocaleDateString();
-
+            const dateStr = new Date(c.created_at).toLocaleDateString();
             let starsHtml = "";
             for (let i = 0; i < 5; i++) starsHtml += i < c.rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
 
             const item = document.createElement('div');
             item.className = 'commentItem';
             item.innerHTML = `
-                            <div class="commentUser"><span>${c.userName}</span><span class="commentStars">${starsHtml}</span></div>
-                            <div class="commentText">${c.text}</div>
-                            <div class="commentDate">${dateStr}</div>
-                        `;
+                <div class="commentUser"><span>${c.user_name || 'Anonymous'}</span><span class="commentStars">${starsHtml}</span></div>
+                <div class="commentText">${c.comment}</div>
+                <div class="commentDate">${dateStr}</div>
+            `;
             list.appendChild(item);
           });
           document.getElementById('avgRatingVal').textContent = (totalRating / count).toFixed(1);
-        });
+        })
+        .catch(console.error);
     }
   </script>
 </body>

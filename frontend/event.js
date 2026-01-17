@@ -15,87 +15,95 @@ const els = {
   list: document.getElementById("commentsList"),
 };
 
-// Load event from Firebase
+// Load event from API
+const API_URL = "http://localhost:3000"; // Or production URL
+
 if (!eventId) {
   els.title.textContent = "Missing event id";
 } else {
-  db.collection('events').doc(eventId).get().then((doc) => {
-    if (!doc.exists) {
-      els.title.textContent = "Event not found";
-      return;
-    }
-
-    const event = doc.data();
-    renderEvent(event);
-    loadComments(eventId);
-  }).catch((error) => {
-    console.error("Error loading event:", error);
-    els.title.textContent = "Error loading event";
-  });
+  fetch(`${API_URL}/api/events/${eventId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) {
+        els.title.textContent = "Event not found";
+        return;
+      }
+      renderEvent(data.event);
+      loadComments(eventId);
+    })
+    .catch(err => {
+      console.error("Error loading event:", err);
+      els.title.textContent = "Error loading event";
+    });
 }
 
 function renderEvent(e) {
-  els.img.src = e.image || "https://via.placeholder.com/400x200?text=Event";
+  els.img.src = e.image_url || "https://via.placeholder.com/400x200?text=Event";
   els.cat.textContent = e.category || "Other";
   els.title.textContent = e.title || "Untitled event";
-  els.date.innerHTML = `<i class="fa-regular fa-calendar"></i> ${e.date || ""}`;
-  els.time.innerHTML = `<i class="fa-regular fa-clock"></i> ${e.time || ""}`;
-  els.loc.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${e.location || ""}`;
+  els.date.innerHTML = `<i class="fa-regular fa-calendar"></i> ${new Date(e.event_date).toLocaleDateString() || ""}`;
+  els.time.innerHTML = `<i class="fa-regular fa-clock"></i> ${new Date(e.event_date).toLocaleTimeString() || ""}`;
+  els.loc.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${e.venue_name || e.address || ""}`;
   els.desc.textContent = e.description || "";
 
   els.tags.innerHTML = "";
-  (e.tags || []).forEach(t => {
-    const span = document.createElement("span");
-    span.className = "tag";
-    span.textContent = t.startsWith("#") ? t : `#${t}`;
-    els.tags.appendChild(span);
-  });
+  // Tags not yet in DB schema, so skipping or using description heuristic
 }
 
-// Load comments from Firebase
+// Load comments from API
 function loadComments(eventId) {
-  db.collection('events').doc(eventId).collection('comments')
-    .orderBy('createdAt', 'desc')
-    .onSnapshot((snapshot) => {
+  fetch(`${API_URL}/api/events/${eventId}/reviews`)
+    .then(res => res.json())
+    .then(data => {
       els.list.innerHTML = "";
-
-      if (snapshot.empty) {
+      if (!data.success || data.reviews.length === 0) {
         els.list.innerHTML = `<p style="color: rgba(255,255,255,0.55); margin:0;">No comments yet.</p>`;
         return;
       }
 
-      snapshot.forEach((doc) => {
-        const c = doc.data();
+      data.reviews.forEach((c) => {
         const div = document.createElement("div");
         div.className = "commentItem";
         div.innerHTML = `
                     <div class="commentMeta">
-                        <span>${c.name || 'Anonymous'}</span>
-                        <span>${new Date(c.createdAt?.toDate()).toLocaleString()}</span>
+                        <span>${c.user_name || 'Anonymous'}</span>
+                        <span>${new Date(c.created_at).toLocaleString()}</span>
                     </div>
-                    <p class="commentText">${c.text}</p>
+                    <p class="commentText">${c.comment}</p>
                 `;
         els.list.appendChild(div);
       });
-    });
+    })
+    .catch(console.error);
 }
 
-// Post comment to Firebase
+// Post comment to API
 els.form?.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const text = els.input.value.trim();
   if (!text) return;
 
+  if (!auth.currentUser) return alert("Please log in");
+  const token = await auth.currentUser.getIdToken();
+
   try {
-    await db.collection('events').doc(eventId).collection('comments').add({
-      name: "Anonymous",
-      text: text,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    const res = await fetch(`${API_URL}/api/events/${eventId}/reviews`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ rating: 5, comment: text }) // Hardcoding rating for now as UI doesn't have stars
     });
 
-    els.input.value = "";
+    const data = await res.json();
+    if (data.success) {
+      els.input.value = "";
+      loadComments(eventId);
+    } else {
+      alert(data.error);
+    }
   } catch (error) {
     console.error("Error posting comment:", error);
-    alert("Failed to post comment. Please try again.");
   }
 });

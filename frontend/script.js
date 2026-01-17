@@ -16,12 +16,7 @@ const API_KEY = "AIzaSyBqeFuoFFt-z7YhRoWOIH2nKO_oV3hiQkk";
 let currentUser = null;
 
 // ✅ ADMIN ACCESS LIST
-const ALLOWED_HOST_EMAILS = [
-    "shreyashmishra506@gmail.com",
-    "realdaksharora@gmail.com",
-    "iitianshreyash25@gmail.com",
-    "aadityasingh1439@gmail.com"
-];
+const API_URL = "http://localhost:3000"; // Or your production URL
 
 let map = null;
 let uploadMap = null;
@@ -100,8 +95,8 @@ window.initMap = function () {
         console.log('✅ Map initialized');
 
         google.maps.event.addListenerOnce(map, 'tilesloaded', function () {
-            if (window.db) loadEventsFromFirebase();
-            else setTimeout(loadEventsFromFirebase, 1500);
+            if (typeof loadEventsFromAPI === 'function') loadEventsFromAPI();
+            else setTimeout(loadEventsFromAPI, 1500);
         });
 
     } catch (error) {
@@ -158,7 +153,7 @@ function placeUploadMarker(location) {
 
     document.getElementById('selectedLocationText').textContent =
         `✅ Selected: ${location.lat().toFixed(4)}, ${location.lng().toFixed(4)}`;
-        
+
     document.getElementById('selectedLocationText').style.color = "#1db954";
 }
 
@@ -172,7 +167,7 @@ function useHostGPS() {
         return;
     }
     const statusText = document.getElementById('selectedLocationText');
-    if(statusText) {
+    if (statusText) {
         statusText.textContent = "⌛ Getting location...";
         statusText.style.color = "#aaa";
     }
@@ -228,7 +223,7 @@ function openLocationModal() {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
             };
-            
+
             currentLocation = userPos;
 
             if (map) {
@@ -250,7 +245,7 @@ function openLocationModal() {
                         strokeWeight: 2,
                     }
                 });
-                
+
                 alert("Location found! 📍");
             }
         },
@@ -292,10 +287,20 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-function updateUIForLogin(user) {
+async function updateUIForLogin(user) {
+    // Fetch full profile (is_host check)
+    let isHost = false;
+    let token = await user.getIdToken();
+    try {
+        const res = await fetch(`${API_URL}/api/user/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.user.is_host) isHost = true;
+    } catch (e) { console.error("Profile fetch error", e); }
+
     const logSignBox = document.querySelector(".logSignBox");
     const hostBar = document.querySelector(".hostBar");
-    const userEmail = user.email ? user.email.toLowerCase() : "";
 
     // Modified to link to Profile Page
     if (logSignBox) {
@@ -311,12 +316,12 @@ function updateUIForLogin(user) {
                 </button>
             </div>`;
     }
-    
+
     if (hostBar) {
-        hostBar.style.display = ALLOWED_HOST_EMAILS.includes(userEmail) ? "block" : "none";
+        hostBar.style.display = isHost ? "block" : "none";
     }
 
-    // Ensure User Doc Exists in Firestore
+    // Ensure User Doc Exists in Firestore (Legacy / Optional if fully migrating)
     const userRef = window.db.collection('users').doc(user.uid);
     userRef.get().then((doc) => {
         if (!doc.exists) {
@@ -354,7 +359,7 @@ function handleLogout() {
 
 function handleGoogleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    
+
     auth.signInWithPopup(provider)
         .then((result) => {
             const user = result.user;
@@ -372,15 +377,15 @@ function handleGoogleLogin() {
 // 8. UI CONTROLS & INIT
 // ========================================
 
-function toggleMenu() { 
-    document.querySelector(".menu").classList.toggle("menuShow"); 
-    document.querySelector(".menuOverlay").classList.toggle("show"); 
+function toggleMenu() {
+    document.querySelector(".menu").classList.toggle("menuShow");
+    document.querySelector(".menuOverlay").classList.toggle("show");
 }
 
 function openAuth(mode) {
-    const overlay = document.getElementById("authOverlay"); 
+    const overlay = document.getElementById("authOverlay");
     overlay.classList.add("show");
-    
+
     const loginPage = document.getElementById("loginPage");
     const signupPage = document.getElementById("signupPage");
     const title = document.getElementById("authTitle");
@@ -396,20 +401,22 @@ function openAuth(mode) {
     }
 }
 
-function closeAuth() { 
-    document.getElementById("authOverlay").classList.remove("show"); 
+function closeAuth() {
+    document.getElementById("authOverlay").classList.remove("show");
 }
 
 function openUploadForm() {
     if (!currentUser) return alert("Log in first.");
     const userEmail = currentUser.email ? currentUser.email.toLowerCase() : "";
-    if (!ALLOWED_HOST_EMAILS.includes(userEmail)) return alert("Not authorized.");
+    if (!currentUser) return alert("Log in first.");
+    const hostBar = document.querySelector(".hostBar");
+    if (hostBar.style.display === "none") return alert("Not authorized. Please verify as host.");
     document.querySelector(".uploadOverlay").classList.add("show");
     setTimeout(() => { if (!uploadMap) initUploadMap(); }, 300);
 }
 
-function closeUploadForm() { 
-    document.querySelector(".uploadOverlay").classList.remove("show"); 
+function closeUploadForm() {
+    document.querySelector(".uploadOverlay").classList.remove("show");
 }
 
 // ========================================
@@ -474,15 +481,15 @@ function addEventMarkers(events) {
     // Clear existing markers
     eventMarkers.forEach(marker => marker.setMap(null));
     eventMarkers = [];
-    
+
     if (!map) return;
 
     events.forEach(event => {
         if (!event.lat || !event.lng) return;
-        
+
         // Get emoji for event category
         const emoji = EVENT_EMOJIS[event.category.toLowerCase()] || EVENT_EMOJIS['default'];
-        
+
         // Create custom emoji marker
         const marker = new google.maps.Marker({
             position: { lat: event.lat, lng: event.lng },
@@ -490,12 +497,12 @@ function addEventMarkers(events) {
             icon: createEmojiIcon(emoji),
             title: event.title
         });
-        
+
         // Add click listener
         marker.addListener('click', () => {
             window.location.href = `event.html?id=${event.id}`;
         });
-        
+
         eventMarkers.push(marker);
     });
 }
@@ -519,13 +526,14 @@ function createEmojiIcon(emoji) {
 
 // Check if event is currently live
 function checkIfEventIsLive(event) {
-    if (!event.date) return false;
-    
-    const eventDate = new Date(event.date);
+    const d = event.fullDate || event.date;
+    if (!d) return false;
+
+    const eventDate = new Date(d);
     const now = new Date();
     const timeDiff = Math.abs(now - eventDate);
     const hoursDiff = timeDiff / (1000 * 60 * 60);
-    
+
     // Consider event "live" if it's within 2 hours of start time
     return hoursDiff <= 2;
 }
@@ -536,23 +544,23 @@ function openChatModal(eventId) {
         alert('Please log in to join the chat.');
         return;
     }
-    
+
     currentChatEventId = eventId;
-    
+
     // Create chat modal if it doesn't exist
     let chatModal = document.getElementById('chatModal');
     if (!chatModal) {
         createChatModal();
         chatModal = document.getElementById('chatModal');
     }
-    
+
     // Show modal
     chatModal.classList.add('show');
-    
+
     // Load event info and messages
     loadEventChatInfo(eventId);
     loadChatMessages(eventId);
-    
+
     // Focus on input
     const messageInput = document.getElementById('chatMessageInput');
     if (messageInput) {
@@ -578,9 +586,9 @@ function createChatModal() {
             </div>
         </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
+
     // Add chat styles
     const chatStyles = `
         <style>
@@ -737,7 +745,7 @@ function createChatModal() {
             }
         </style>
     `;
-    
+
     document.head.insertAdjacentHTML('beforeend', chatStyles);
 }
 
@@ -764,13 +772,13 @@ function loadChatMessages(eventId) {
     if (chatListener) {
         chatListener();
     }
-    
+
     const messagesContainer = document.getElementById('chatMessages');
     if (!messagesContainer) return;
-    
+
     // Clear existing messages
     messagesContainer.innerHTML = '';
-    
+
     // Set up real-time listener
     chatListener = window.db.collection('chats')
         .doc(eventId)
@@ -783,7 +791,7 @@ function loadChatMessages(eventId) {
                     addChatMessageToUI(message);
                 }
             });
-            
+
             // Scroll to bottom
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }, (error) => {
@@ -795,12 +803,12 @@ function loadChatMessages(eventId) {
 function addChatMessageToUI(message) {
     const messagesContainer = document.getElementById('chatMessages');
     if (!messagesContainer) return;
-    
+
     const messageDiv = document.createElement('div');
     const isOwnMessage = currentUser && message.senderId === currentUser.uid;
-    
+
     messageDiv.className = `chatMessage ${isOwnMessage ? 'own' : 'other'}`;
-    
+
     if (isOwnMessage) {
         messageDiv.innerHTML = `
             <div>${message.text}</div>
@@ -811,9 +819,9 @@ function addChatMessageToUI(message) {
             <div>${message.text}</div>
         `;
     }
-    
+
     messagesContainer.appendChild(messageDiv);
-    
+
     // Scroll to bottom
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
@@ -821,19 +829,19 @@ function addChatMessageToUI(message) {
 // Send a chat message
 function sendChatMessage() {
     if (!currentChatEventId || !currentUser) return;
-    
+
     const messageInput = document.getElementById('chatMessageInput');
     const messageText = messageInput.value.trim();
-    
+
     if (!messageText) return;
-    
+
     const messageData = {
         text: messageText,
         senderId: currentUser.uid,
         senderName: currentUser.displayName || currentUser.email.split('@')[0],
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
-    
+
     window.db.collection('chats')
         .doc(currentChatEventId)
         .collection('messages')
@@ -860,13 +868,13 @@ function closeChatModal() {
     if (chatModal) {
         chatModal.classList.remove('show');
     }
-    
+
     // Remove listener
     if (chatListener) {
         chatListener();
         chatListener = null;
     }
-    
+
     currentChatEventId = null;
 }
 
@@ -880,11 +888,11 @@ function compressImage(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        
+
         reader.onload = (event) => {
             const img = new Image();
             img.src = event.target.result;
-            
+
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 // Resize logic: Max width 800px to save DB space
@@ -899,17 +907,17 @@ function compressImage(file) {
 
                 canvas.width = width;
                 canvas.height = height;
-                
+
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                
+
                 // Return Base64 string (JPEG at 70% quality)
-                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
             };
-            
+
             img.onerror = (error) => reject(error);
         };
-        
+
         reader.onerror = (error) => reject(error);
     });
 }
@@ -932,44 +940,54 @@ async function handleEventSubmit() {
         return;
     }
 
-    if (!window.db) return alert("DB Error. Reload.");
-
     try {
-        let imageUrls = [];
+        const token = await currentUser.getIdToken();
+        let imageUrl = null;
+
+        // 1. Upload Image
         if (selectedFiles.length > 0) {
-            const uploadPromises = selectedFiles.map(file => compressImage(file));
-            imageUrls = await Promise.all(uploadPromises);
+            const base64Img = await compressImage(selectedFiles[0]);
+            const res = await fetch(`${API_URL}/api/events/upload-image`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ imageBase64: base64Img })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || "Image upload failed");
+            imageUrl = data.image_url;
         }
 
+        // 2. Create Event
         const newEvent = {
             title: eventName,
             category: eventCategory,
-            date: new Date(eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            time: eventTime,
-            location: eventLocation,
+            event_date: `${eventDate}T${eventTime}:00Z`, // ISO format
+            venue_name: eventLocation.split(',')[0], // Simple heuristic
+            address: eventLocation,
             description: eventDescription,
-            tags: eventHashtags.split(' ').filter(tag => tag.startsWith('#')),
-            images: imageUrls, 
-            lat: selectedEventLocation.lat,
-            lng: selectedEventLocation.lng,
-            createdAt: new Date(),
-            hostId: currentUser ? currentUser.uid : 'anon', 
-            hostEmail: currentUser ? currentUser.email : 'anon', 
-            views: 0,
-            isLive: false // Will be updated by time checker
+            // tags: eventHashtags, // DB doesn't have tags col yet, usually stored in description or array
+            latitude: selectedEventLocation.lat,
+            longitude: selectedEventLocation.lng,
+            image_url: imageUrl
         };
 
-        const eventRef = await window.db.collection('events').add(newEvent);
-        
-        // Initialize chat document for the event
-        await window.db.collection('chats').doc(eventRef.id).set({
-            eventId: eventRef.id,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            participantCount: 0
+        const res = await fetch(`${API_URL}/api/events`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(newEvent)
         });
 
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Event creation failed");
+
         document.getElementById('eventUploadForm').reset();
-        selectedFiles = []; 
+        selectedFiles = [];
         document.getElementById('imagePreviewContainer').style.display = 'none';
         document.getElementById('uploadPlaceholder').style.display = 'flex';
         document.getElementById('selectedLocationText').textContent = '📍 No location pinned yet';
@@ -978,7 +996,7 @@ async function handleEventSubmit() {
 
         closeUploadForm();
         alert('Event posted successfully! 🎉');
-        loadEventsFromFirebase();
+        loadEventsFromAPI();
 
     } catch (error) {
         console.error('Error:', error);
@@ -1005,14 +1023,14 @@ if (searchInput) {
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         resultsBox.innerHTML = '';
-        
+
         if (query.length < 2) {
             resultsBox.style.display = 'none';
             return;
         }
 
-        const matches = (window.allEvents || []).filter(event => 
-            event.title.toLowerCase().includes(query) || 
+        const matches = (window.allEvents || []).filter(event =>
+            event.title.toLowerCase().includes(query) ||
             event.category.toLowerCase().includes(query)
         );
 
@@ -1065,7 +1083,7 @@ function fixFilterButtons() {
     });
 }
 
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     if (e.target.closest('.filterModal')) {
         const btn = e.target.closest('button') || e.target.closest('.categoryCard');
         if (btn) {
@@ -1087,12 +1105,12 @@ function openFilterModal() {
     fixFilterButtons();
     document.querySelector('.filterOverlay').classList.add('show');
     initCalendar();
-    
+
     const slider = document.getElementById('distanceRange');
     const displayVal = filterState.distance >= 500 ? 500 : filterState.distance;
-    if(slider) {
+    if (slider) {
         slider.value = displayVal;
-        updateDistanceDisplay(displayVal); 
+        updateDistanceDisplay(displayVal);
     }
 }
 
@@ -1104,18 +1122,18 @@ function resetFilters() {
     filterState.date = null;
     filterState.distance = 5000;
     filterState.category = 'all';
-    
+
     document.querySelectorAll('.calendarDay').forEach(d => d.classList.remove('selected'));
     document.querySelectorAll('.quickFilterBtn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.categoryCard').forEach(c => c.classList.remove('active'));
-    
+
     const allCatBtn = document.querySelector('.categoryCard[data-category="all"]');
-    if(allCatBtn) allCatBtn.classList.add('active');
+    if (allCatBtn) allCatBtn.classList.add('active');
 
     const distRange = document.getElementById('distanceRange');
     if (distRange) {
         distRange.value = 500;
-        updateDistanceDisplay(500); 
+        updateDistanceDisplay(500);
     }
 
     applyFilters();
@@ -1123,17 +1141,17 @@ function resetFilters() {
 
 const filterTabs = document.querySelectorAll('.filterTab');
 filterTabs.forEach(tab => {
-    tab.addEventListener('click', function(e) {
+    tab.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
 
         filterTabs.forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.filterTabContent').forEach(c => c.classList.remove('active', 'show'));
-        
+
         this.classList.add('active');
         const targetId = this.getAttribute('data-tab') + 'Tab';
         const targetContent = document.getElementById(targetId);
-        if(targetContent) {
+        if (targetContent) {
             targetContent.classList.add('active');
             setTimeout(() => targetContent.classList.add('show'), 10);
         }
@@ -1145,7 +1163,7 @@ let currentCalendarDate = new Date();
 function initCalendar() {
     const monthDisplay = document.getElementById('currentMonth');
     const calendarDays = document.getElementById('calendarDays');
-    if(!calendarDays) return;
+    if (!calendarDays) return;
 
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     monthDisplay.innerText = `${monthNames[currentCalendarDate.getMonth()]} ${currentCalendarDate.getFullYear()}`;
@@ -1160,19 +1178,19 @@ function initCalendar() {
     }
 
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
 
     for (let i = 1; i <= daysInMonth; i++) {
         const dayDiv = document.createElement('div');
         dayDiv.className = 'calendarDay';
         dayDiv.innerText = i;
-        
+
         const thisDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), i);
-        
+
         if (thisDate < today) {
             dayDiv.classList.add('disabled');
         } else {
-            dayDiv.onclick = function(e) {
+            dayDiv.onclick = function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 selectDate(thisDate, dayDiv);
@@ -1180,7 +1198,7 @@ function initCalendar() {
         }
 
         if (thisDate.getTime() === today.getTime()) dayDiv.classList.add('today');
-        
+
         if (filterState.date instanceof Date && thisDate.getTime() === filterState.date.getTime()) {
             dayDiv.classList.add('selected');
         }
@@ -1191,8 +1209,8 @@ function initCalendar() {
 
 const prevM = document.getElementById('prevMonth');
 const nextM = document.getElementById('nextMonth');
-if(prevM) prevM.onclick = (e) => { e.preventDefault(); currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1); initCalendar(); };
-if(nextM) nextM.onclick = (e) => { e.preventDefault(); currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1); initCalendar(); };
+if (prevM) prevM.onclick = (e) => { e.preventDefault(); currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1); initCalendar(); };
+if (nextM) nextM.onclick = (e) => { e.preventDefault(); currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1); initCalendar(); };
 
 function selectDate(date, element) {
     filterState.date = date;
@@ -1202,7 +1220,7 @@ function selectDate(date, element) {
 }
 
 document.querySelectorAll('.quickFilterBtn[data-quick]').forEach(btn => {
-    btn.onclick = function(e) {
+    btn.onclick = function (e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -1212,7 +1230,7 @@ document.querySelectorAll('.quickFilterBtn[data-quick]').forEach(btn => {
         this.classList.add('active');
 
         const today = new Date();
-        today.setHours(0,0,0,0);
+        today.setHours(0, 0, 0, 0);
 
         if (type === 'today') filterState.date = today;
         if (type === 'tomorrow') {
@@ -1229,24 +1247,24 @@ function updateDistanceDisplay(val) {
     const numVal = parseInt(val);
     const distRange = document.getElementById('distanceRange');
     const distInput = document.getElementById('distanceInput');
-    
-    if(distRange) {
+
+    if (distRange) {
         distRange.value = numVal;
         const percentage = (numVal / 500) * 100;
         distRange.style.setProperty('--value', `${percentage}%`);
     }
-    if(distInput) distInput.value = numVal;
-    
+    if (distInput) distInput.value = numVal;
+
     filterState.distance = (numVal >= 500) ? 5000 : numVal;
 }
 
 const dRange = document.getElementById('distanceRange');
 const dInput = document.getElementById('distanceInput');
-if(dRange) dRange.addEventListener('input', (e) => updateDistanceDisplay(e.target.value));
-if(dInput) dInput.addEventListener('input', (e) => updateDistanceDisplay(e.target.value));
+if (dRange) dRange.addEventListener('input', (e) => updateDistanceDisplay(e.target.value));
+if (dInput) dInput.addEventListener('input', (e) => updateDistanceDisplay(e.target.value));
 
 document.querySelectorAll('.quickFilterBtn[data-distance]').forEach(btn => {
-    btn.onclick = function(e) {
+    btn.onclick = function (e) {
         e.preventDefault();
         e.stopPropagation();
         updateDistanceDisplay(this.getAttribute('data-distance'));
@@ -1256,7 +1274,7 @@ document.querySelectorAll('.quickFilterBtn[data-distance]').forEach(btn => {
 });
 
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-    const R = 6371; 
+    const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -1266,15 +1284,15 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 function deg2rad(deg) { return deg * (Math.PI / 180); }
 
 const categoryGrid = document.getElementById('categoryGrid');
-if(categoryGrid) {
+if (categoryGrid) {
     const cards = categoryGrid.querySelectorAll('.categoryCard');
     cards.forEach(card => {
         card.removeAttribute('onclick');
-        
-        card.addEventListener('click', function(e) {
+
+        card.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             cards.forEach(c => c.classList.remove('active'));
             this.classList.add('active');
             filterState.category = this.getAttribute('data-category');
@@ -1303,11 +1321,11 @@ function applyFilters() {
         let matchCat = true;
 
         if (filterState.date) {
-            const eDate = new Date(event.date); eDate.setHours(0,0,0,0);
-            const today = new Date(); today.setHours(0,0,0,0);
+            const eDate = new Date(event.date); eDate.setHours(0, 0, 0, 0);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
 
             if (filterState.date instanceof Date) {
-                const fDate = new Date(filterState.date); fDate.setHours(0,0,0,0);
+                const fDate = new Date(filterState.date); fDate.setHours(0, 0, 0, 0);
                 matchDate = eDate.getTime() === fDate.getTime();
             } else if (filterState.date === 'week') {
                 const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
@@ -1322,7 +1340,7 @@ function applyFilters() {
                 const km = getDistanceFromLatLonInKm(currentLocation.lat, currentLocation.lng, parseFloat(event.lat), parseFloat(event.lng));
                 matchDist = km <= filterState.distance;
             } else {
-                matchDist = false; 
+                matchDist = false;
             }
         }
 
@@ -1354,13 +1372,13 @@ fixFilterButtons();
 
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof google !== 'undefined' && google.maps && !mapInitialized) window.initMap();
-    
+
     // --- UPDATED IMAGE PREVIEW LOGIC (Recommended Fix) ---
     const eventImageInput = document.getElementById("uploadEventImage");
     if (eventImageInput) {
         eventImageInput.addEventListener("change", (e) => {
             selectedFiles = Array.from(e.target.files); // Keep selected files for submit
-            
+
             const placeholder = document.getElementById("uploadPlaceholder");
             const previewContainer = document.getElementById("imagePreviewContainer");
             const previewImg = document.getElementById("imagePreview");
@@ -1368,16 +1386,16 @@ document.addEventListener("DOMContentLoaded", () => {
             if (selectedFiles.length > 0) {
                 // Read the first file for preview
                 const reader = new FileReader();
-                reader.onload = function(evt) {
-                    if(previewImg) previewImg.src = evt.target.result;
-                    if(placeholder) placeholder.style.display = "none";
-                    if(previewContainer) previewContainer.style.display = "block";
+                reader.onload = function (evt) {
+                    if (previewImg) previewImg.src = evt.target.result;
+                    if (placeholder) placeholder.style.display = "none";
+                    if (previewContainer) previewContainer.style.display = "block";
                 };
                 reader.readAsDataURL(selectedFiles[0]);
             } else {
                 // Reset if cancelled
-                if(placeholder) placeholder.style.display = "flex";
-                if(previewContainer) previewContainer.style.display = "none";
+                if (placeholder) placeholder.style.display = "flex";
+                if (previewContainer) previewContainer.style.display = "none";
             }
         });
     }
@@ -1388,12 +1406,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("googleLoginBtn")?.addEventListener("click", handleGoogleLogin);
     document.getElementById("googleSignupBtn")?.addEventListener("click", handleGoogleLogin);
 
-    document.getElementById("loginForm")?.addEventListener("submit", (e) => { 
-        e.preventDefault(); 
+    document.getElementById("loginForm")?.addEventListener("submit", (e) => {
+        e.preventDefault();
         const email = document.getElementById("loginEmail").value.trim();
         const password = document.getElementById("loginPass").value.trim();
         const btn = e.target.querySelector('button[type="submit"]');
-        
+
         const oldText = btn.innerText;
         btn.innerText = "Verifying...";
         btn.disabled = true;
@@ -1405,8 +1423,8 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .catch((error) => {
                 let msg = error.message;
-                if(error.code === 'auth/wrong-password') msg = "Incorrect password.";
-                if(error.code === 'auth/user-not-found') msg = "No account found with this email.";
+                if (error.code === 'auth/wrong-password') msg = "Incorrect password.";
+                if (error.code === 'auth/user-not-found') msg = "No account found with this email.";
                 alert(msg);
             })
             .finally(() => {
@@ -1422,8 +1440,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const email = document.getElementById("signupEmail").value.trim();
             const password = document.getElementById("signupPass").value.trim();
             const btn = e.target.querySelector('button[type="submit"]');
-            
-            if(password.length < 6) return alert("Password should be at least 6 characters");
+
+            if (password.length < 6) return alert("Password should be at least 6 characters");
 
             const oldText = btn.innerText;
             btn.innerText = "Creating...";
@@ -1436,7 +1454,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 })
                 .catch((error) => {
                     let msg = error.message;
-                    if(error.code === 'auth/email-already-in-use') msg = "Email already in use. Please Log In.";
+                    if (error.code === 'auth/email-already-in-use') msg = "Email already in use. Please Log In.";
                     alert(msg);
                 })
                 .finally(() => {
@@ -1447,27 +1465,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.querySelectorAll('.navItem').forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function () {
             document.querySelectorAll('.navItem').forEach(nav => nav.classList.remove('active'));
             this.classList.add('active');
         });
     });
 });
 
-function loadEventsFromFirebase() {
-    if(!window.db) return;
-    window.db.collection('events').orderBy('createdAt', 'desc').get().then((snapshot) => {
-        let events = []; 
-        snapshot.forEach((doc) => { 
-            const event = { id: doc.id, ...doc.data() };
-            // Update live status based on current time
-            event.isLive = checkIfEventIsLive(event);
-            events.push(event); 
-        });
-        window.allEvents = events; 
-        renderEventCards(events); 
-        addEventMarkers(events);
-    });
+function loadEventsFromAPI() {
+    fetch(`${API_URL}/api/events`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+
+            const events = data.events.map(e => ({
+                id: e.id,
+                title: e.title,
+                category: e.category,
+                date: new Date(e.event_date).toLocaleDateString(),
+                fullDate: e.event_date,
+                location: e.venue_name || e.address,
+                description: e.description,
+                image: e.image_url,
+                lat: e.latitude,
+                lng: e.longitude,
+                isLive: false // simplistic
+            }));
+
+            window.allEvents = events;
+            renderEventCards(events);
+            addEventMarkers(events);
+        })
+        .catch(err => console.error("Load events failed:", err));
 }
 /* ================================
    SETTINGS & VERIFICATION LOGIC
@@ -1521,7 +1550,7 @@ function checkPermissions() {
 
 function updatePermUI(elementId, text) {
     const el = document.getElementById(elementId);
-    if(el) {
+    if (el) {
         el.innerText = text;
         el.style.color = text.includes('Allowed') ? '#1db954' : '#aaa';
     }
@@ -1548,7 +1577,7 @@ function submitHostVerification(e) {
     const email = document.getElementById('hostEmail').value;
     const phone = document.getElementById('hostPhone').value;
     const reason = document.getElementById('hostReason').value;
-    
+
     // Construct Email Body
     const subject = `Mapzo Host Verification Request - ${name}`;
     const body = `Hello Admin,%0D%0A%0D%0AI would like to apply for Host Verification on Mapzo.%0D%0A%0D%0ADETAILS:%0D%0AName: ${name}%0D%0AEmail: ${email}%0D%0APhone: ${phone}%0D%0A%0D%0AREASON:%0D%0A${reason}%0D%0A%0D%0APlease verify my account.%0D%0A%0D%0AThanks, ${name}`;
