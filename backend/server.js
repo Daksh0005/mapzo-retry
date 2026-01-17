@@ -279,7 +279,8 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
     radius = 50,
     category,
     dateFrom,
-    dateTo
+    dateTo,
+    search // New parameter
   } = req.query;
 
   if (!latitude || !longitude) {
@@ -314,6 +315,13 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
     if (category && category !== "all") {
       where.push(`category = $${idx}`);
       params.push(category);
+      idx++;
+    }
+
+    // search filter (title, desc, or category)
+    if (search) {
+      where.push(`(title ILIKE $${idx} OR description ILIKE $${idx} OR category ILIKE $${idx})`);
+      params.push(`%${search}%`);
       idx++;
     }
 

@@ -1457,8 +1457,24 @@ fixFilterButtons();
 // 15. INIT LISTENERS
 // ========================================
 
+// ========================================
+// 15. INIT LISTENERS
+// ========================================
+
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof google !== 'undefined' && google.maps && !mapInitialized) window.initMap();
+
+    // --- SEARCH LISTENER ---
+    const searchForm = document.querySelector(".navSearch");
+    if (searchForm) {
+        searchForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const input = searchForm.querySelector("input");
+            const query = input.value.trim();
+            console.log("Searching for:", query);
+            loadEventsFromAPI({ search: query });
+        });
+    }
 
     // --- UPDATED IMAGE PREVIEW LOGIC (Recommended Fix) ---
     const eventImageInput = document.getElementById("uploadEventImage");
@@ -1559,8 +1575,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-function loadEventsFromAPI() {
-    fetch(`${API_URL}/api/events`)
+function loadEventsFromAPI(filters = {}) {
+    let url = `${API_URL}/api/events`;
+
+    // Use nearby endpoint if we have location and no explicit override
+    // Or if search is present, we might want to use nearby to filter by distance too?
+    // Actually, nearby endpoint handles filters better in our backend logic
+    if (map && map.getCenter()) {
+        const params = new URLSearchParams({
+            latitude: map.getCenter().lat(),
+            longitude: map.getCenter().lng(),
+            radius: 50
+        });
+
+        if (filters.search) params.append("search", filters.search);
+
+        url = `${API_URL}/api/events/nearby?${params.toString()}`;
+    }
+
+    fetch(url)
         .then(res => res.json())
         .then(data => {
             if (!data.success) return;
@@ -1582,6 +1615,11 @@ function loadEventsFromAPI() {
             window.allEvents = events;
             renderEventCards(events);
             addEventMarkers(events);
+
+            if (filters.search) {
+                console.log(`Found ${events.length} results for "${filters.search}"`);
+                if (events.length === 0) alert("No events found matching your search.");
+            }
         })
         .catch(err => console.error("Load events failed:", err));
 }
