@@ -1,16 +1,14 @@
 // --- CONFIG ---
-// --- CONFIG ---
 // API_URL is now loaded from utils.js
 
 // --- 1. AUTH & DATA LOAD ---
 // Wait for global auth to be ready (from utils.js) or listen to onAuthStateChanged
 const auth = window.auth || firebase.auth();
 
-
 let currentUser = null;
 let currentToken = null;
 
-// --- 1. AUTH & DATA LOAD ---
+// Auth State Listener
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;

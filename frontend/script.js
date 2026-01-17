@@ -16,10 +16,7 @@ const API_KEY = "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00";
 let currentUser = null;
 
 // ✅ ADMIN ACCESS LIST
-// ✅ ADMIN ACCESS LIST
 // API_URL is now loaded from utils.js
-
-let map = null;
 
 let map = null;
 let uploadMap = null;
