@@ -271,7 +271,7 @@ function injectActionButtons(data) {
       <i class="fa-solid fa-location-arrow"></i> Directions
     </a>
     <button onclick="addToCalendar()" style="flex:1; min-width:120px; background:#4285F4; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">
-      <i class="fa-regular fa-calendar-plus"></i> Add to Cal
+      <i class="fa-regular fa-calendar-plus"></i> Add to Calender
     </button>
     <button onclick="shareEvent('${data.title.replace(/'/g, "\\'")}')" style="flex:1; min-width:120px; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">
       <i class="fa-solid fa-share-nodes"></i> Share
