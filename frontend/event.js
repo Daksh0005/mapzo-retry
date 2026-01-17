@@ -25,28 +25,51 @@ const els = {
   loginPrompt: document.getElementById("loginToComment")
 };
 
-// --- AUTH ---
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    currentUser = user;
-    if (els.authBox) els.authBox.style.display = 'block';
-    if (els.loginPrompt) els.loginPrompt.style.display = 'none';
-    checkJoinStatus();
-  } else {
-    currentUser = null;
-    if (els.authBox) els.authBox.style.display = 'none';
-    if (els.loginPrompt) els.loginPrompt.style.display = 'block';
-    if (els.joinBtn) els.joinBtn.style.display = 'none';
-  }
-});
+// --- AUTH & INIT ---
+// Wait for window.auth to be ready if it's set in utils.js
+function initPage() {
+  console.log("🚀 Starting Page Init...");
 
-// --- LOAD DATA ---
-if (!eventId) {
-  els.loading.innerHTML = '<p>Missing event ID.</p>';
-} else {
-  loadEventDetails();
-  loadComments();
+  // START DATA LOAD IMMEDIATELY (Don't wait for auth)
+  if (!eventId) {
+    els.loading.innerHTML = '<p>Missing event ID.</p>';
+  } else {
+    loadEventDetails();
+    loadComments();
+  }
+
+  // CHECK AUTH SEPARATELY
+  const checkAuthInterval = setInterval(() => {
+    if (window.auth) {
+      clearInterval(checkAuthInterval);
+      setupAuthListener();
+    }
+  }, 100);
+
+  // Timeout to stop checking after 5s
+  setTimeout(() => clearInterval(checkAuthInterval), 5000);
 }
+
+function setupAuthListener() {
+  console.log("👤 Setting up Auth Listener");
+  window.auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      currentUser = user;
+      if (els.authBox) els.authBox.style.display = 'block';
+      if (els.loginPrompt) els.loginPrompt.style.display = 'none';
+      checkJoinStatus();
+    } else {
+      currentUser = null;
+      if (els.authBox) els.authBox.style.display = 'none';
+      if (els.loginPrompt) els.loginPrompt.style.display = 'block';
+      if (els.joinBtn) els.joinBtn.style.display = 'none';
+    }
+  });
+}
+
+initPage();
+
+// Data loading is now handled in initPage()
 
 async function loadEventDetails() {
   console.log("Loading details for ID:", eventId); // Debug

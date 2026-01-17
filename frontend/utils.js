@@ -78,3 +78,31 @@ if (typeof document !== 'undefined' && !document.getElementById('toast-styles'))
     `;
     document.head.appendChild(style);
 }
+// 2. GLOBAL FIREBASE INIT
+const firebaseConfig = {
+    apiKey: "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00",
+    authDomain: "mapzo-26259.firebaseapp.com",
+    projectId: "mapzo-26259",
+    storageBucket: "mapzo-26259.firebasestorage.app",
+    messagingSenderId: "701273875886",
+    appId: "1:701273875886:web:00d1d079ba6875139dd43f",
+    measurementId: "G-2PJ0TMZVJT"
+};
+
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    console.log("🔥 Firebase Initialized in Utils");
+}
+
+let auth;
+if (typeof firebase !== 'undefined') {
+    auth = firebase.auth();
+    window.auth = auth; // Make globally accessible
+    console.log("🔐 Auth Object Initialized");
+}
+
+let db;
+if (typeof firebase !== 'undefined') {
+    db = firebase.firestore();
+    window.db = db;
+}
