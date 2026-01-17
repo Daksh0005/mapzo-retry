@@ -170,10 +170,19 @@
                                 max="5000">
                             <span class="distanceUnit">km</span>
                         </div>
-                        <div class="distanceSlider">
-                            <input type="range" class="distanceRange" id="distanceRange" min="0" max="500" value="50"
-                                step="5">
-                            <div class="distanceMarkers"><span>0</span><span>250</span><span>500+</span></div>
+                        <div class="distanceSliderContainer"
+                            style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                            <button type="button" class="distStepBtn" onclick="adjustDistance(-1)"
+                                style="background: rgba(255,255,255,0.1); border: 1px solid #444; color: #fff; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i
+                                    class="fa-solid fa-minus"></i></button>
+                            <div class="distanceSlider" style="flex: 1;">
+                                <input type="range" class="distanceRange" id="distanceRange" min="0.1" max="1000"
+                                    value="50" step="0.1" style="width: 100%;">
+                                <div class="distanceMarkers"><span>0.1km</span><span>500</span><span>1000km</span></div>
+                            </div>
+                            <button type="button" class="distStepBtn" onclick="adjustDistance(1)"
+                                style="background: rgba(255,255,255,0.1); border: 1px solid #444; color: #fff; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i
+                                    class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
                     <div class="quickFilters">
@@ -229,8 +238,14 @@
 
     <section class="eventsSection" id="events-section">
         <div class="sectionHeader">
-            <h2 class="sectionTitle">Relevant Events</h2>
-            <a href="#" class="seeAll">See all</a>
+            <div class="headerRow" style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 class="sectionTitle">Nearby Events</h2>
+                <select id="sortEvents" class="sortDropdown" onchange="changeSort(this.value)"
+                    style="background:transparent; color:#fff; border:1px solid #444; border-radius:15px; padding:5px; font-size:0.8rem;">
+                    <option value="distance" style="background:#222;">📍 Distance</option>
+                    <option value="date" style="background:#222;">🕒 Time Left</option>
+                </select>
+            </div>
         </div>
         <div class="eventsScroll">
         </div>
@@ -351,8 +366,18 @@
                         </button>
                     </div>
 
-                    <div class="uploadMapWrapper">
+                    <div class="uploadMapWrapper" style="position:relative;">
                         <div id="uploadMap" class="uploadMap"></div>
+
+                        <!-- Host Map Controls -->
+                        <div class="mapControls hostMapOverlay"
+                            style="position:absolute; bottom:20px; right:10px; display:flex; gap:10px; z-index:10;">
+                            <button id="uploadRecenterBtn" type="button" class="mapControlBtn" title="Recenter"><i
+                                    class="fa-solid fa-crosshairs"></i></button>
+                            <button id="uploadFullscreenBtn" type="button" class="mapControlBtn" title="Fullscreen"><i
+                                    class="fa-solid fa-expand"></i></button>
+                        </div>
+
                         <div class="mapHint">
                             <i class="fa-solid fa-location-dot"></i> Tap map to pin location
                         </div>
@@ -595,6 +620,10 @@
                         <input class="authInput" type="text" id="hostName" placeholder="Daksh Arora" required>
                     </div>
                     <div class="input-group">
+                        <label class="authLabel">Organization / Startup</label>
+                        <input class="authInput" type="text" id="hostOrg" placeholder="Mapzo" required>
+                    </div>
+                    <div class="input-group">
                         <label class="authLabel">Gmail Address</label>
                         <input class="authInput" type="email" id="hostEmail" placeholder="example@gmail.com" required>
                     </div>
@@ -613,6 +642,7 @@
         </div>
     </div>
 
+    <script src="utils.js"></script>
     <script async defer
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAh0cLcA59_-Epn5rPyZNn-sigHeps4vyA&callback=initMap&loading=async&libraries=places">
         </script>

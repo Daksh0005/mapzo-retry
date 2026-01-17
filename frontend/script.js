@@ -135,7 +135,7 @@ window.initMap = function () {
                             });
                         },
                         () => {
-                            alert("Location access denied. Centering to default.");
+                            showToast("Location access denied. Centering to default.", "warning");
                             map.setCenter(defaultCenter);
                         }
                     );
@@ -176,16 +176,80 @@ function initUploadMap() {
     uploadMap = new google.maps.Map(uploadMapElement, {
         center: defaultCenter,
         zoom: 14,
-        disableDefaultUI: false, // Enable controls for the host map
+        disableDefaultUI: true,
         styles: [
             { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+            { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] }
         ]
     });
 
     uploadMap.addListener('click', function (e) {
         placeUploadMarker(e.latLng);
     });
+
+    // 1. AUTOCOMPLETE LOGIC
+    const input = document.getElementById("eventLocation");
+    if (input) {
+        const autocomplete = new google.maps.places.Autocomplete(input);
+        autocomplete.bindTo("bounds", uploadMap);
+
+        autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) {
+                showToast("No details available for input: '" + place.name + "'", "warning");
+                return;
+            }
+            if (place.geometry.viewport) {
+                uploadMap.fitBounds(place.geometry.viewport);
+            } else {
+                uploadMap.setCenter(place.geometry.location);
+                uploadMap.setZoom(17);
+            }
+            placeUploadMarker(place.geometry.location);
+            input.value = place.formatted_address || place.name;
+        });
+    }
+
+    // 2. RECENTER BUTTON
+    const recenterBtn = document.getElementById("uploadRecenterBtn");
+    if (recenterBtn) {
+        recenterBtn.addEventListener("click", () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                        };
+                        uploadMap.setCenter(pos);
+                        uploadMap.setZoom(15);
+                        placeUploadMarker(new google.maps.LatLng(pos.lat, pos.lng));
+                    },
+                    () => showToast("Location access denied.", "error")
+                );
+            }
+        });
+    }
+
+    // 3. FULLSCREEN BUTTON
+    const fullscreenBtn = document.getElementById("uploadFullscreenBtn");
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener("click", () => {
+            const wrapper = document.querySelector(".uploadMapWrapper");
+            if (wrapper) {
+                if (!document.fullscreenElement) {
+                    wrapper.requestFullscreen().catch(err => console.log(err));
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+    }
 }
 
 function placeUploadMarker(location) {
@@ -222,7 +286,7 @@ function placeUploadMarker(location) {
 
 function useHostGPS() {
     if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser.');
+        showToast("Geolocation is not supported by your browser.", "error");
         return;
     }
     const statusText = document.getElementById('selectedLocationText');
@@ -242,7 +306,7 @@ function useHostGPS() {
         },
         (error) => {
             console.error(error);
-            alert('Could not get location. Make sure GPS is enabled.');
+            showToast("Could not get location. Make sure GPS is enabled.", "error");
         }
     );
 }
@@ -250,7 +314,7 @@ function useHostGPS() {
 function searchHostLocation() {
     const query = document.getElementById('eventLocation').value;
     if (!query) {
-        alert("Please type a location in the 'Set Location' box first.");
+        showToast("Please type a location in the 'Set Location' box first.", "warning");
         return;
     }
 
@@ -263,7 +327,7 @@ function searchHostLocation() {
                 placeUploadMarker(loc);
             }
         } else {
-            alert('Location not found. Try be more specific.');
+            showToast("Location not found. Try being more specific.", "warning");
         }
     });
 }
@@ -272,7 +336,7 @@ function openLocationModal() {
     console.log("Getting User Location...");
 
     if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
+        showToast("Geolocation is not supported by your browser.", "error");
         return;
     }
 
@@ -305,12 +369,12 @@ function openLocationModal() {
                     }
                 });
 
-                alert("Location found! 📍");
+                showToast("Location found! 📍", "success");
             }
         },
         (error) => {
             console.error("Error getting location:", error);
-            alert("Could not get your location. Please check your browser permissions.");
+            showToast("Could not get your location. Please check your browser permissions.", "error");
         }
     );
 }
@@ -388,6 +452,9 @@ async function updateUIForLogin(user) {
         hostBar.style.display = isHost ? "block" : "none";
     }
 
+    // Auto-Trigger Location Check-in
+    checkInLocation();
+
     // Ensure User Doc Exists in Firestore (Legacy / Optional if fully migrating)
     const userRef = window.db.collection('users').doc(user.uid);
     userRef.get().then((doc) => {
@@ -401,6 +468,40 @@ async function updateUIForLogin(user) {
             });
         }
     });
+}
+
+// Helper: Smart Location Check-in
+function checkInLocation() {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            currentLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+
+            // Reverse Geocode to get City Name
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLocation.lat}&lon=${currentLocation.lng}`);
+                const data = await res.json();
+                const city = data.address.city || data.address.town || data.address.village || "Unknown Location";
+
+                // Update Header UI
+                const locationDisplay = document.getElementById('locationDisplay');
+                if (locationDisplay) locationDisplay.innerHTML = `<span style="font-size:1.1em; font-weight:bold;">${city}</span><br><span style="font-size:0.8em; color:#aaa;">Current Location</span>`;
+
+                if (window.userLocationMarker) window.userLocationMarker.setMap(null);
+                // Re-center map if not already done
+                if (map) map.setCenter(currentLocation);
+
+            } catch (err) {
+                console.error("Reverse geocode failed:", err);
+                const locationDisplay = document.getElementById('locationDisplay');
+                if (locationDisplay) locationDisplay.innerHTML = "Location<br>Enabled";
+            }
+        }, (err) => {
+            console.log("Auto-location denied or failed:", err);
+        });
+    }
 }
 
 function updateUIForLogout() {
@@ -417,7 +518,7 @@ function updateUIForLogout() {
 
 function handleLogout() {
     auth.signOut().then(() => {
-        alert("Logged out successfully.");
+        showToast("Logged out successfully.", "success");
         window.location.reload();
     }).catch((error) => {
         console.error("Logout Error:", error);
@@ -452,11 +553,11 @@ function handleGoogleLogin() {
             }
 
             closeAuth();
-            alert(`Welcome, ${user.displayName || 'User'}! 🚀`);
+            showToast(`Welcome, ${user.displayName || 'User'}! 🚀`, "success");
         })
         .catch((error) => {
             console.error("Google Error:", error);
-            alert("Google Sign In Failed: " + error.message);
+            showToast("Google Sign In Failed", "error");
         });
 }
 
@@ -493,11 +594,10 @@ function closeAuth() {
 }
 
 function openUploadForm() {
-    if (!currentUser) return alert("Log in first.");
+    if (!currentUser) return showToast("Log in first.", "warning");
     const userEmail = currentUser.email ? currentUser.email.toLowerCase() : "";
-    if (!currentUser) return alert("Log in first.");
     const hostBar = document.querySelector(".hostBar");
-    if (hostBar.style.display === "none") return alert("Not authorized. Please verify as host.");
+    if (hostBar.style.display === "none") return showToast("Not authorized. Please verify as host.", "warning");
     document.querySelector(".uploadOverlay").classList.add("show");
     setTimeout(() => { if (!uploadMap) initUploadMap(); }, 300);
 }
@@ -938,7 +1038,7 @@ function sendChatMessage() {
         })
         .catch((error) => {
             console.error("Error sending message:", error);
-            alert('Failed to send message. Please try again.');
+            showToast("Failed to send message.", "error");
         });
 }
 
@@ -1022,7 +1122,7 @@ async function handleEventSubmit() {
     const eventHashtags = document.getElementById('eventHashtags').value;
 
     if (!eventName || !eventCategory || !eventDate || !eventLocation || !selectedEventLocation) {
-        alert('Please fill required fields and pin location.');
+        showToast("Please fill required fields and pin location.", "warning");
         submitBtn.disabled = false; submitBtn.textContent = "Post";
         return;
     }
@@ -1082,12 +1182,12 @@ async function handleEventSubmit() {
         selectedEventLocation = null;
 
         closeUploadForm();
-        alert('Event posted successfully! 🎉');
+        showToast("Event posted successfully! 🎉", "success");
         loadEventsFromAPI();
 
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed: ' + error.message);
+        showToast("Failed to post event.", "error");
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Post";
@@ -1095,7 +1195,7 @@ async function handleEventSubmit() {
 }
 
 // ========================================
-// 13. SMART SEARCH (UNCHANGED)
+// 13. SMART HASHTAG SEARCH
 // ========================================
 
 const searchInput = document.querySelector('.navSrchBar');
@@ -1104,35 +1204,120 @@ const searchForm = document.querySelector('.navSearch');
 if (searchInput) {
     const resultsBox = document.createElement('div');
     resultsBox.className = 'searchResultsBox';
-    searchForm.style.position = 'relative';
-    searchForm.appendChild(resultsBox);
+    // Style directly to ensure dark mode consistency and fix "highlight" glitch
+    Object.assign(resultsBox.style, {
+        position: 'absolute',
+        top: '100%',
+        left: '0',
+        width: '100%',
+        background: '#242f3e',
+        border: '1px solid #38414e',
+        borderRadius: '0 0 10px 10px',
+        display: 'none',
+        zIndex: '1000',
+        overflow: 'hidden',
+        boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+    });
+
+    // Ensure relative positioning for parent
+    if (searchForm) searchForm.style.position = 'relative';
+    if (searchForm) searchForm.appendChild(resultsBox);
+
+    // Helper: Extract and Count Hashtags
+    function getPopularHashtags() {
+        if (!window.allEvents) return [];
+        const tagMap = {};
+
+        window.allEvents.forEach(event => {
+            // Extract from title and description
+            const text = (event.title + " " + event.description).toLowerCase();
+            const matches = text.match(/#[\w]+/g);
+            if (matches) {
+                matches.forEach(tag => {
+                    tagMap[tag] = (tagMap[tag] || 0) + 1;
+                });
+            }
+        });
+
+        // Convert to array and sort by count (desc)
+        return Object.entries(tagMap)
+            .sort((a, b) => b[1] - a[1]) // Sort by count
+            .map(entry => ({ tag: entry[0], count: entry[1] }));
+    }
 
     searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
+        const query = e.target.value.toLowerCase().trim();
         resultsBox.innerHTML = '';
 
-        if (query.length < 2) {
+        if (query.length === 0) {
             resultsBox.style.display = 'none';
             return;
         }
 
-        const matches = (window.allEvents || []).filter(event =>
-            event.title.toLowerCase().includes(query) ||
-            event.category.toLowerCase().includes(query)
+        // 1. Hashtag Suggestions
+        if (query.startsWith('#')) {
+            const popularTags = getPopularHashtags();
+            const matches = popularTags.filter(t => t.tag.includes(query));
+
+            if (matches.length > 0) {
+                resultsBox.style.display = 'block';
+                matches.slice(0, 5).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'searchResultItem';
+                    div.style.padding = '10px';
+                    div.style.borderBottom = '1px solid #38414e';
+                    div.style.cursor = 'pointer';
+                    div.style.color = '#fff';
+                    div.style.display = 'flex';
+                    div.style.justifyContent = 'space-between';
+
+                    div.innerHTML = `
+                        <span><span style="color:#1db954; font-weight:bold;">${item.tag}</span> <span style="font-size:0.8em; color:#888;">(${item.count} events)</span></span>
+                        <i class="fa-solid fa-hashtag" style="color:#666;"></i>
+                    `;
+
+                    div.onmouseover = () => div.style.background = '#38414e';
+                    div.onmouseout = () => div.style.background = 'transparent';
+
+                    div.onclick = () => {
+                        searchInput.value = item.tag; // Auto-fill
+                        resultsBox.style.display = 'none';
+                        loadEventsFromAPI({ search: item.tag.replace('#', '') }); // Search
+                    };
+                    resultsBox.appendChild(div);
+                });
+                return;
+            }
+        }
+
+        // 2. Fallback: Event Title Match (Legacy)
+        const eventMatches = (window.allEvents || []).filter(event =>
+            event.title.toLowerCase().includes(query)
         );
 
-        if (matches.length > 0) {
+        if (eventMatches.length > 0) {
             resultsBox.style.display = 'block';
-            matches.slice(0, 5).forEach(event => {
+            eventMatches.slice(0, 5).forEach(event => {
                 const div = document.createElement('div');
                 div.className = 'searchResultItem';
+                div.style.padding = '10px';
+                div.style.borderBottom = '1px solid #38414e';
+                div.style.cursor = 'pointer';
+                div.style.color = '#fff';
+
                 div.innerHTML = `
-                    <i class="fa-solid fa-calendar-day"></i>
-                    <div>
-                        <p style="font-weight:700; margin:0; font-size:0.9rem;">${event.title}</p>
-                        <p style="margin:0; font-size:0.75rem; color:#888;">${event.location}</p>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i class="fa-regular fa-calendar" style="color:#aaa;"></i>
+                        <div>
+                            <p style="margin:0; font-weight:bold; font-size:0.9rem;">${event.title}</p>
+                            <p style="margin:0; font-size:0.75rem; color:#888;">${event.location}</p>
+                        </div>
                     </div>
                 `;
+
+                div.onmouseover = () => div.style.background = '#38414e';
+                div.onmouseout = () => div.style.background = 'transparent';
+
                 div.onclick = () => window.location.href = `event.html?id=${event.id}`;
                 resultsBox.appendChild(div);
             });
@@ -1152,7 +1337,7 @@ if (searchInput) {
 
 const filterState = {
     date: null,
-    distance: 5000,
+    distance: 1000, // New Max
     category: 'all',
     activeTab: 'date'
 };
@@ -1194,7 +1379,7 @@ function openFilterModal() {
     initCalendar();
 
     const slider = document.getElementById('distanceRange');
-    const displayVal = filterState.distance >= 500 ? 500 : filterState.distance;
+    const displayVal = filterState.distance;
     if (slider) {
         slider.value = displayVal;
         updateDistanceDisplay(displayVal);
@@ -1207,7 +1392,7 @@ function closeFilterModal() {
 
 function resetFilters() {
     filterState.date = null;
-    filterState.distance = 5000;
+    filterState.distance = 1000;
     filterState.category = 'all';
 
     document.querySelectorAll('.calendarDay').forEach(d => d.classList.remove('selected'));
@@ -1219,8 +1404,8 @@ function resetFilters() {
 
     const distRange = document.getElementById('distanceRange');
     if (distRange) {
-        distRange.value = 500;
-        updateDistanceDisplay(500);
+        distRange.value = 1000;
+        updateDistanceDisplay(1000);
     }
 
     applyFilters();
@@ -1331,18 +1516,38 @@ document.querySelectorAll('.quickFilterBtn[data-quick]').forEach(btn => {
 });
 
 function updateDistanceDisplay(val) {
-    const numVal = parseInt(val);
+    const numVal = parseFloat(val);
     const distRange = document.getElementById('distanceRange');
     const distInput = document.getElementById('distanceInput');
 
     if (distRange) {
         distRange.value = numVal;
-        const percentage = (numVal / 500) * 100;
+        // Percentage based on 0.1 to 1000 range
+        const percentage = ((numVal - 0.1) / (1000 - 0.1)) * 100;
         distRange.style.setProperty('--value', `${percentage}%`);
     }
     if (distInput) distInput.value = numVal;
 
-    filterState.distance = (numVal >= 500) ? 5000 : numVal;
+    filterState.distance = numVal;
+}
+
+function adjustDistance(delta) {
+    const range = document.getElementById('distanceRange');
+    if (!range) return;
+
+    let current = parseFloat(range.value);
+    // Dynamic step based on current value
+    let step = 1;
+    if (current < 1) step = 0.1;
+    else if (current < 10) step = 0.5;
+    else if (current < 100) step = 5;
+    else step = 50;
+
+    let newValue = current + (delta * step);
+    if (newValue < 0.1) newValue = 0.1;
+    if (newValue > 1000) newValue = 1000;
+
+    updateDistanceDisplay(newValue);
 }
 
 const dRange = document.getElementById('distanceRange');
@@ -1398,8 +1603,8 @@ document.getElementById('categorySearch')?.addEventListener('input', (e) => {
 function applyFilters() {
     if (!window.allEvents) return closeFilterModal();
 
-    if (filterState.distance < 500 && !currentLocation) {
-        alert("Please enable location (Blue Button on Top) to filter by distance.");
+    if (filterState.distance < 1000 && !currentLocation) {
+        showToast("Please enable location to filter by distance.", "warning");
     }
 
     const filtered = window.allEvents.filter(event => {
@@ -1422,7 +1627,7 @@ function applyFilters() {
             }
         }
 
-        if (filterState.distance < 500) {
+        if (filterState.distance < 1000) {
             if (currentLocation && event.lat && event.lng) {
                 const km = getDistanceFromLatLonInKm(currentLocation.lat, currentLocation.lng, parseFloat(event.lat), parseFloat(event.lng));
                 matchDist = km <= filterState.distance;
@@ -1444,7 +1649,7 @@ function applyFilters() {
     addEventMarkers(filtered);
 
     if (filtered.length === 0) {
-        alert("No events found with these filters.");
+        showToast("No events found with these filters.", "info");
     }
 
     closeFilterModal();
@@ -1522,13 +1727,13 @@ document.addEventListener("DOMContentLoaded", () => {
         auth.signInWithEmailAndPassword(email, password)
             .then((userCredential) => {
                 closeAuth();
-                alert("Login Successful!");
+                showToast("Login Successful!", "success");
             })
             .catch((error) => {
                 let msg = error.message;
                 if (error.code === 'auth/wrong-password') msg = "Incorrect password.";
-                if (error.code === 'auth/user-not-found') msg = "No account found with this email.";
-                alert(msg);
+                if (error.code === 'auth/user-not-found') msg = "No account found.";
+                showToast(msg, "error");
             })
             .finally(() => {
                 btn.innerText = oldText;
@@ -1553,12 +1758,12 @@ document.addEventListener("DOMContentLoaded", () => {
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     closeAuth();
-                    alert("Account Created Successfully! Welcome.");
+                    showToast("Account Created Successfully!", "success");
                 })
                 .catch((error) => {
                     let msg = error.message;
-                    if (error.code === 'auth/email-already-in-use') msg = "Email already in use. Please Log In.";
-                    alert(msg);
+                    if (error.code === 'auth/email-already-in-use') msg = "Email already in use.";
+                    showToast(msg, "error");
                 })
                 .finally(() => {
                     btn.innerText = oldText;
@@ -1575,13 +1780,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-function loadEventsFromAPI(filters = {}) {
+function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
     let url = `${API_URL}/api/events`;
+    const useNearby = (map && map.getCenter());
 
     // Use nearby endpoint if we have location and no explicit override
     // Or if search is present, we might want to use nearby to filter by distance too?
     // Actually, nearby endpoint handles filters better in our backend logic
-    if (map && map.getCenter()) {
+    if (useNearby) {
         const params = new URLSearchParams({
             latitude: map.getCenter().lat(),
             longitude: map.getCenter().lng(),
@@ -1598,7 +1804,7 @@ function loadEventsFromAPI(filters = {}) {
         .then(data => {
             if (!data.success) return;
 
-            const events = data.events.map(e => ({
+            let events = data.events.map(e => ({
                 id: e.id,
                 title: e.title,
                 category: e.category,
@@ -1609,16 +1815,24 @@ function loadEventsFromAPI(filters = {}) {
                 image: e.image_url,
                 lat: e.latitude,
                 lng: e.longitude,
+                distance: e.distance || 99999,
                 isLive: false // simplistic
             }));
 
+            // SORTING LOGIC: Defaults to Distance
+            if (filters.sortBy === 'distance' && useNearby) {
+                events.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+            } else if (filters.sortBy === 'date') {
+                events.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+            }
+
             window.allEvents = events;
             renderEventCards(events);
-            addEventMarkers(events);
+            addEventMarkers(events); // continue...
 
             if (filters.search) {
                 console.log(`Found ${events.length} results for "${filters.search}"`);
-                if (events.length === 0) alert("No events found matching your search.");
+                if (events.length === 0) showToast("No events found matching your search.", "info");
             }
         })
         .catch(err => console.error("Load events failed:", err));
@@ -1690,7 +1904,7 @@ function requestNotifPerm() {
 function requestLocationPerm() {
     navigator.geolocation.getCurrentPosition(
         () => checkPermissions(),
-        (err) => alert("Location access denied or error.")
+        (err) => showToast("Location access denied or error.", "error")
     );
 }
 
@@ -1699,21 +1913,26 @@ function submitHostVerification(e) {
     e.preventDefault();
 
     const name = document.getElementById('hostName').value;
+    const org = document.getElementById('hostOrg').value;
     const email = document.getElementById('hostEmail').value;
     const phone = document.getElementById('hostPhone').value;
     const reason = document.getElementById('hostReason').value;
 
     // Construct Email Body
-    const subject = `Mapzo Host Verification Request - ${name}`;
-    const body = `Hello Admin,%0D%0A%0D%0AI would like to apply for Host Verification on Mapzo.%0D%0A%0D%0ADETAILS:%0D%0AName: ${name}%0D%0AEmail: ${email}%0D%0APhone: ${phone}%0D%0A%0D%0AREASON:%0D%0A${reason}%0D%0A%0D%0APlease verify my account.%0D%0A%0D%0AThanks, ${name}`;
+    const subject = `Mapzo Host Verification Request - ${name} (${org})`;
+    const body = `Hello Admin,%0D%0A%0D%0AI would like to apply for Host Verification on Mapzo.%0D%0A%0D%0ADETAILS:%0D%0AName: ${name}%0D%0AOrganization: ${org}%0D%0AEmail: ${email}%0D%0APhone: ${phone}%0D%0A%0D%0AREASON:%0D%0A${reason}%0D%0A%0D%0APlease verify my account.%0D%0A%0D%0AThanks, ${name}`;
 
     // Target Email
-    const targetEmail = "shreyashmishra506@gmail.com";
+    const targetEmail = "mapzo.startup@gmail.com";
 
     // Open Mail Client
     window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
 
     // Close Modal & Show Success
     closeSettingsModal('verifyOverlay');
-    alert("Opening your email client... Please hit send to complete the request! 🚀");
+    showToast("Opening email client... Please hit send!", "info");
+}
+
+function changeSort(method) {
+    loadEventsFromAPI({ sortBy: method });
 }

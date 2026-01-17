@@ -50,7 +50,36 @@ CREATE INDEX IF NOT EXISTS idx_events_date ON events(event_date);
 CREATE INDEX IF NOT EXISTS idx_events_host ON events(host_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_event ON reviews(event_id);
 
+-- Phase 3: Profile Expansion, Chat & Tickets
+-- Note: users table updated via ALTER
+-- To replicate fresh:
+/*
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS bio TEXT,
+ADD COLUMN IF NOT EXISTS organization VARCHAR(255),
+ADD COLUMN IF NOT EXISTS phone VARCHAR(20),
+ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}';
+*/
 
--- Chat Messages Table (for real-time chat replacement if needed later, 
--- though we might keep using Supabase Realtime for this or implement polling/sockets)
--- For now, we are primarily migrating core Event/User data.
+-- Chat Messages Table
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tickets Table (joining events)
+CREATE TABLE IF NOT EXISTS tickets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(50) DEFAULT 'registered',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(event_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_event ON messages(event_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_user ON tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_event ON tickets(event_id);

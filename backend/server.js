@@ -154,9 +154,9 @@ app.get("/api/user/me", jwtMiddleware, async (req, res) => {
 });
 app.put("/api/user/profile", jwtMiddleware, async (req, res) => {
   const { id } = req.user;
-  const { display_name } = req.body;
+  const { display_name, bio, organization, phone, social_links } = req.body;
 
-  if (display_name && display_name.length > 50) {
+  if (display_name && display_name.length > 100) {
     return res.status(400).json({ error: "Display name too long" });
   }
 
@@ -164,10 +164,14 @@ app.put("/api/user/profile", jwtMiddleware, async (req, res) => {
     const result = await pool.query(
       `UPDATE users
        SET display_name = COALESCE($1, display_name),
+           bio = COALESCE($2, bio),
+           organization = COALESCE($3, organization),
+           phone = COALESCE($4, phone),
+           social_links = COALESCE($5, social_links),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2
-       RETURNING id, email, display_name, photo_url`,
-      [display_name || null, id]
+       WHERE id = $6
+       RETURNING id, email, display_name, photo_url, bio, organization, phone, social_links`,
+      [display_name || null, bio || null, organization || null, phone || null, social_links || null, id]
     );
 
     res.json({ success: true, user: result.rows[0] });
@@ -528,6 +532,99 @@ app.post("/api/events/:eventId/reviews", jwtMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Review submission error:", err);
     res.status(500).json({ error: "Failed to submit review" });
+  }
+});
+
+// ---------- TICKETS & JOINING ----------
+
+// Get events user has joined
+app.get("/api/user/tickets", jwtMiddleware, async (req, res) => {
+  const { id: userId } = req.user;
+  try {
+    const result = await pool.query(
+      `SELECT e.*, t.status, t.created_at as joined_at
+       FROM tickets t
+       JOIN events e ON t.event_id = e.id
+       WHERE t.user_id = $1
+       ORDER BY t.created_at DESC`,
+      [userId]
+    );
+    res.json({ success: true, tickets: result.rows });
+  } catch (err) {
+    console.error("Fetch tickets error:", err);
+    res.status(500).json({ error: "Failed to load tickets" });
+  }
+});
+
+// Join an event
+app.post("/api/events/:eventId/join", jwtMiddleware, async (req, res) => {
+  const { eventId } = req.params;
+  const { id: userId } = req.user;
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO tickets (event_id, user_id)
+       VALUES ($1, $2)
+       ON CONFLICT (event_id, user_id) DO NOTHING
+       RETURNING id, status, created_at`,
+      [eventId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: "You have already joined this event" });
+    }
+
+    res.json({ success: true, ticket: result.rows[0] });
+  } catch (err) {
+    console.error("Join event error:", err);
+    res.status(500).json({ error: "Failed to join event" });
+  }
+});
+
+// ---------- CHAT ----------
+
+// Send chat message
+app.post("/api/events/:eventId/chat", jwtMiddleware, async (req, res) => {
+  const { eventId } = req.params;
+  const { text } = req.body;
+  const { id: userId } = req.user;
+
+  if (!text || text.trim().length === 0) {
+    return res.status(400).json({ error: "Message cannot be empty" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO messages (event_id, user_id, text)
+       VALUES ($1, $2, $3)
+       RETURNING id, text, created_at`,
+      [eventId, userId, text]
+    );
+
+    res.json({ success: true, message: result.rows[0] });
+  } catch (err) {
+    console.error("Send message error:", err);
+    res.status(500).json({ error: "Failed to send message" });
+  }
+});
+
+// Get chat history
+app.get("/api/events/:eventId/chat", jwtMiddleware, async (req, res) => {
+  const { eventId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT m.*, u.display_name as user_name, u.photo_url
+       FROM messages m
+       JOIN users u ON m.user_id = u.id
+       WHERE m.event_id = $1
+       ORDER BY m.created_at ASC
+       LIMIT 100`,
+      [eventId]
+    );
+    res.json({ success: true, messages: result.rows });
+  } catch (err) {
+    console.error("Fetch chat error:", err);
+    res.status(500).json({ error: "Failed to load chat history" });
   }
 });
 

@@ -1,112 +1,224 @@
 const qs = new URLSearchParams(window.location.search);
 const eventId = qs.get("id");
+let currentUser = null;
 
-const els = {
-  img: document.getElementById("eventImage"),
-  cat: document.getElementById("eventCategory"),
-  title: document.getElementById("eventTitle"),
-  date: document.getElementById("eventDate"),
-  time: document.getElementById("eventTime"),
-  loc: document.getElementById("eventLocation"),
-  desc: document.getElementById("eventDescription"),
-  tags: document.getElementById("eventTags"),
-  form: document.getElementById("commentForm"),
-  input: document.getElementById("commentText"),
-  list: document.getElementById("commentsList"),
-};
-
-// Load event from API
-// Load event from API
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? "http://localhost:3000"
   : "https://backend-jwqn.onrender.com";
 
+const els = {
+  loading: document.getElementById("loadingState"),
+  content: document.getElementById("eventContent"),
+  img: document.getElementById("displayImage"),
+  cat: document.getElementById("displayCategory"),
+  title: document.getElementById("displayTitle"),
+  date: document.getElementById("displayDate"),
+  time: document.getElementById("displayTime"),
+  loc: document.getElementById("displayLocation"),
+  desc: document.getElementById("displayDesc"),
+  joinBtn: document.getElementById("joinEventBtn"),
+  joinedMsg: document.getElementById("joinedStatus"),
+  avgRating: document.getElementById("avgRatingVal"),
+  reviewList: document.getElementById("commentsList"),
+  commentText: document.getElementById("commentText"),
+  authBox: document.getElementById("addCommentBox"),
+  loginPrompt: document.getElementById("loginToComment")
+};
+
+// --- AUTH ---
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    if (els.authBox) els.authBox.style.display = 'block';
+    if (els.loginPrompt) els.loginPrompt.style.display = 'none';
+    checkJoinStatus();
+  } else {
+    currentUser = null;
+    if (els.authBox) els.authBox.style.display = 'none';
+    if (els.loginPrompt) els.loginPrompt.style.display = 'block';
+    if (els.joinBtn) els.joinBtn.style.display = 'none';
+  }
+});
+
+// --- LOAD DATA ---
 if (!eventId) {
-  els.title.textContent = "Missing event id";
+  els.loading.innerHTML = '<p>Missing event ID.</p>';
 } else {
-  fetch(`${API_URL}/api/events/${eventId}`)
-    .then(res => res.json())
-    .then(data => {
-      if (!data.success) {
-        els.title.textContent = "Event not found";
-        return;
-      }
+  loadEventDetails();
+  loadComments();
+}
+
+async function loadEventDetails() {
+  try {
+    const res = await fetch(`${API_URL}/api/events/${eventId}`);
+    const data = await res.json();
+    if (data.success) {
       renderEvent(data.event);
-      loadComments(eventId);
-    })
-    .catch(err => {
-      console.error("Error loading event:", err);
-      els.title.textContent = "Error loading event";
-    });
+    } else {
+      els.loading.innerHTML = '<p>Event not found.</p>';
+    }
+  } catch (err) {
+    console.error(err);
+    els.loading.innerHTML = '<p>Error loading data.</p>';
+  }
 }
 
 function renderEvent(e) {
-  els.img.src = e.image_url || "https://via.placeholder.com/400x200?text=Event";
-  els.cat.textContent = e.category || "Other";
-  els.title.textContent = e.title || "Untitled event";
-  els.date.innerHTML = `<i class="fa-regular fa-calendar"></i> ${new Date(e.event_date).toLocaleDateString() || ""}`;
-  els.time.innerHTML = `<i class="fa-regular fa-clock"></i> ${new Date(e.event_date).toLocaleTimeString() || ""}`;
-  els.loc.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${e.venue_name || e.address || ""}`;
-  els.desc.textContent = e.description || "";
+  const fDate = new Date(e.event_date).toLocaleDateString();
+  const fTime = new Date(e.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  els.tags.innerHTML = "";
-  // Tags not yet in DB schema, so skipping or using description heuristic
+  els.img.src = e.image_url || 'https://via.placeholder.com/600x350?text=No+Image';
+  els.cat.textContent = e.category || "General";
+  els.title.textContent = e.title;
+  els.date.textContent = fDate;
+  els.time.textContent = fTime;
+  els.loc.textContent = e.venue_name || e.address;
+  els.desc.textContent = e.description;
+
+  // Actions
+  injectActionButtons({ ...e, date: fDate, time: fTime, location: e.venue_name || e.address });
+
+  els.loading.style.display = 'none';
+  els.content.style.display = 'block';
 }
 
-// Load comments from API
-function loadComments(eventId) {
-  fetch(`${API_URL}/api/events/${eventId}/reviews`)
-    .then(res => res.json())
-    .then(data => {
-      els.list.innerHTML = "";
-      if (!data.success || data.reviews.length === 0) {
-        els.list.innerHTML = `<p style="color: rgba(255,255,255,0.55); margin:0;">No comments yet.</p>`;
-        return;
+async function checkJoinStatus() {
+  if (!currentUser || !eventId) return;
+  const token = await currentUser.getIdToken();
+  try {
+    const res = await fetch(`${API_URL}/api/user/tickets`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      const joined = data.tickets.some(t => t.id === eventId);
+      if (joined) {
+        els.joinBtn.style.display = 'none';
+        els.joinedMsg.style.display = 'block';
+      } else {
+        els.joinBtn.style.display = 'block';
+        els.joinBtn.onclick = joinEvent;
       }
-
-      data.reviews.forEach((c) => {
-        const div = document.createElement("div");
-        div.className = "commentItem";
-        div.innerHTML = `
-                    <div class="commentMeta">
-                        <span>${c.user_name || 'Anonymous'}</span>
-                        <span>${new Date(c.created_at).toLocaleString()}</span>
-                    </div>
-                    <p class="commentText">${c.comment}</p>
-                `;
-        els.list.appendChild(div);
-      });
-    })
-    .catch(console.error);
+    }
+  } catch (e) { console.error(e); }
 }
 
-// Post comment to API
-els.form?.addEventListener("submit", async (ev) => {
-  ev.preventDefault();
-  const text = els.input.value.trim();
-  if (!text) return;
-
-  if (!auth.currentUser) return alert("Please log in");
-  const token = await auth.currentUser.getIdToken();
+async function joinEvent() {
+  if (!currentUser) return showToast("Log in to join!", "warning");
+  const token = await currentUser.getIdToken();
+  els.joinBtn.disabled = true;
+  els.joinBtn.textContent = "Joining...";
 
   try {
-    const res = await fetch(`${API_URL}/api/events/${eventId}/reviews`, {
+    const res = await fetch(`${API_URL}/api/events/${eventId}/join`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ rating: 5, comment: text }) // Hardcoding rating for now as UI doesn't have stars
+      }
     });
-
     const data = await res.json();
     if (data.success) {
-      els.input.value = "";
-      loadComments(eventId);
+      showToast("Joined successfully! 🎟️", "success");
+      els.joinBtn.style.display = 'none';
+      els.joinedMsg.style.display = 'block';
     } else {
-      alert(data.error);
+      showToast(data.error || "Failed to join", "error");
+      els.joinBtn.disabled = false;
+      els.joinBtn.innerHTML = '<i class="fa-solid fa-ticket"></i> Join Event';
     }
-  } catch (error) {
-    console.error("Error posting comment:", error);
+  } catch (err) {
+    showToast("Server error", "error");
+    els.joinBtn.disabled = false;
   }
-});
+}
+
+function loadComments() {
+  fetch(`${API_URL}/api/events/${eventId}/reviews`)
+    .then(res => res.json())
+    .then(data => {
+      els.reviewList.innerHTML = "";
+      if (!data.success || data.reviews.length === 0) {
+        els.reviewList.innerHTML = '<p style="text-align:center; color:#666;">No reviews yet.</p>';
+        els.avgRating.textContent = "--";
+        return;
+      }
+
+      let total = 0;
+      data.reviews.forEach(c => {
+        total += c.rating;
+        const div = document.createElement('div');
+        div.className = 'commentItem';
+        let stars = "";
+        for (let i = 0; i < 5; i++) stars += i < c.rating ? '★' : '☆';
+
+        div.innerHTML = `
+          <div class="commentUser">
+            <span>${c.user_name || 'User'}</span>
+            <span class="commentStars">${stars}</span>
+          </div>
+          <div class="commentText">${c.comment}</div>
+          <div class="commentDate">${new Date(c.created_at).toLocaleDateString()}</div>
+        `;
+        els.reviewList.appendChild(div);
+      });
+      els.avgRating.textContent = (total / data.reviews.length).toFixed(1);
+    });
+}
+
+async function submitComment() {
+  if (!currentUser) return showToast("Log in first", "warning");
+  const text = els.commentText.value.trim();
+  const ratingInput = document.querySelector('input[name="rating"]:checked');
+  const rating = ratingInput ? parseInt(ratingInput.value) : 0;
+
+  if (rating === 0) return showToast("Select rating", "warning");
+  if (!text) return showToast("Write a comment", "warning");
+
+  const token = await currentUser.getIdToken();
+  try {
+    const res = await fetch(`${API_URL}/api/events/${eventId}/reviews`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ rating, comment: text })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast("Review posted! ✨", "success");
+      els.commentText.value = "";
+      document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+      loadComments();
+    } else {
+      showToast(data.error, "error");
+    }
+  } catch (e) { showToast("Error posting", "error"); }
+}
+
+function injectActionButtons(data) {
+  const infoCard = document.querySelector('.infoCard');
+  const mapUrl = (data.latitude && data.longitude)
+    ? `https://www.google.com/maps/search/?api=1&query=${data.latitude},${data.longitude}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.location)}`;
+
+  const actionsDiv = document.createElement('div');
+  actionsDiv.style.cssText = "display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;";
+  actionsDiv.innerHTML = `
+    <a href="${mapUrl}" target="_blank" style="flex:1; min-width:120px; background:#1db954; color:black; padding:10px; border-radius:8px; text-align:center; text-decoration:none; font-weight:700;">
+      <i class="fa-solid fa-location-arrow"></i> Directions
+    </a>
+    <button onclick="shareEvent('${data.title.replace(/'/g, "\\'")}')" style="flex:1; min-width:120px; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">
+      <i class="fa-solid fa-share-nodes"></i> Share
+    </button>
+  `;
+  infoCard.appendChild(actionsDiv);
+}
+
+window.shareEvent = (title) => {
+  if (navigator.share) {
+    navigator.share({ title, text: `Check out ${title} on Mapzo!`, url: window.location.href });
+  } else {
+    navigator.clipboard.writeText(window.location.href);
+    showToast("Link copied! 📋", "info");
+  }
+};
+

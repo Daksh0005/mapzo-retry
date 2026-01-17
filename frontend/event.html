@@ -308,6 +308,13 @@
 
       <h1 class="eventTitle" id="displayTitle">Event Title</h1>
 
+      <button id="joinEventBtn" class="authPrimaryBtn" style="margin-bottom: 20px; display: none;">
+        <i class="fa-solid fa-ticket"></i> Join Event
+      </button>
+      <div id="joinedStatus" style="display:none; color: #1db954; font-weight: 700; margin-bottom: 20px;">
+        <i class="fa-solid fa-circle-check"></i> You've joined this event!
+      </div>
+
       <div class="infoCard">
         <div class="infoRow">
           <div class="infoIcon"><i class="fa-regular fa-calendar"></i></div>
@@ -360,209 +367,8 @@
     </div>
   </div>
 
-  <script>
-    // --- 1. FIREBASE CONFIG ---
-    // --- 1. FIREBASE CONFIG ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00",
-      authDomain: "mapzo-26259.firebaseapp.com",
-      projectId: "mapzo-26259",
-      storageBucket: "mapzo-26259.firebasestorage.app",
-      messagingSenderId: "701273875886",
-      appId: "1:701273875886:web:00d1d079ba6875139dd43f",
-      measurementId: "G-2PJ0TMZVJT"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? "http://localhost:3000"
-      : "https://backend-jwqn.onrender.com";
-
-    // --- 2. GET ID FROM URL ---
-    const urlParams = new URLSearchParams(window.location.search);
-    const eventId = urlParams.get('id');
-    let currentUser = null;
-
-    // --- 3. CHECK AUTH ---
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        currentUser = user;
-        document.getElementById('addCommentBox').style.display = 'block';
-        document.getElementById('loginToComment').style.display = 'none';
-      } else {
-        currentUser = null;
-        document.getElementById('addCommentBox').style.display = 'none';
-        document.getElementById('loginToComment').style.display = 'block';
-      }
-    });
-
-    // --- 4. LOAD DATA ---
-    if (eventId) {
-      loadEventDetails();
-      loadComments();
-    } else {
-      // This handles the "Direct Open" error
-      document.getElementById('loadingState').innerHTML = '<p>No event ID provided. <br><a href="index.html" style="color:#1db954;">Go back to Home</a></p>';
-    }
-
-    function loadEventDetails() {
-      fetch(`${API_URL}/api/events/${eventId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            const e = data.event;
-            // Map API fields to UI fields
-            const formattedDate = new Date(e.event_date).toLocaleDateString();
-            const formattedTime = new Date(e.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            document.getElementById('displayTitle').textContent = e.title;
-            document.getElementById('displayCategory').textContent = e.category;
-            document.getElementById('displayDate').textContent = formattedDate;
-            document.getElementById('displayTime').textContent = formattedTime;
-            document.getElementById('displayLocation').textContent = e.venue_name || e.address;
-            document.getElementById('displayDesc').textContent = e.description;
-
-            // Image Handling
-            let imgUrl = e.image_url || 'https://via.placeholder.com/600x350?text=No+Image';
-            document.getElementById('displayImage').src = imgUrl;
-
-            // Tags not in schema yet
-            document.getElementById('displayTags').textContent = "";
-
-            // Inject actions
-            e.date = formattedDate; // Compat for helper
-            e.time = formattedTime;
-            e.location = e.venue_name || e.address;
-            e.lat = e.latitude;
-            e.lng = e.longitude;
-            injectActionButtons(e);
-
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('eventContent').style.display = 'block';
-          } else {
-            document.getElementById('loadingState').innerHTML = '<p>Event not found.</p>';
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          document.getElementById('loadingState').innerHTML = '<p>Error loading data.</p>';
-        });
-    }
-
-    function injectActionButtons(data) {
-      const infoCard = document.querySelector('.infoCard');
-
-      // Map Link
-      const mapUrl = (data.lat && data.lng)
-        ? `https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}`
-        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.location)}`;
-
-      // Calendar Link
-      const startTime = new Date(`${data.date} ${data.time}`).toISOString().replace(/-|:|\.\d\d\d/g, "");
-      const endTime = new Date(new Date(`${data.date} ${data.time}`).getTime() + 7200000).toISOString().replace(/-|:|\.\d\d\d/g, "");
-      const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${startTime}/${endTime}&details=${encodeURIComponent(data.description)}&location=${encodeURIComponent(data.location)}`;
-
-      const actionsDiv = document.createElement('div');
-      actionsDiv.style.cssText = "display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;";
-
-      actionsDiv.innerHTML = `
-                <a href="${mapUrl}" target="_blank" style="flex:1; background:#1db954; color:black; padding:10px; border-radius:8px; text-align:center; text-decoration:none; font-weight:700; font-family:'Inter',sans-serif;">
-                    <i class="fa-solid fa-location-arrow"></i> Directions
-                </a>
-                <a href="${calUrl}" target="_blank" style="flex:1; background:#333; color:white; padding:10px; border-radius:8px; text-align:center; text-decoration:none; font-weight:600; font-family:'Inter',sans-serif;">
-                    <i class="fa-regular fa-calendar-plus"></i> Add to Cal
-                </a>
-                <button onclick="shareEvent('${data.title}')" style="flex:1; background:#333; color:white; border:none; padding:10px; border-radius:8px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
-                    <i class="fa-solid fa-share-nodes"></i> Share
-                </button>
-            `;
-
-      infoCard.appendChild(actionsDiv);
-    }
-
-    window.shareEvent = async (title) => {
-      if (navigator.share) {
-        try { await navigator.share({ title: title, text: `Check out ${title} on Mapzo!`, url: window.location.href }); }
-        catch (err) { console.log('Share canceled'); }
-      } else {
-        navigator.clipboard.writeText(window.location.href);
-        alert("Link copied to clipboard!");
-      }
-    };
-
-    async function submitComment() {
-      if (!currentUser) return alert("Please log in first.");
-      const text = document.getElementById('commentText').value.trim();
-      const ratingInput = document.querySelector('input[name="rating"]:checked');
-      const rating = ratingInput ? parseInt(ratingInput.value) : 0;
-
-      if (rating === 0) return alert("Please select a star rating.");
-      if (text === "") return alert("Please write a comment.");
-
-      const token = await currentUser.getIdToken();
-
-      try {
-        const res = await fetch(`${API_URL}/api/events/${eventId}/reviews`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ rating, comment: text })
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          alert("Review posted!");
-          document.getElementById('commentText').value = "";
-          document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-          loadComments();
-        } else {
-          alert("Error: " + data.error);
-        }
-      } catch (err) {
-        alert("Error posting review");
-      }
-    }
-
-    function loadComments() {
-      fetch(`${API_URL}/api/events/${eventId}/reviews`)
-        .then(res => res.json())
-        .then(data => {
-          const list = document.getElementById('commentsList');
-          list.innerHTML = "";
-
-          if (!data.success || data.reviews.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:#666;">No reviews yet. Be the first!</p>';
-            document.getElementById('avgRatingVal').textContent = "--";
-            return;
-          }
-
-          let totalRating = 0;
-          let count = 0;
-
-          data.reviews.forEach(c => {
-            totalRating += c.rating;
-            count++;
-
-            const dateStr = new Date(c.created_at).toLocaleDateString();
-            let starsHtml = "";
-            for (let i = 0; i < 5; i++) starsHtml += i < c.rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
-
-            const item = document.createElement('div');
-            item.className = 'commentItem';
-            item.innerHTML = `
-                <div class="commentUser"><span>${c.user_name || 'Anonymous'}</span><span class="commentStars">${starsHtml}</span></div>
-                <div class="commentText">${c.comment}</div>
-                <div class="commentDate">${dateStr}</div>
-            `;
-            list.appendChild(item);
-          });
-          document.getElementById('avgRatingVal').textContent = (totalRating / count).toFixed(1);
-        })
-        .catch(console.error);
-    }
-  </script>
+  <script src="utils.js"></script>
+  <script src="event.js"></script>
 </body>
 
 </html>
