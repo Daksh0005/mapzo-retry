@@ -361,9 +361,29 @@ function handleGoogleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
 
     auth.signInWithPopup(provider)
-        .then((result) => {
+        .then(async (result) => {
             const user = result.user;
             console.log("Google Sign In Success:", user.email);
+
+            // SYNC WITH BACKEND
+            try {
+                const idToken = await user.getIdToken();
+                const res = await fetch(`${API_URL}/auth/google`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    console.log("Backend Sync Success:", data.user);
+                    // Force UI update with correct host status
+                    await updateUIForLogin(user);
+                }
+            } catch (err) {
+                console.error("Backend Sync Failed:", err);
+            }
+
             closeAuth();
             alert(`Welcome, ${user.displayName || 'User'}! 🚀`);
         })
