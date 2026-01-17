@@ -654,6 +654,7 @@
     </div>
 
     <script src="utils.js"></script>
+    <script src="script.js"></script>
     <script async defer
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAh0cLcA59_-Epn5rPyZNn-sigHeps4vyA&callback=initMap&loading=async&libraries=places">
         </script>
@@ -670,23 +671,7 @@
         // 2. OFFLINE STATUS LISTENER
         window.addEventListener('online', () => showToast('You are back online! 🌐', 'success'));
         window.addEventListener('offline', () => showToast('You are offline. Showing cached events. 🔌', 'error'));
-
-        // 3. TOAST NOTIFICATION FUNCTION
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast-notification ${type}`;
-            toast.innerText = message;
-            document.body.appendChild(toast);
-
-            // Trigger animation
-            setTimeout(() => toast.classList.add('show'), 10);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
     </script>
-    <script src="script.js"></script>
 </body>
 
 </html>
