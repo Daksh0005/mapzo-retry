@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
+const admin = require("firebase-admin");
+const pool = require("../db");
 
-module.exports = function jwtMiddleware(req, res, next) {
+module.exports = async function jwtMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
@@ -9,6 +11,7 @@ module.exports = function jwtMiddleware(req, res, next) {
 
   const token = authHeader.slice(7).trim();
 
+  // 1. Try verifying as our Backend JWT
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, {
       issuer: "your-app",
@@ -21,16 +24,37 @@ module.exports = function jwtMiddleware(req, res, next) {
       provider: decoded.provider,
     };
 
-    next();
+    return next();
   } catch (err) {
-    if (err.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Token expired" });
-    }
+    // If it's not our JWT, try verifying as Firebase Token
+    try {
+      const decodedFirebase = await admin.auth().verifyIdToken(token);
 
-    if (process.env.NODE_ENV !== "production") {
-      console.error("JWT verification error:", err);
-    }
+      // We need the Supabase UUID for the user. 
+      // Look it up by email.
+      const result = await pool.query(
+        "SELECT id, is_host FROM users WHERE email = $1",
+        [decodedFirebase.email]
+      );
 
-    return res.status(401).json({ error: "Invalid token" });
+      if (result.rows.length === 0) {
+        // User not in DB yet - this shouldn't happen if sync works, 
+        // but let's be safe.
+        return res.status(404).json({ error: "User not synced to backend" });
+      }
+
+      req.user = {
+        id: result.rows[0].id, // Supabase UUID
+        email: decodedFirebase.email,
+        provider: "google",
+      };
+
+      return next();
+    } catch (firebaseErr) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Auth verification failed:", firebaseErr.message);
+      }
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
   }
 };

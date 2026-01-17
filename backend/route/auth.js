@@ -93,12 +93,16 @@ router.post("/google", async (req, res) => {
     // Create a backend JWT for our API
     const token = jwt.sign(
       {
-        id: user.id, // Supabase UUID
+        sub: user.id, // Supabase UUID
         email: user.email,
         provider: "google"
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+        issuer: "your-app",
+        audience: "frontend"
+      }
     );
 
     res.json({ success: true, token, user });

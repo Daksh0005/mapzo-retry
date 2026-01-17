@@ -292,12 +292,27 @@ async function updateUIForLogin(user) {
     let isHost = false;
     let token = await user.getIdToken();
     try {
-        const res = await fetch(`${API_URL}/api/user/me`, {
+        let res = await fetch(`${API_URL}/api/user/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await res.json();
-        if (data.success && data.user.is_host) isHost = true;
-    } catch (e) { console.error("Profile fetch error", e); }
+
+        // If user not found in Supabase, trigger a sync
+        if (res.status === 404) {
+            console.log("User not in Supabase, syncing...");
+            const syncRes = await fetch(`${API_URL}/auth/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken: token })
+            });
+            const syncData = await syncRes.json();
+            if (syncData.success) {
+                isHost = syncData.user.is_host;
+            }
+        } else {
+            const data = await res.json();
+            if (data.success && data.user.is_host) isHost = true;
+        }
+    } catch (e) { console.error("Profile sync/fetch error", e); }
 
     const logSignBox = document.querySelector(".logSignBox");
     const hostBar = document.querySelector(".hostBar");
