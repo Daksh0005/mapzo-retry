@@ -30,6 +30,7 @@ let currentLocation = null;
 let mapInitialized = false;
 let selectedFiles = [];
 let userLocationMarker = null;
+let hashtagCounts = {}; // Global map for hashtag frequency
 
 // ========================================
 // 2. EVENT EMOJI MAPPING
@@ -260,6 +261,7 @@ function placeUploadMarker(location) {
         position: location,
         map: uploadMap,
         animation: google.maps.Animation.DROP,
+        draggable: true, // Enable dragging
         icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 12,
@@ -270,15 +272,37 @@ function placeUploadMarker(location) {
         }
     });
 
+    // Update location on drag end
+    uploadMarker.addListener("dragend", (event) => {
+        const newLat = event.latLng.lat();
+        const newLng = event.latLng.lng();
+
+        selectedEventLocation = { lat: newLat, lng: newLng };
+
+        // Update Status Text
+        const statusText = document.getElementById('selectedLocationText');
+        if (statusText) {
+            statusText.textContent = `✅ Selected: ${newLat.toFixed(4)}, ${newLng.toFixed(4)}`;
+            statusText.style.color = "#1db954";
+        }
+
+        // Reverse Geocode (Optional: Update input text)
+        // const geocoder = new google.maps.Geocoder();
+        // geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results, status) => {
+        //    if (status === "OK" && results[0]) document.getElementById("eventLocation").value = results[0].formatted_address;
+        // });
+    });
+
     selectedEventLocation = {
         lat: location.lat(),
         lng: location.lng()
     };
 
-    document.getElementById('selectedLocationText').textContent =
-        `✅ Selected: ${location.lat().toFixed(4)}, ${location.lng().toFixed(4)}`;
-
-    document.getElementById('selectedLocationText').style.color = "#1db954";
+    const statusText = document.getElementById('selectedLocationText');
+    if (statusText) {
+        statusText.textContent = `✅ Selected: ${location.lat().toFixed(4)}, ${location.lng().toFixed(4)}`;
+        statusText.style.color = "#1db954";
+    }
 }
 
 // ========================================
@@ -1772,8 +1796,56 @@ document.addEventListener("DOMContentLoaded", () => {
             const query = input.value.trim();
             console.log("Searching for:", query);
             loadEventsFromAPI({ search: query });
+            document.getElementById('searchSuggestions').style.display = 'none';
         });
+
+        // Hashtag Input Listener
+        const hInput = document.getElementById('navHashtagInput');
+        if (hInput) {
+            hInput.addEventListener('input', (e) => {
+                const val = e.target.value.toLowerCase();
+                const suggBox = document.getElementById('searchSuggestions');
+                if (!val || !val.startsWith('#')) {
+                    suggBox.style.display = 'none';
+                    return;
+                }
+
+                const matches = Object.keys(window.hashtagCounts || {})
+                    .filter(tag => tag.includes(val))
+                    .sort((a, b) => window.hashtagCounts[b] - window.hashtagCounts[a]) // Sort by freq
+                    .slice(0, 5);
+
+                if (matches.length > 0) {
+                    suggBox.innerHTML = matches.map(tag => `
+                        <div class="suggestionItem" onclick="selectHashtag('${tag}')">
+                            <span class="suggestionTag">${tag}</span>
+                            <span class="suggestionCount">${window.hashtagCounts[tag]} uses</span>
+                        </div>
+                    `).join('');
+                    suggBox.style.display = 'block';
+                } else {
+                    suggBox.style.display = 'none';
+                }
+            });
+
+            // Hide on click outside
+            document.addEventListener('click', (e) => {
+                if (!searchForm.contains(e.target)) {
+                    document.getElementById('searchSuggestions').style.display = 'none';
+                }
+            });
+        }
     }
+
+    // Global selector
+    window.selectHashtag = (tag) => {
+        const input = document.getElementById('navHashtagInput');
+        if (input) {
+            input.value = tag;
+            document.getElementById('searchSuggestions').style.display = 'none';
+            loadEventsFromAPI({ search: tag });
+        }
+    };
 
     // --- UPDATED IMAGE PREVIEW LOGIC (Recommended Fix) ---
     const eventImageInput = document.getElementById("uploadEventImage");
@@ -1923,6 +1995,20 @@ function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
                     distance: dist, // Calculated client-side
                     isLive: false
                 };
+            });
+
+            // 1. EXTRACT HASHTAGS from Descriptions
+            window.hashtagCounts = {};
+            events.forEach(e => {
+                if (e.description) {
+                    const tags = e.description.match(/#[\w]+/g);
+                    if (tags) {
+                        tags.forEach(t => {
+                            const tag = t.toLowerCase();
+                            window.hashtagCounts[tag] = (window.hashtagCounts[tag] || 0) + 1;
+                        });
+                    }
+                }
             });
 
             // SORTING LOGIC

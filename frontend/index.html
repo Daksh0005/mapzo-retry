@@ -72,11 +72,13 @@
             <i class="fa-solid fa-sliders"></i>
             <p class="locDes">Filters</p>
         </div>
-        <form class="navSearch" role="search">
-            <input placeholder="#Hashtags" type="search" class="navSrchBar" aria-label="Search events by hashtag">
-            <button class="navButton" type="submit" aria-label="Search">
+        <form class="navSearch" role="search" style="position:relative;">
+            <input placeholder="#Hashtags" type="search" class="navSrchBar" aria-label="Search events by hashtag"
+                id="navHashtagInput" autocomplete="off">
+            <button class="navButton" type="submit" aria-label="Search" style="outline:none; box-shadow:none;">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </button>
+            <div class="searchSuggestions" id="searchSuggestions" style="display:none;"></div>
         </form>
     </header>
 
