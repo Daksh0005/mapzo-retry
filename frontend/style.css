@@ -529,7 +529,8 @@ main {
     justify-content: center;
     margin: 16px 2px 4px 2px;
 }
-.map {
+.map-container {
+    position: relative;
     width: 90vw;
     aspect-ratio: 2 / 1;
     border-radius: 10px;
@@ -3059,7 +3060,7 @@ body.eventPage {
     color: var(--accent);
 }
 /* Main map container */
-.map {
+.map-container {
     position: relative;
     /* ← THIS IS CRITICAL */
     width: 90vw;

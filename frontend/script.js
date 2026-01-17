@@ -65,7 +65,7 @@ let currentChatEventId = null;
 window.initMap = function () {
     if (mapInitialized) return;
 
-    const mapElement = document.querySelector('.map');
+    const mapElement = document.getElementById('mapCanvas');
     if (!mapElement) return;
 
     // Default to Kharagpur if no location found
