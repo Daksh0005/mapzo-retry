@@ -16,7 +16,10 @@ const els = {
 };
 
 // Load event from API
-const API_URL = "http://localhost:3000"; // Or production URL
+// Load event from API
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? "http://localhost:3000"
+  : "https://backend-jwqn.onrender.com";
 
 if (!eventId) {
   els.title.textContent = "Missing event id";

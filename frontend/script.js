@@ -16,7 +16,9 @@ const API_KEY = "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00";
 let currentUser = null;
 
 // ✅ ADMIN ACCESS LIST
-const API_URL = "http://localhost:3000"; // Or your production URL
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? "http://localhost:3000"
+    : "https://backend-jwqn.onrender.com"; // Or your production URL
 
 let map = null;
 let uploadMap = null;
@@ -345,31 +347,24 @@ auth.onAuthStateChanged((user) => {
 });
 
 async function updateUIForLogin(user) {
-    // Fetch full profile (is_host check)
+    // Fetch full profile (is_host check) & Sync
     let isHost = false;
     let token = await user.getIdToken();
     try {
-        let res = await fetch(`${API_URL}/api/user/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        // ALWAYS Sync on load to ensure Admin status is up-to-date
+        // This replaces the lazy /api/user/me check
+        const syncRes = await fetch(`${API_URL}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: token })
         });
+        const data = await syncRes.json();
 
-        // If user not found in Supabase, trigger a sync
-        if (res.status === 404) {
-            console.log("User not in Supabase, syncing...");
-            const syncRes = await fetch(`${API_URL}/auth/google`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken: token })
-            });
-            const syncData = await syncRes.json();
-            if (syncData.success) {
-                isHost = syncData.user.is_host;
-            }
-        } else {
-            const data = await res.json();
-            if (data.success && data.user.is_host) isHost = true;
+        if (data.success) {
+            isHost = data.user.is_host;
+            console.log("User Synced:", data.user.email, "| Host:", isHost);
         }
-    } catch (e) { console.error("Profile sync/fetch error", e); }
+    } catch (e) { console.error("Profile sync error", e); }
 
     const logSignBox = document.querySelector(".logSignBox");
     const hostBar = document.querySelector(".hostBar");

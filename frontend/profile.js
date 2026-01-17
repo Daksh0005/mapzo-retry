@@ -1,5 +1,8 @@
 // --- CONFIG ---
-const API_URL = "http://localhost:3000"; // Or your production URL
+// --- CONFIG ---
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? "http://localhost:3000"
+    : "https://backend-jwqn.onrender.com";
 
 // --- FIREBASE CONFIG (Must verify if needed or use window.auth from index if loaded) ---
 // Since this script is loaded after Firebase SDKs in profile.html, we can use global firebase object.
