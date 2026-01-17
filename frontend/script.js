@@ -358,6 +358,7 @@ function searchHostLocation() {
 }
 
 function openLocationModal() {
+    toggleBodyScroll(true);
     console.log("Getting User Location...");
 
     if (!navigator.geolocation) {
@@ -596,6 +597,7 @@ function toggleMenu() {
 }
 
 function openAuth(mode) {
+    toggleBodyScroll(true);
     const overlay = document.getElementById("authOverlay");
     overlay.classList.add("show");
 
@@ -616,6 +618,7 @@ function openAuth(mode) {
 
 function closeAuth() {
     document.getElementById("authOverlay").classList.remove("show");
+    toggleBodyScroll(false);
 }
 
 function openUploadForm() {
@@ -624,11 +627,13 @@ function openUploadForm() {
     const hostBar = document.querySelector(".hostBar");
     if (hostBar.style.display === "none") return showToast("Not authorized. Please verify as host.", "warning");
     document.querySelector(".uploadOverlay").classList.add("show");
+    toggleBodyScroll(true);
     setTimeout(() => { if (!uploadMap) initUploadMap(); }, 300);
 }
 
 function closeUploadForm() {
     document.querySelector(".uploadOverlay").classList.remove("show");
+    toggleBodyScroll(false);
 }
 
 // ========================================
@@ -829,7 +834,8 @@ function checkIfEventIsLive(event) {
 // Open chat modal for an event
 function openChatModal(eventId) {
     if (!currentUser) {
-        alert('Please log in to join the chat.');
+        showToast('Please log in to join the chat.', 'error');
+        openAuth('login');
         return;
     }
 
@@ -1475,6 +1481,7 @@ document.addEventListener('click', function (e) {
 }, true);
 
 function openFilterModal() {
+    toggleBodyScroll(true);
     fixFilterButtons();
     document.querySelector('.filterOverlay').classList.add('show');
     initCalendar();
@@ -1489,6 +1496,7 @@ function openFilterModal() {
 
 function closeFilterModal() {
     document.querySelector('.filterOverlay').classList.remove('show');
+    toggleBodyScroll(false);
 }
 
 function resetFilters() {
@@ -1915,7 +1923,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const password = document.getElementById("signupPass").value.trim();
             const btn = e.target.querySelector('button[type="submit"]');
 
-            if (password.length < 6) return alert("Password should be at least 6 characters");
+            if (password.length < 6) return showToast("Password should be at least 6 characters", "warning");
 
             const oldText = btn.innerText;
             btn.innerText = "Creating...";
@@ -2052,38 +2060,65 @@ function openSettingsModal(type) {
         }
         document.getElementById('verifyOverlay').classList.add('show');
     }
+    toggleBodyScroll(true);
 }
 
 function closeSettingsModal(id) {
     document.getElementById(id).classList.remove('show');
+    toggleBodyScroll(false);
+}
+
+// Helper for scroll locking
+function toggleBodyScroll(lock) {
+    document.body.style.overflow = lock ? 'hidden' : '';
 }
 
 // 2. PERMISSIONS LOGIC
 function checkPermissions() {
     // Check Notification Permission
     if (!("Notification" in window)) {
-        updatePermUI('permNotifStatus', 'Not Supported');
+        updatePermUI('permNotifStatus', 'Not Supported', 'btnPermNotif');
     } else if (Notification.permission === "granted") {
-        updatePermUI('permNotifStatus', 'Allowed ✅');
+        updatePermUI('permNotifStatus', 'Allowed ✅', 'btnPermNotif', true);
     } else if (Notification.permission === "denied") {
-        updatePermUI('permNotifStatus', 'Blocked ❌');
+        updatePermUI('permNotifStatus', 'Blocked ❌', 'btnPermNotif');
     } else {
-        updatePermUI('permNotifStatus', 'Not Allowed');
+        updatePermUI('permNotifStatus', 'Not Allowed', 'btnPermNotif');
     }
 
     // Check Location Permission (Rough check based on previous access)
     navigator.permissions.query({ name: 'geolocation' }).then(result => {
-        if (result.state === 'granted') updatePermUI('permLocationStatus', 'Allowed ✅');
-        else if (result.state === 'denied') updatePermUI('permLocationStatus', 'Blocked ❌');
-        else updatePermUI('permLocationStatus', 'Ask every time');
+        if (result.state === 'granted') updatePermUI('permLocationStatus', 'Allowed ✅', 'btnPermLocation', true);
+        else if (result.state === 'denied') updatePermUI('permLocationStatus', 'Blocked ❌', 'btnPermLocation');
+        else updatePermUI('permLocationStatus', 'Ask every time', 'btnPermLocation');
     });
 }
 
-function updatePermUI(elementId, text) {
+function updatePermUI(elementId, text, btnId, isAllowed = false) {
     const el = document.getElementById(elementId);
     if (el) {
         el.innerText = text;
         el.style.color = text.includes('Allowed') ? '#1db954' : '#aaa';
+    }
+
+    // Update Button Style
+    if (btnId) {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            if (isAllowed) {
+                btn.innerText = "Allowed";
+                btn.style.background = "#1db954"; // Green
+                btn.style.color = "#fff";
+                btn.style.cursor = "default";
+                btn.disabled = true;
+            } else {
+                btn.innerText = "Allow";
+                btn.style.background = ""; // Reset
+                btn.style.color = "";
+                btn.style.cursor = "pointer";
+                btn.disabled = false;
+            }
+        }
     }
 }
 
@@ -2127,4 +2162,9 @@ function submitHostVerification(e) {
 
 function changeSort(method) {
     loadEventsFromAPI({ sortBy: method });
+}
+
+function closeLocationModal() {
+    document.querySelector('.locationOverlay')?.classList.remove('show');
+    toggleBodyScroll(false);
 }
