@@ -868,16 +868,24 @@ function createImagePin(imageUrl) {
 // ========================================
 
 // Check if event is currently live
+// Check if event is currently live
 function checkIfEventIsLive(event) {
     const d = event.event_date || event.fullDate || event.date;
+    const end = event.end_time;
     if (!d) return false;
 
     const eventDate = new Date(d);
     const now = new Date();
+
+    // If End Time exists, Live = Start <= Now <= End
+    if (end) {
+        const endDate = new Date(end);
+        return now >= eventDate && now <= endDate;
+    }
+
+    // Legacy Fallback: Live if within 2 hours of start
     const timeDiff = Math.abs(now - eventDate);
     const hoursDiff = timeDiff / (1000 * 60 * 60);
-
-    // Consider event "live" if it's within 2 hours of start time
     return hoursDiff <= 2;
 }
 
@@ -1296,9 +1304,10 @@ async function handleEventSubmit() {
     const eventLocation = document.getElementById('eventLocation').value;
     const eventDescription = document.getElementById('eventDescription').value;
     const eventHashtags = document.getElementById('eventHashtags').value;
+    const eventEndTime = document.getElementById('eventEndTime').value;
 
-    if (!eventName || !eventCategory || !eventDate || !eventLocation || !selectedEventLocation) {
-        showToast("Please fill required fields and pin location.", "warning");
+    if (!eventName || !eventCategory || !eventDate || !eventLocation || !selectedEventLocation || !eventEndTime) {
+        showToast("Please fill all required fields (including End Time) and pin location.", "warning");
         submitBtn.disabled = false; submitBtn.textContent = "Post";
         return;
     }
@@ -1328,6 +1337,7 @@ async function handleEventSubmit() {
             title: eventName,
             category: eventCategory,
             event_date: `${eventDate}T${eventTime}:00Z`, // ISO format
+            end_time: `${eventDate}T${eventEndTime}:00Z`, // Assumes same day
             venue_name: eventLocation.split(',')[0], // Simple heuristic
             address: eventLocation,
             description: eventDescription,

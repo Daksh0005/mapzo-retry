@@ -378,9 +378,10 @@ app.get("/api/events", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, title, description, category, venue_name, address,
-              latitude, longitude, event_date, created_at, image_url
+              latitude, longitude, event_date, end_time, created_at, image_url
        FROM events
-       WHERE event_date >= CURRENT_DATE
+       WHERE (end_time IS NOT NULL AND end_time > NOW()) 
+          OR (end_time IS NULL AND event_date >= CURRENT_DATE)
        ORDER BY event_date ASC
        LIMIT 100`
     );
@@ -478,9 +479,10 @@ app.post("/api/events", jwtMiddleware, async (req, res) => {
         longitude,
         event_date,
         image_url,
-        host_id
+        host_id,
+        end_time
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       RETURNING id`,
       [
         title,
@@ -488,11 +490,10 @@ app.post("/api/events", jwtMiddleware, async (req, res) => {
         category,
         venue_name || null,
         address || null,
-        latitude,
-        longitude,
         event_date,
         image_url || null,
-        userId
+        userId,
+        req.body.end_time || null
       ]
     );
 
