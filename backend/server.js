@@ -346,7 +346,7 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
 
     const query = `
       SELECT id, title, description, category, venue_name, address,
-             latitude, longitude, event_date, created_at, image_url,
+             latitude, longitude, event_date, end_time, created_at, image_url,
         (6371 * acos(
           cos(radians($1)) * cos(radians(latitude)) *
           cos(radians(longitude) - radians($2)) +
@@ -354,6 +354,10 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
         )) AS distance
       FROM events
       WHERE ${where.join(" AND ")}
+      AND (
+          (end_time IS NOT NULL AND end_time > NOW()) 
+          OR (end_time IS NULL AND event_date >= CURRENT_DATE)
+      )
       ORDER BY distance
       LIMIT 50
     `;

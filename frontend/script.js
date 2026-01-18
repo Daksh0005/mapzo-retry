@@ -700,7 +700,7 @@ function renderEventCards(events) {
     eventsScroll.innerHTML = '';
 
     events.forEach(event => {
-        let displayImage = 'https://via.placeholder.com/400x220?text=Event';
+        let displayImage = 'images/Untitled.png'; // Updated reliable placeholder
         if (event.image_url) {
             displayImage = event.image_url;
         } else if (event.images && event.images.length > 0) {
@@ -1801,7 +1801,7 @@ function applyFilters() {
         let matchCat = true;
 
         if (filterState.date) {
-            const eDate = new Date(event.date); eDate.setHours(0, 0, 0, 0);
+            const eDate = new Date(event.event_date || event.date); eDate.setHours(0, 0, 0, 0);
             const today = new Date(); today.setHours(0, 0, 0, 0);
 
             if (filterState.date instanceof Date) {
@@ -1816,8 +1816,12 @@ function applyFilters() {
         }
 
         if (filterState.distance < 1000) {
-            if (currentLocation && event.lat && event.lng) {
-                const km = getDistanceFromLatLonInKm(currentLocation.lat, currentLocation.lng, parseFloat(event.lat), parseFloat(event.lng));
+            const lat = event.latitude || event.lat;
+            const lng = event.longitude || event.lng;
+
+            if (currentLocation && lat && lng) {
+                const km = getDistanceFromLatLonInKm(currentLocation.lat, currentLocation.lng, parseFloat(lat), parseFloat(lng));
+                event.distance = km; // Store for sorting
                 matchDist = km <= filterState.distance;
             } else {
                 matchDist = false;
@@ -1843,11 +1847,11 @@ function applyFilters() {
         console.log("Sort: Distance");
     } else if (activeDateTab) {
         // Sort by Date ASC
-        filtered.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+        filtered.sort((a, b) => new Date(a.event_date || a.date) - new Date(b.event_date || b.date));
         console.log("Sort: Date");
     } else {
         // Default Sort: Date
-        filtered.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+        filtered.sort((a, b) => new Date(a.event_date || a.date) - new Date(b.event_date || b.date));
     }
 
     renderEventCards(filtered);
