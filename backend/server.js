@@ -356,7 +356,11 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
 
     const query = `
       SELECT id, title, description, category, venue_name, address,
-             latitude, longitude, event_date, end_time, created_at, image_url,
+             latitude, longitude, 
+             event_date AT TIME ZONE 'Asia/Kolkata' as event_date,
+             end_time AT TIME ZONE 'Asia/Kolkata' as end_time,
+             created_at AT TIME ZONE 'Asia/Kolkata' as created_at,
+             image_url,
         (6371 * acos(
           cos(radians($1)) * cos(radians(latitude)) *
           cos(radians(longitude) - radians($2)) +
@@ -392,7 +396,11 @@ app.get("/api/events", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, title, description, category, venue_name, address,
-              latitude, longitude, event_date, end_time, created_at, image_url
+              latitude, longitude,
+              event_date AT TIME ZONE 'Asia/Kolkata' as event_date,
+              end_time AT TIME ZONE 'Asia/Kolkata' as end_time,
+              created_at AT TIME ZONE 'Asia/Kolkata' as created_at,
+              image_url
        FROM events
        WHERE (end_time IS NOT NULL AND end_time > NOW()) 
           OR (end_time IS NULL AND event_date >= CURRENT_DATE)
@@ -420,7 +428,11 @@ app.get("/api/events/:id", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT e.*, 
+      `SELECT e.id, e.title, e.description, e.category, e.venue_name, e.address,
+              e.latitude, e.longitude, e.host_id, e.image_url, e.views,
+              e.event_date AT TIME ZONE 'Asia/Kolkata' as event_date,
+              e.end_time AT TIME ZONE 'Asia/Kolkata' as end_time,
+              e.created_at AT TIME ZONE 'Asia/Kolkata' as created_at,
               COALESCE(AVG(r.rating), 0) as avg_rating,
               COUNT(r.id) as review_count
        FROM events e
