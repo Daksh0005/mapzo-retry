@@ -2096,6 +2096,8 @@ function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
                     image: e.image_url,
                     lat: e.latitude,
                     lng: e.longitude,
+                    latitude: e.latitude,   // Fix: Added for addEventMarkers
+                    longitude: e.longitude, // Fix: Added for addEventMarkers
                     distance: dist, // Calculated client-side
                     isLive: false
                 };
