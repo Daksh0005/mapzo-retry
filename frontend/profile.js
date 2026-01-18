@@ -8,6 +8,9 @@ console.log("Profile.js loaded");
 // We use a different name here to avoid "Identifier 'auth' has already been declared" error.
 const userAuth = window.auth || (typeof firebase !== 'undefined' ? firebase.auth() : null);
 
+// ✅ Fix reference error
+const API_URL = window.API_URL;
+
 let currentUser = null;
 let currentToken = null;
 

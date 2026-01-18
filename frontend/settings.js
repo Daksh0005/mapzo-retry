@@ -33,27 +33,27 @@ function saveSettings() {
 }
 
 function init() {
-    
+
     document.querySelectorAll(".switchBtn").forEach(btn => {
         btn.addEventListener("click", () => { location.hash = btn.dataset.tab; });
     });
     window.addEventListener("hashchange", () => setActive(getTabFromHash()));
     setActive(getTabFromHash());
 
-   
+
     loadSettings();
     document.getElementById("notifReminders")?.addEventListener("change", saveSettings);
     document.getElementById("notifNearby")?.addEventListener("change", saveSettings);
 
-    
+
     document.getElementById("verifyForm")?.addEventListener("submit", (e) => {
         e.preventDefault();
         alert("Verification request submitted (demo).");
     });
 
-    
+
     document.getElementById("openLocationModalBtn")?.addEventListener("click", () => {
-        
+
         window.location.href = "index.html#openLocation";
     });
 }

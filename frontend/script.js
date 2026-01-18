@@ -16,7 +16,7 @@ const API_KEY = "AIzaSyDIpZtXSSK99wcbwHGvKEWAykme_6OPp00";
 let currentUser = null;
 
 // ✅ ADMIN ACCESS LIST
-// API_URL is now loaded from utils.js
+const API_URL = window.API_URL; // Explicitly define for local usage scope
 
 let map = null;
 let uploadMap = null;
@@ -701,16 +701,21 @@ function renderEventCards(events) {
 
     events.forEach(event => {
         let displayImage = 'https://via.placeholder.com/400x220?text=Event';
-        if (event.images && Array.isArray(event.images) && event.images.length > 0) {
+        if (event.image_url) {
+            displayImage = event.image_url;
+        } else if (event.images && event.images.length > 0) {
             displayImage = event.images[0];
-        } else if (event.image) {
-            displayImage = event.image;
         }
 
         // Check if event is live (current date/time matches event date)
         const isLive = checkIfEventIsLive(event);
         const liveBadge = isLive ? '<span class="liveBadge">🔴 LIVE</span>' : '';
         const chatButton = isLive ? `<button class="chatBtn" onclick="openChatModal('${event.id}')">💬 Chat</button>` : '';
+
+        // Format Date
+        const dateObj = new Date(event.event_date);
+        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const locationStr = event.venue_name || event.address || event.location || "Unknown Location";
 
         const card = document.createElement('div');
         card.className = 'eventCard';
@@ -722,8 +727,8 @@ function renderEventCards(events) {
             </div>
             <div class="eventInfo">
                 <h3 class="eventTitle">${event.title}</h3>
-                <p class="eventDate"><i class="fa-regular fa-calendar"></i> ${event.date}</p>
-                <p class="eventLocation"><i class="fa-solid fa-location-dot"></i> ${event.location}</p>
+                <p class="eventDate"><i class="fa-regular fa-calendar"></i> ${dateStr}</p>
+                <p class="eventLocation"><i class="fa-solid fa-location-dot"></i> ${locationStr}</p>
                 <div class="eventActions">
                     ${chatButton}
                 </div>
@@ -772,7 +777,7 @@ function addEventMarkers(events) {
     if (!map) return;
 
     events.forEach(event => {
-        if (!event.lat || !event.lng) return;
+        if (!event.latitude || !event.longitude) return;
 
         // Create icon: Image if available, else Emoji
         // Create icon: Always use Emoji as per new aesthetic request
@@ -782,7 +787,7 @@ function addEventMarkers(events) {
 
         // Create custom badge-like marker
         const marker = new google.maps.Marker({
-            position: { lat: event.lat, lng: event.lng },
+            position: { lat: event.latitude, lng: event.longitude },
             map: map,
             icon: icon,
             title: event.title,
@@ -864,7 +869,7 @@ function createImagePin(imageUrl) {
 
 // Check if event is currently live
 function checkIfEventIsLive(event) {
-    const d = event.fullDate || event.date;
+    const d = event.event_date || event.fullDate || event.date;
     if (!d) return false;
 
     const eventDate = new Date(d);
@@ -1260,6 +1265,25 @@ function compressImage(file) {
         reader.onerror = (error) => reject(error);
     });
 }
+
+// ✅ Fix: Add Image Input Listener
+const uploadImageInput = document.getElementById('uploadEventImage');
+if (uploadImageInput) {
+    uploadImageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            selectedFiles = [file];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreviewContainer').style.display = 'block';
+                document.getElementById('uploadPlaceholder').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
 async function handleEventSubmit() {
     const submitBtn = document.querySelector('.uploadSubmit');
     submitBtn.disabled = true;
