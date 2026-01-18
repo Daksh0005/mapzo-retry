@@ -514,6 +514,23 @@ function checkInLocation() {
                 if (locationDisplay) locationDisplay.innerHTML = `<span style="font-size:1.1em; font-weight:bold;">${city}</span><br><span style="font-size:0.8em; color:#aaa;">Current Location</span>`;
 
                 if (window.userLocationMarker) window.userLocationMarker.setMap(null);
+
+                // Create user location marker
+                window.userLocationMarker = new google.maps.Marker({
+                    position: currentLocation,
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: '#4285F4',
+                        fillOpacity: 1,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 3
+                    },
+                    title: 'Your Location',
+                    zIndex: 10000
+                });
+
                 // Re-center map if not already done
                 if (map) map.setCenter(currentLocation);
 
@@ -2394,7 +2411,55 @@ document.addEventListener("DOMContentLoaded", () => {
                     mapInstance.panTo(window.currentLocation);
                     mapInstance.setZoom(16);
                 } else {
-                    showToast("Location not found yet.", "info");
+                    // Request location if not available
+                    showToast("Getting your location...", "info");
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                window.currentLocation = {
+                                    lat: position.coords.latitude,
+                                    lng: position.coords.longitude
+                                };
+
+                                // Create user location marker
+                                if (window.userLocationMarker) window.userLocationMarker.setMap(null);
+                                window.userLocationMarker = new google.maps.Marker({
+                                    position: window.currentLocation,
+                                    map: mapInstance,
+                                    icon: {
+                                        path: google.maps.SymbolPath.CIRCLE,
+                                        scale: 10,
+                                        fillColor: '#4285F4',
+                                        fillOpacity: 1,
+                                        strokeColor: '#ffffff',
+                                        strokeWeight: 3
+                                    },
+                                    title: 'Your Location',
+                                    zIndex: 10000
+                                });
+
+                                mapInstance.panTo(window.currentLocation);
+                                mapInstance.setZoom(16);
+                                showToast("Location found!", "success");
+
+                                // Reload events to calculate distances
+                                if (typeof loadEventsFromAPI === 'function') {
+                                    loadEventsFromAPI();
+                                }
+                            },
+                            (error) => {
+                                showToast("Location access denied", "error");
+                                isTracking = false;
+                                recenterBtn.classList.remove('active');
+                                if (i) i.className = 'fa-solid fa-location-crosshairs';
+                            }
+                        );
+                    } else {
+                        showToast("Geolocation not supported", "error");
+                        isTracking = false;
+                        recenterBtn.classList.remove('active');
+                        if (i) i.className = 'fa-solid fa-location-crosshairs';
+                    }
                 }
             } else {
                 // STOP TRACKING
