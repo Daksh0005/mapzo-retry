@@ -94,6 +94,11 @@ app.post("/api/events/upload-image", jwtMiddleware, async (req, res) => {
     return res.status(400).json({ error: "Image required" });
   }
 
+  if (!supabase) {
+    console.error("Supabase not initialized - check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY");
+    return res.status(500).json({ error: "Storage service not configured" });
+  }
+
   try {
     const buffer = Buffer.from(
       imageBase64.replace(/^data:image\/\w+;base64,/, ""),
@@ -102,22 +107,27 @@ app.post("/api/events/upload-image", jwtMiddleware, async (req, res) => {
 
     const filePath = `event-images/${userId}-${Date.now()}.jpg`;
 
+    console.log("Uploading to Supabase:", filePath);
     const { error } = await supabase.storage
       .from("event-images")
       .upload(filePath, buffer, {
         contentType: "image/jpeg"
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase upload error:", error);
+      throw error;
+    }
 
     const { data } = supabase.storage
       .from("event-images")
       .getPublicUrl(filePath);
 
+    console.log("Image uploaded successfully:", data.publicUrl);
     res.json({ success: true, image_url: data.publicUrl });
   } catch (err) {
     console.error("Event image upload error:", err);
-    res.status(500).json({ error: "Failed to upload event image" });
+    res.status(500).json({ error: "Failed to upload event image", details: err.message });
   }
 });
 

@@ -514,6 +514,19 @@ function checkInLocation() {
                 if (locationDisplay) locationDisplay.innerHTML = `<span style="font-size:1.1em; font-weight:bold;">${city}</span><br><span style="font-size:0.8em; color:#aaa;">Current Location</span>`;
 
                 if (window.userLocationMarker) window.userLocationMarker.setMap(null);
+                if (window.userLocationCircle) window.userLocationCircle.setMap(null);
+
+                // Create accuracy circle (like Google Maps)
+                window.userLocationCircle = new google.maps.Circle({
+                    strokeColor: '#4285F4',
+                    strokeOpacity: 0.3,
+                    strokeWeight: 1,
+                    fillColor: '#4285F4',
+                    fillOpacity: 0.1,
+                    map: map,
+                    center: currentLocation,
+                    radius: 50
+                });
 
                 // Create user location marker
                 window.userLocationMarker = new google.maps.Marker({
@@ -1335,8 +1348,8 @@ async function handleEventSubmit() {
     const eventHashtags = document.getElementById('eventHashtags').value;
     const eventEndTime = document.getElementById('eventEndTime').value;
 
-    if (!eventName || !eventCategory || !eventDate || !eventLocation || !selectedEventLocation || !eventEndTime) {
-        showToast("Please fill all required fields (including End Time) and pin location.", "warning");
+    if (!eventName || !eventCategory || !eventDate || !eventTime || !eventLocation || !selectedEventLocation || !eventEndTime) {
+        showToast("Please fill all required fields (including start time, end time) and pin location on map.", "warning");
         submitBtn.disabled = false; submitBtn.textContent = "Post";
         return;
     }
@@ -1366,7 +1379,7 @@ async function handleEventSubmit() {
             title: eventName,
             category: eventCategory,
             event_date: `${eventDate}T${eventTime}:00Z`, // ISO format
-            end_time: `${eventDate}T${eventEndTime}:00Z`, // Assumes same day
+            end_time: `${eventDate}T${eventEndTime}:00Z`, // Required, assumes same day
             venue_name: eventLocation.split(',')[0], // Simple heuristic
             address: eventLocation,
             description: eventDescription,
