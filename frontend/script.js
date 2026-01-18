@@ -544,8 +544,11 @@ function checkInLocation() {
                     zIndex: 10000
                 });
 
-                // Re-center map if not already done
-                if (map) map.setCenter(currentLocation);
+                // Re-center and zoom to user location
+                if (map) {
+                    map.setCenter(currentLocation);
+                    map.setZoom(16); // Zoom in to street level
+                }
 
             } catch (err) {
                 console.error("Reverse geocode failed:", err);
@@ -854,9 +857,9 @@ function addEventMarkers(events) {
 }
 
 function createEmojiIcon(emoji) {
-    // Premium Badge-like Pin with Emoji
+    // Premium Badge-like Pin with Emoji (Reduced size)
     const svg = `
-    <svg width="60" height="70" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
+    <svg width="40" height="50" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
         <defs>
             <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
                 <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.5)"/>
@@ -870,9 +873,9 @@ function createEmojiIcon(emoji) {
 
     return {
         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-        scaledSize: new google.maps.Size(60, 70),
-        anchor: new google.maps.Point(30, 70),
-        labelOrigin: new google.maps.Point(30, 30)
+        scaledSize: new google.maps.Size(40, 50),
+        anchor: new google.maps.Point(20, 50),
+        labelOrigin: new google.maps.Point(20, 25)
     };
 }
 
