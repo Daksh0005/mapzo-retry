@@ -2141,20 +2141,29 @@ function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
                 let dateDisplay = "Date TBD";
                 try {
                     if (e.event_date) {
-                        const dateObj = new Date(e.event_date);
-                        if (!isNaN(dateObj.getTime())) {
-                            // Force IST display regardless of browser timezone
-                            const dStr = dateObj.toLocaleDateString('en-US', {
+                        // 1. Create Date from UTC string (browser parses as UTC or Local, but we need raw value)
+                        const utcDate = new Date(e.event_date);
+
+                        // 2. Manual Shift: Add 5h 30m to get IST Wall Clock Time
+                        // e.g. 08:30 UTC -> 14:00 (represented as a Date object)
+                        const istTime = new Date(utcDate.getTime() + (330 * 60 * 1000));
+
+                        if (!isNaN(utcDate.getTime())) {
+                            // 3. Read the shifted time components as if they were UTC
+                            // This gives us the "14:00" values we want
+                            const dStr = istTime.toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
                                 year: 'numeric',
-                                timeZone: 'Asia/Kolkata'
+                                timeZone: 'UTC' // Read shifted components as-is
                             });
-                            const tStr = dateObj.toLocaleTimeString('en-US', {
+
+                            const tStr = istTime.toLocaleTimeString('en-US', {
                                 hour: 'numeric',
                                 minute: '2-digit',
-                                timeZone: 'Asia/Kolkata'
+                                timeZone: 'UTC' // Read shifted components as-is
                             });
+
                             dateDisplay = `${dStr} • ${tStr}`;
                         } else {
                             console.warn("Invalid Date for event:", e.title, e.event_date);
