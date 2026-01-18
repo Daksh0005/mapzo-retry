@@ -1378,19 +1378,29 @@ async function handleEventSubmit() {
         }
 
         // 2. Create Event
-        // Convert IST times to UTC (subtract 5:30)
-        const eventDateTime = new Date(`${eventDate}T${eventTime}:00`);
-        const endDateTime = new Date(`${eventDate}T${eventEndTime}:00`);
+        // Robust Manual Conversion: Input (IST) -> UTC
+        // 1. Parse inputs
+        const [y, m, d] = eventDate.split('-').map(Number);
+        const [h, min] = eventTime.split(':').map(Number);
 
-        // Subtract 5 hours 30 minutes to convert IST to UTC
-        eventDateTime.setMinutes(eventDateTime.getMinutes() - 330);
-        endDateTime.setMinutes(endDateTime.getMinutes() - 330);
+        // 2. Create pure UTC date object for the input time (e.g. 14:00 UTC)
+        // Month is 0-indexed in JS Date
+        const eventUtcObj = new Date(Date.UTC(y, m - 1, d, h, min));
+
+        // 3. Subtract 5 hours 30 minutes to get the actual UTC Timestamp corresponding to IST input
+        // e.g. 14:00 IST -> 08:30 UTC
+        eventUtcObj.setMinutes(eventUtcObj.getMinutes() - 330);
+
+        // Handle End Time similarly
+        const [eh, emin] = eventEndTime.split(':').map(Number);
+        const endUtcObj = new Date(Date.UTC(y, m - 1, d, eh, emin));
+        endUtcObj.setMinutes(endUtcObj.getMinutes() - 330);
 
         const newEvent = {
             title: eventName,
             category: eventCategory,
-            event_date: eventDateTime.toISOString(), // UTC format
-            end_time: endDateTime.toISOString(), // UTC format
+            event_date: eventUtcObj.toISOString(), // Perfectly calculated UTC string
+            end_time: endUtcObj.toISOString(),
             venue_name: eventLocation.split(',')[0], // Simple heuristic
             address: eventLocation,
             description: eventDescription,
@@ -1399,6 +1409,8 @@ async function handleEventSubmit() {
             longitude: selectedEventLocation.lng,
             image_url: imageUrl
         };
+
+        console.log("Submitting Event (UTC):", newEvent.event_date); // Debug
 
         const res = await fetch(`${API_URL}/api/events`, {
             method: 'POST',
@@ -2131,8 +2143,18 @@ function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
                     if (e.event_date) {
                         const dateObj = new Date(e.event_date);
                         if (!isNaN(dateObj.getTime())) {
-                            const dStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                            const tStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                            // Force IST display regardless of browser timezone
+                            const dStr = dateObj.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                timeZone: 'Asia/Kolkata'
+                            });
+                            const tStr = dateObj.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                timeZone: 'Asia/Kolkata'
+                            });
                             dateDisplay = `${dStr} • ${tStr}`;
                         } else {
                             console.warn("Invalid Date for event:", e.title, e.event_date);
