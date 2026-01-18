@@ -1378,11 +1378,19 @@ async function handleEventSubmit() {
         }
 
         // 2. Create Event
+        // Convert IST times to UTC (subtract 5:30)
+        const eventDateTime = new Date(`${eventDate}T${eventTime}:00`);
+        const endDateTime = new Date(`${eventDate}T${eventEndTime}:00`);
+
+        // Subtract 5 hours 30 minutes to convert IST to UTC
+        eventDateTime.setMinutes(eventDateTime.getMinutes() - 330);
+        endDateTime.setMinutes(endDateTime.getMinutes() - 330);
+
         const newEvent = {
             title: eventName,
             category: eventCategory,
-            event_date: `${eventDate}T${eventTime}:00Z`, // ISO format
-            end_time: `${eventDate}T${eventEndTime}:00Z`, // Required, assumes same day
+            event_date: eventDateTime.toISOString(), // UTC format
+            end_time: endDateTime.toISOString(), // UTC format
             venue_name: eventLocation.split(',')[0], // Simple heuristic
             address: eventLocation,
             description: eventDescription,
