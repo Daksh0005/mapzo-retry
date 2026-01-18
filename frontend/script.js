@@ -2085,11 +2085,31 @@ function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
                     dist = getDistanceFromLatLonInKm(currentLocation.lat, currentLocation.lng, parseFloat(e.latitude), parseFloat(e.longitude));
                 }
 
+                // Safe Date Parsing
+                let dateDisplay = "Date TBD";
+                try {
+                    if (e.event_date) {
+                        const dateObj = new Date(e.event_date);
+                        if (!isNaN(dateObj.getTime())) {
+                            const dStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            const tStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                            dateDisplay = `${dStr} • ${tStr}`;
+                        } else {
+                            console.warn("Invalid Date for event:", e.title, e.event_date);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Date parse error:", err);
+                }
+
+                // Log Image URL for debugging
+                // console.log("Img check:", e.title, e.image_url);
+
                 return {
                     id: e.id,
                     title: e.title,
                     category: e.category,
-                    date: new Date(e.event_date).toLocaleDateString(),
+                    date: dateDisplay,
                     fullDate: e.event_date,
                     location: e.venue_name || e.address,
                     description: e.description,
