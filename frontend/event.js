@@ -307,7 +307,13 @@ window.addToCalendar = () => {
   if (!e) return;
 
   const startTime = new Date(e.event_date);
-  const endTime = new Date(startTime.getTime() + (2 * 60 * 60 * 1000)); // Default 2 hours
+  let endTime;
+
+  if (e.end_time) {
+    endTime = new Date(e.end_time);
+  } else {
+    endTime = new Date(startTime.getTime() + (2 * 60 * 60 * 1000)); // Default 2 hours
+  }
 
   const formatTime = (date) => date.toISOString().replace(/-|:|\.\d\d\d/g, "");
 
