@@ -32,4 +32,3 @@ function goBackHome() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
-//
