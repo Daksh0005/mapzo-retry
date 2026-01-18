@@ -494,6 +494,8 @@ app.post("/api/events", jwtMiddleware, async (req, res) => {
         category,
         venue_name || null,
         address || null,
+        latitude,
+        longitude,
         event_date,
         image_url || null,
         userId,
