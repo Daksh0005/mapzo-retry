@@ -712,9 +712,8 @@ function renderEventCards(events) {
         const liveBadge = isLive ? '<span class="liveBadge">🔴 LIVE</span>' : '';
         const chatButton = isLive ? `<button class="chatBtn" onclick="openChatModal('${event.id}')">💬 Chat</button>` : '';
 
-        // Format Date
-        const dateObj = new Date(event.event_date);
-        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // Use pre-formatted date from loadEventsFromAPI (already safely parsed)
+        const dateStr = event.date || 'Date TBD';
         const locationStr = event.venue_name || event.address || event.location || "Unknown Location";
 
         const card = document.createElement('div');
@@ -2113,7 +2112,7 @@ function loadEventsFromAPI(filters = { sortBy: 'distance' }) {
                     fullDate: e.event_date,
                     location: e.venue_name || e.address,
                     description: e.description,
-                    image: e.image_url,
+                    image_url: e.image_url,
                     lat: e.latitude,
                     lng: e.longitude,
                     latitude: e.latitude,   // Fix: Added for addEventMarkers

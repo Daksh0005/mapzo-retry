@@ -233,6 +233,11 @@ document.getElementById('editProfileForm').addEventListener('submit', async (e) 
 
         const data = await res.json();
         if (data.success) {
+            // SYNC FIREBASE PROFILE
+            if (currentUser) {
+                await currentUser.updateProfile({ displayName: newName }).catch(err => console.error("Firebase Profile Update Error", err));
+            }
+
             showToast("Profile updated! ✨", "success");
             loadUserProfile(); // Refresh UI
             closeEditModal();
