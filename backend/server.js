@@ -669,8 +669,21 @@ app.use((err, req, res, next) => {
 });
 
 // ---------- START SERVER ----------
+app.get("/migrate-db", async (req, res) => {
+  try {
+    await pool.query(`
+      ALTER TABLE events
+      ADD COLUMN IF NOT EXISTS end_time TIMESTAMP WITH TIME ZONE;
+    `);
+    res.send("Migration successful: end_time column added.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Migration failed: " + err.message);
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Server running on port ${PORT}`);
+}); console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
