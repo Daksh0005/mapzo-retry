@@ -356,7 +356,7 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
 
     const query = `
       SELECT id, title, description, category, venue_name, address,
-             latitude, longitude, event_date, end_time, created_at, image_url,
+             latitude, longitude, event_date, end_time, created_at, image_url, is_pinned,
         (6371 * acos(
           cos(radians($1)) * cos(radians(latitude)) *
           cos(radians(longitude) - radians($2)) +
@@ -365,7 +365,7 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
       FROM events
       WHERE ${where.join(" AND ")}
       AND end_time > NOW() - INTERVAL '1 day'
-      ORDER BY distance
+      ORDER BY is_pinned DESC, distance
       LIMIT 50
     `;
 
@@ -389,10 +389,10 @@ app.get("/api/events", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, title, description, category, venue_name, address,
-              latitude, longitude, event_date, end_time, created_at, image_url
+              latitude, longitude, event_date, end_time, created_at, image_url, is_pinned
        FROM events
        WHERE end_time > NOW() - INTERVAL '1 day'
-       ORDER BY event_date ASC
+       ORDER BY is_pinned DESC, event_date ASC
        LIMIT 100`
     );
 

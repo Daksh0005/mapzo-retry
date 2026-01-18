@@ -743,6 +743,7 @@ function renderEventCards(events) {
         // Check if event is live (current date/time matches event date)
         const isLive = checkIfEventIsLive(event);
         const liveBadge = isLive ? '<span class="liveBadge">🔴 LIVE</span>' : '';
+        const pinnedBadge = event.is_pinned ? '<span class="pinnedBadge" style="background:#ffd700; color:#000; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; margin-left:5px;">📌 FEATURED</span>' : '';
         const chatButton = isLive ? `<button class="chatBtn" onclick="openChatModal('${event.id}')">💬 Chat</button>` : '';
 
         // Use pre-formatted date from loadEventsFromAPI (already safely parsed)
@@ -756,6 +757,7 @@ function renderEventCards(events) {
                 <img src="${displayImage}" alt="${event.title}" loading="lazy">
                 <span class="eventCategory">${event.category}</span>
                 ${liveBadge}
+                ${pinnedBadge}
             </div>
             <div class="eventInfo">
                 <h3 class="eventTitle">${event.title}</h3>
