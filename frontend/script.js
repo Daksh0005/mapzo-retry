@@ -2339,3 +2339,69 @@ function checkNotifications() {
 setInterval(checkNotifications, 60000);
 // Check once on load
 setTimeout(checkNotifications, 5000);
+
+// ===========================================
+// PATCH: RECENTER BUTTON LOGIC (FIXED)
+// ===========================================
+document.addEventListener("DOMContentLoaded", () => {
+    const recenterBtn = document.getElementById('recenterBtn');
+    if (!recenterBtn) return;
+
+    // Retry until map is initialized
+    let mapCheckInterval = setInterval(() => {
+        if (typeof map !== 'undefined' && map) {
+            clearInterval(mapCheckInterval);
+            initRecenterLogic(map);
+        } else if (window.map) {
+            clearInterval(mapCheckInterval);
+            initRecenterLogic(window.map);
+        }
+    }, 500);
+
+    function initRecenterLogic(mapInstance) {
+        let isTracking = false;
+
+        recenterBtn.addEventListener('click', () => {
+            if (!isTracking) {
+                // START TRACKING
+                isTracking = true;
+                recenterBtn.classList.add('active');
+                const i = recenterBtn.querySelector('i');
+                if (i) i.className = 'fa-solid fa-location-dot'; // Active Icon
+
+                if (window.currentLocation) {
+                    mapInstance.panTo(window.currentLocation);
+                    mapInstance.setZoom(16);
+                } else {
+                    showToast("Location not found yet.", "info");
+                }
+            } else {
+                // STOP TRACKING
+                isTracking = false;
+                recenterBtn.classList.remove('active');
+                const i = recenterBtn.querySelector('i');
+                if (i) i.className = 'fa-solid fa-location-crosshairs'; // Inactive Icon
+            }
+        });
+
+        // Stop tracking if user drags map
+        mapInstance.addListener('dragstart', () => {
+            if (isTracking) {
+                isTracking = false;
+                recenterBtn.classList.remove('active');
+                const i = recenterBtn.querySelector('i');
+                if (i) i.className = 'fa-solid fa-location-crosshairs';
+            }
+        });
+
+        // Watch Position Update (Auto-pan)
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition((pos) => {
+                const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                if (isTracking) {
+                    mapInstance.panTo(newPos);
+                }
+            }, null, { enableHighAccuracy: true });
+        }
+    }
+});
