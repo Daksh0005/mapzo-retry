@@ -338,3 +338,123 @@ window.shareEvent = (title) => {
   }
 };
 
+// ========================================
+// EVENT CHAT FUNCTIONALITY (Polling-based)
+// ========================================
+
+let chatPollInterval = null;
+let isChatOpen = false;
+
+window.toggleChat = function () {
+  const modal = document.getElementById('chatModal');
+  isChatOpen = !isChatOpen;
+
+  if (isChatOpen) {
+    modal.style.display = 'block';
+    loadChatMessages();
+    // Start polling every 3 seconds
+    chatPollInterval = setInterval(loadChatMessages, 3000);
+  } else {
+    modal.style.display = 'none';
+    // Stop polling
+    if (chatPollInterval) {
+      clearInterval(chatPollInterval);
+      chatPollInterval = null;
+    }
+  }
+};
+
+async function loadChatMessages() {
+  try {
+    const res = await fetch(`${API_URL}/api/events/${eventId}/messages`);
+    const data = await res.json();
+
+    if (data.success) {
+      renderMessages(data.messages);
+    }
+  } catch (err) {
+    console.error("Load messages error:", err);
+  }
+}
+
+function renderMessages(messages) {
+  const container = document.getElementById('chatMessages');
+
+  if (messages.length === 0) {
+    container.innerHTML = '<p style="text-align: center; color: #666; font-size: 0.9rem;">No messages yet. Start the conversation!</p>';
+    return;
+  }
+
+  container.innerHTML = messages.map(msg => {
+    const time = new Date(msg.created_at).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Kolkata'
+    });
+
+    const isCurrentUser = currentUser && msg.user_id === currentUser.uid;
+    const bgColor = isCurrentUser ? '#1db954' : '#2a2a2a';
+    const textColor = isCurrentUser ? '#000' : '#fff';
+    const align = isCurrentUser ? 'flex-end' : 'flex-start';
+
+    return `
+      <div style="display: flex; flex-direction: column; align-items: ${align};">
+        <div style="background: ${bgColor}; color: ${textColor}; padding: 8px 12px; border-radius: 12px; max-width: 70%; word-wrap: break-word;">
+          <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 3px;">${msg.user_name}</div>
+          <div style="font-size: 0.9rem;">${escapeHtml(msg.message)}</div>
+          <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 3px;">${time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Auto-scroll to bottom
+  container.scrollTop = container.scrollHeight;
+}
+
+window.sendMessage = async function () {
+  if (!currentUser) {
+    showToast("Please log in to chat", "warning");
+    return;
+  }
+
+  const input = document.getElementById('chatInput');
+  const message = input.value.trim();
+
+  if (!message) return;
+
+  if (message.length > 500) {
+    showToast("Message too long (max 500 characters)", "warning");
+    return;
+  }
+
+  try {
+    const token = await currentUser.getIdToken();
+    const res = await fetch(`${API_URL}/api/events/${eventId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ message })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      input.value = '';
+      loadChatMessages(); // Refresh immediately
+    } else {
+      showToast(data.error || "Failed to send message", "error");
+    }
+  } catch (err) {
+    console.error("Send message error:", err);
+    showToast("Failed to send message", "error");
+  }
+};
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}

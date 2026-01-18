@@ -356,11 +356,7 @@ app.get("/api/events/nearby", jwtMiddleware, async (req, res) => {
 
     const query = `
       SELECT id, title, description, category, venue_name, address,
-             latitude, longitude, 
-             event_date AT TIME ZONE 'Asia/Kolkata' as event_date,
-             end_time AT TIME ZONE 'Asia/Kolkata' as end_time,
-             created_at AT TIME ZONE 'Asia/Kolkata' as created_at,
-             image_url,
+             latitude, longitude, event_date, end_time, created_at, image_url,
         (6371 * acos(
           cos(radians($1)) * cos(radians(latitude)) *
           cos(radians(longitude) - radians($2)) +
@@ -396,11 +392,7 @@ app.get("/api/events", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, title, description, category, venue_name, address,
-              latitude, longitude,
-              event_date AT TIME ZONE 'Asia/Kolkata' as event_date,
-              end_time AT TIME ZONE 'Asia/Kolkata' as end_time,
-              created_at AT TIME ZONE 'Asia/Kolkata' as created_at,
-              image_url
+              latitude, longitude, event_date, end_time, created_at, image_url
        FROM events
        WHERE (end_time IS NOT NULL AND end_time > NOW()) 
           OR (end_time IS NULL AND event_date >= CURRENT_DATE)
@@ -430,9 +422,7 @@ app.get("/api/events/:id", async (req, res) => {
     const result = await pool.query(
       `SELECT e.id, e.title, e.description, e.category, e.venue_name, e.address,
               e.latitude, e.longitude, e.host_id, e.image_url, e.views,
-              e.event_date AT TIME ZONE 'Asia/Kolkata' as event_date,
-              e.end_time AT TIME ZONE 'Asia/Kolkata' as end_time,
-              e.created_at AT TIME ZONE 'Asia/Kolkata' as created_at,
+              e.event_date, e.end_time, e.created_at,
               COALESCE(AVG(r.rating), 0) as avg_rating,
               COUNT(r.id) as review_count
        FROM events e
@@ -532,6 +522,69 @@ app.post("/api/events", jwtMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Create event error:", err);
     res.status(500).json({ error: "Failed to create event" });
+  }
+});
+
+// ========================================
+// EVENT CHAT ENDPOINTS (Polling-based)
+// ========================================
+
+// Get last 8 chat messages for an event (in IST)
+app.get("/api/events/:eventId/messages", async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT id, user_id, user_name, message, created_at
+       FROM event_messages 
+       WHERE event_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT 8`,
+      [eventId]
+    );
+
+    // Reverse to show oldest first
+    res.json({ success: true, messages: result.rows.reverse() });
+  } catch (err) {
+    console.error("Fetch messages error:", err);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
+});
+
+// Send a chat message (requires auth)
+app.post("/api/events/:eventId/messages", jwtMiddleware, async (req, res) => {
+  const { eventId } = req.params;
+  const { message } = req.body;
+  const { id: userId } = req.user;
+
+  if (!message || message.trim().length === 0) {
+    return res.status(400).json({ error: "Message cannot be empty" });
+  }
+
+  if (message.length > 500) {
+    return res.status(400).json({ error: "Message too long (max 500 characters)" });
+  }
+
+  try {
+    // Get user's display name
+    const userResult = await pool.query(
+      "SELECT display_name FROM users WHERE id = $1",
+      [userId]
+    );
+
+    const userName = userResult.rows[0]?.display_name || "Anonymous";
+
+    const result = await pool.query(
+      `INSERT INTO event_messages (event_id, user_id, user_name, message) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING id, user_id, user_name, message, created_at`,
+      [eventId, userId, userName, message.trim()]
+    );
+
+    res.json({ success: true, message: result.rows[0] });
+  } catch (err) {
+    console.error("Send message error:", err);
+    res.status(500).json({ error: "Failed to send message" });
   }
 });
 

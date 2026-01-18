@@ -318,6 +318,11 @@
         <i class="fa-solid fa-circle-check"></i> You are interested in this event!
       </div>
 
+      <button id="chatBtn" class="authPrimaryBtn"
+        style="margin-bottom: 20px; background: #2a2a2a; border: 1px solid #1db954;" onclick="toggleChat()">
+        <i class="fa-solid fa-comments"></i> Event Chat
+      </button>
+
       <div class="infoCard">
         <div class="infoRow">
           <div class="infoIcon"><i class="fa-regular fa-calendar"></i></div>
@@ -367,6 +372,34 @@
           <p style="text-align:center; color:#666;">No reviews yet. Be the first!</p>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Chat Modal -->
+  <div id="chatModal"
+    style="display: none; position: fixed; bottom: 20px; right: 20px; width: 350px; max-width: 90vw; background: #1a1a1a; border: 1px solid #1db954; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.8); z-index: 10000;">
+    <div
+      style="padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 1rem; color: #1db954;"><i class="fa-solid fa-comments"></i> Event Chat</h3>
+      <button onclick="toggleChat()"
+        style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div id="chatMessages"
+      style="height: 300px; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px;">
+      <p style="text-align: center; color: #666; font-size: 0.9rem;">Loading messages...</p>
+    </div>
+
+    <div style="padding: 15px; border-top: 1px solid #333; display: flex; gap: 10px;">
+      <input type="text" id="chatInput" placeholder="Type a message..." maxlength="500"
+        style="flex: 1; background: #2a2a2a; border: 1px solid #333; border-radius: 20px; padding: 10px 15px; color: #fff; font-size: 0.9rem;"
+        onkeypress="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()"
+        style="background: #1db954; color: #000; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
     </div>
   </div>
 
