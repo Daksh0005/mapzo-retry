@@ -809,6 +809,19 @@ function addEventMarkers(events) {
             // Could add custom scaling if icon supports it, or just Z-index
         });
     });
+
+    // Fit bounds if we have markers
+    if (eventMarkers.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        eventMarkers.forEach(m => bounds.extend(m.getPosition()));
+        map.fitBounds(bounds);
+
+        // Don't zoom in too close for single marker
+        const listener = google.maps.event.addListener(map, "idle", () => {
+            if (map.getZoom() > 15) map.setZoom(15);
+            google.maps.event.removeListener(listener);
+        });
+    }
 }
 
 function createEmojiIcon(emoji) {
