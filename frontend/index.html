@@ -3,35 +3,77 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="theme-color" content="#0b0b0b">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0b0b">
 
-  <title>Mapzo – Escape Boredom, Discover What’s Happening Around You</title>
+  <!-- Primary SEO Title (Keyword Optimized) -->
+  <title>Mapzo | Discover Events Near You, Connect with Friends & Explore Local Happenings</title>
 
-  <!-- SEO meta description (≈150 chars) -->
+  <!-- Canonical -->
+  <link rel="canonical" href="https://www.mapzo.in/">
+
+  <!-- Primary Meta Description (150–160 chars, high CTR focused) -->
   <meta name="description"
-        content="Feeling bored? Open Mapzo and instantly see nearby events and where your friends are. No plans needed – just discover what’s happening around you.">
+        content="Discover events near you with Mapzo. Find local concerts, parties, meetups and see where your friends are. Never miss what’s happening around you.">
 
-  <!-- Open Graph for social + better previews -->
-  <meta property="og:title"
-        content="Mapzo – Escape Boredom, Discover What’s Happening Around You">
-  <meta property="og:description"
-        content="Mapzo is your way out of boredom. Open the map, see what’s happening nearby and join your friends – no tickets, no planning, just real experiences.">
+  <!-- SEO Keywords (secondary ranking support) -->
+  <meta name="keywords"
+        content="events near me, local events app, discover concerts, parties near me, social event platform, meet new people, things to do near me, Mapzo app">
+
+  <meta name="author" content="Mapzo">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+
+  <!-- Open Graph (Improves CTR + Social Signals) -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://www.mapzo.in">
+  <meta property="og:title"
+        content="Mapzo – Discover Events Near You & Connect in Real Life">
+  <meta property="og:description"
+        content="Open Mapzo to explore local events, see where friends are, and experience real-world moments. Your city is alive. Discover it now.">
+  <meta property="og:url" content="https://www.mapzo.in/">
   <meta property="og:image" content="https://www.mapzo.in/og-image.png">
+  <meta property="og:site_name" content="Mapzo">
 
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title"
+        content="Mapzo – Discover What’s Happening Around You">
+  <meta name="twitter:description"
+        content="Find local events, connect with friends, and never miss what’s happening nearby.">
+  <meta name="twitter:image" content="https://www.mapzo.in/og-image.png">
+
+  <!-- Structured Data (CRITICAL for SEO Ranking Boost) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Mapzo",
+    "url": "https://www.mapzo.in/",
+    "description": "Mapzo is a social event discovery platform that helps users find local events, concerts, parties and connect with friends in real life.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.mapzo.in/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- Performance: Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap"
-    rel="stylesheet">
+  <link rel="preconnect" href="https://backend-jwqn.onrender.com">
+  <link rel="preconnect" href="https://maps.googleapis.com">
+  <link rel="preconnect" href="https://www.gstatic.com">
 
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <!-- Favicons (make sure these files exist) -->
+  <!-- Favicons -->
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
@@ -41,16 +83,12 @@
   <meta name="apple-mobile-web-app-title" content="Mapzo">
   <link rel="manifest" href="/site.webmanifest">
 
-  <link rel="preconnect" href="https://backend-jwqn.onrender.com">
-  <link rel="preconnect" href="https://maps.googleapis.com">
-  <link rel="preconnect" href="https://www.gstatic.com">
-
+  <!-- Firebase -->
   <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
 </head>
-
-
 <body>
     <nav class="navBar1" role="navigation" aria-label="Main navigation">
         <div class="navLeft">
